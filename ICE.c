@@ -10,7 +10,7 @@
 	When structured in a sorted array as searchable chunks, it enables hash-like and array-like access, exhibiting hyperbolic complexity.
 
 		> Trivial access to lowest / highest / nearest sparse index in O(1) time— an obvious strength for dynamic ID tables
-		> Hash-like sparsity with array-like sorting effectively works like an iterable hash
+		> Hash-like sparsity with array-like sorting effectively works like a sorted hash
 		> Indeces maintain order (as in vectors/arrays) but without direct correlation between fixed and sorted index (like hashes)
 
 	ICE is a QWORD-sized compressed truth vector which uses an original variant of RLE encoding— Inversion Cycle RLE.
@@ -37,7 +37,7 @@
 	of entropy sources as usual, but instead of piping this directly into a Session ID generator, you use it to choose the "nth" free ID
 	in an ICE::RELiC instance, which trivially guards against colissions; in order to make replication across a server farm more efficient,
 	you can allow servers to preallocate large random sets of IDs, periodically throwing them back into the pool and drawing a new set.
-	In this way, edge servers can still set service-wide Session ID assignments on an event-driven basis, with no core validation process,
+	In this way, edge servers can still set service-wide Session ID assignments on an event-driven basis, with no core negotiation needed,
 	but IDs are still guaranteed collission-free.  Not only does this free us to rate the appropriate namespace depth precisely, but it also
 	frees us to implement Perfect Forward Secrecy— to renew the Session-ID upon each and every response.  
 
@@ -49,7 +49,7 @@
 /*	RELiC extends ICE to support direct enumeration— in both defined and undefined namespace.  This is potentially very powerful:
 
 		> As a data structure, RELIC is the fullest realization yet of the "Perlish" notion that "everything is a number".
-		> RELiC allows for an efficient and completely deterministic inside-out implementation of mass distributed non-repeating entropy.
+		> RELiC allows for an efficient and completely deterministic inside-out implementation of mass distributed non-repeating shuffle.
 		> Additional overhead per ICE instance is reasonable: +20% memory footprint and similar rise in access complexity.
 		
 	A RELiC graph may be visualized as an outline of a staircase in 2D, where the X and Y axes are defined / undefined namespace.
@@ -67,7 +67,7 @@
 
 	As a standalone algorithm, RELiC expresses a potentially heavy expanded matrix structure which becomes surprisingly light over ICE.
 	An inverse relationship exists between the minimal field widths of RELiC's regressive exponents and corresponding counter values,
-	which allows them to be serialized as single data points along a truth vector and compressed in ICE layers. eliminating a tree-like addressing scheme,
+	which allows them both to be serialized as singular points in a compressed a truth vector. eliminating a tree-like addressing scheme.
 	
 
 	Embedded in the freed-up bit depth of each layer are counter values which, when traced and summed, give non-sparse z-index.
@@ -76,7 +76,7 @@
 	these two sets of values are able to be serialized and stored in the same locations, avoiding any additional address-related overhead.
 
 	Given a saturated 64-bit namespace and an octal base exponent, this results in (21) layers, each 1/8th the size of the last.
-	The final layer is quantized down to a single entry, which conveniently gives the array length.
+	The final layer is quantized down to a single entry, which gives the logical length of the truth vector, as if decompressed.
 
 	*/
 
@@ -92,15 +92,16 @@
 
 	>	Each SV* "cube" is labeled by an "Epsilon" value which represents the upper limit for the range of sorted keys contained within.
 	>	Each SV* "cube" can vary in length from (16..144) bytes, containing up to (8) flag inversion boundary pairs known as "cycla".
-	>	Cycla chain together to form a vector path which stores the allocations of the NS as alternating ranges of un/defined keys.
 	>	Each "cyclum" can vary in length from (1..17) byte[s], using a single "keybyte" to define a pair of ULLs (A, B) as variable fields.
 		>	If either A or B is less-than 8, its value is stored in the keybyte and its variable field is omitted;
 		>	If both A and B are less-than 8, their values are both stored in the keybyte for maximum compression at full NS saturation.
 
-	That last point is arguably the most significant, because FI-RLE encoding used in this way exhibits hyperbolic time complexity—
+	>	Cycla chain together to form a vector path which stores the allocations of the NS as alternating ranges of un/defined keys.
+
+	That last point is arguably the most significant, because IC-RLE encoding used in this way exhibits hyperbolic time complexity—
 	the nearest approach to the asymptote occurs at around 60% capacity, after which point time drops back down to the initial value.
-	This behavior is inherent to parametric representation, where size is less a matter of content and more a matter of detail.
-	ICE leverages this property to its fullest extent by allowing the smallest (A, B) pairs to compress down into a single byte.
+	This behavior is due to parametric representation, where memory is consumed more by sparsity than logical content.
+	ICE encoding is leveraged to maximize compression in the saturation state by compressing the smallest (A, B) pairs into a single byte.
 	At this granular level, this is the most probable case when data is highly entropic and saturation reaches an equilibrium state.
 
 	*/
@@ -314,10 +315,10 @@ ui08 	Hx[	256 ],				/* header codes	which alloc.	q-data field space			in	char *	
 		O[	256 ],				/* q-data offsets	which mark	each read position			in	char *	cube			*/
 		_O[	256 ];				/* q-data offsets	which mark	each write position			in	char *	cube			*/
 ui64		G[	256 ];				/* "cube" indeces	which relate	cube->matrix mapping		for debugging purposes only.		*/
-bool		cmpZ	=1;
-long long int		rel_zC,	eji, _eji, arc,
+char		cmpZ	=0;
+long long int		rel_zC,	eji, _eji, alt,
 				rack_iC	=0,		
-				respliceArc[	256	],
+				respliceAlt[	256	],
 				respliceSrc[	256	],
 				respliceDst[	256	],
 				respliceIns[	256	],
@@ -999,14 +1000,19 @@ bool _alloc(){					zC = AvFILLp(	avICE );
 void deIceV_KE(){	DeICEv_KE(	u, v );	}
 void deIceV_KEI(){	DeICEv_KEI(	u, v );	}
 
-void _rack( unsigned short caller ){	//	printf("\r_rack( caller==%-4d )	mxZ==%d\n\t", caller, mxZ);
+void _rack( unsigned short caller ){	//	"rack"		is the post-operational process of rendering changes to the elements of avICE.
 	ui64		head, body, tail, top, mid;
 	ui08		m, bs, hxbs, mc0xZ, mc1xZ;
 /*	Going in, we expect (SV*) sv  to equal *( AvARRAY( iC ) ), and (char*) cube to equal SvPVbyte( sv... ).
-	This is our current position in the avICE array, the in-focus cube which is being actively operated on.
-	Upon return, the in-focus cube is represented by sv_ and cube_ (with trailing underscores), because
-	the next thing to happen after this may be an incremental re-track, and we may need to reassign these anyway,
-	depending on whether fragmentation is needed.
+	In the 'operating' state,	(SV*) sv,  	(char*) cube,   	(int) iC, 	and (uchar) zc 	represent "this" 'pre-operational' cube.
+	The underscored aliases	(SV*) sv_, 	(char*) cube_,  	(int) iC_,	and (uchar) zc_	represent the cube preceding that one.
+
+	However, upon return, this cube changes state to 'post-operational',thus then it is shunted down to the trailing-underscore analogs.
+	It is not determined here whether this post-operational cube will precede the next to be operated on, but it may.
+
+	The INTERLOC operations use both sets, since they bridge the logical namespace gap between two cubes, operating on both at once.
+	However, those operations do not require racking or extrication, since those mutations are simple and direct in-situ assignments.
+
 	*/
 
 	if(mx0==0xFF ){	printf("\n!_rack(	caller==%-4d ): nothing to rack\n", caller);	goto _end__rack;		}
@@ -1466,23 +1472,46 @@ _end__rack:
 	*( (ui64*) Hx )=0;
 //	printf("\n	</RACK>\n");
 	}
-void _resplice( ui08 caller ){
-	printf("\n_resplice( caller==%d ):	eji=%lld	_eji=%lld	arc=%lld\n", caller, eji, _eji, arc );
+void _resplice( ui08 caller ){		//	"resplice"	is the post-operational process of rendering changes to the avICE array itself.
+	printf("\n_resplice( caller==%d ):	eji=%lld	_eji=%lld	alt=%lld\n", caller, eji, _eji, alt );
 	if( zC!= AvFILLp( avICE ) ){	printf( lightning );
 							printf("\n!	zC( %llu ) != AvFILLp( avICE )( %llu )\n", zC, AvFILLp( avICE ) );
 							zC = AvFILLp( avICE );
 							}
 	
-/*	The _resplice() function iterates semi-erratically.  
-	The process goes jump, insert, cut, repeat; inserts and cuts are self-explanatory, while jumps are a bit dynamical.
-	Basically, a jump focuses on an earlier element, shifting any intermediate elements up or down, if necessary.
-	For all but the final rack / initial resplice entry, these jump intervals are stored in the (int) respliceSrc[] array.
-	Each interval is equal to the difference in rack_iC and iC at the time when RACK_SvINS() or RACK_SvCUT() were called.
-	Obviously the final array operation will not be followed by such a call, so first we do calculate this first jump as int cubeJmp_zrC.
+	/* rel. AvFILLp:	*/				rel_iC += respliceIns[ eji ] - respliceCut[ eji ];
+	/* new AvFILLp:	*/	post_zC =zC +	rel_iC;								if(	post_zC< 0 ){ AvFILLp( avICE ) =-1;	return ;	}
+	if(					post_zC >=AvMAX(	avICE ) ){			av_extend( avICE,		post_zC );	printf("\n	avICE extended to (%d)\n", post_zC );	}
+
+/*	"Re-splice" streamlines any number of deferred array splice operations into one, using a bistable loop with 2nd order dynamics.
+	Inputs are the (5) global arrays:
+		> respliceSrc	—the absolute index number of the operand element in the pre-operational array.
+		> respliceDst	—the absolute index number of the operand element in the post-operational array.
+		> respliceIns	—the number of elements to be inserted at destination index.
+		> respliceCut	—the number of elements to be removed at source index.
+		> respliceAlt	—not a part of the main vector.  Uses a separate iterator, "alt".  Governs ascending / descending alternation.
+
+	The first (4) arrays share a common iterator"eji", and they align as one matrix, such that "eji" represents a vector, crossing the (4).
+	The fifth array is the main array of the outer loop below.  It subdivides the step matrix into ascending / descending ranges,
+	directing sequential numbers of iterations for the two nested inner loops as they swap over to each other within the main loop.
+
+	Prior to getting here, the population of the resplice matrix is event-based; the only two events are "insert" and "cut".
+	Events which occur at the same index increment the counter of a single "eji" step, and are thus aggregated; additionally,
+	"cut" events which occur on consecutive elements are also aggregated in a single "eji" step, since "cut" implies "next".
+	
+	The loop starts by determining which end to start on / direction to iterate in depending on whether the new length is greater.
+	The direction of iteration reverses each time the relative difference between source and destination index crosses zero.
+	When swapping to "ascending" mode, the total ascending span is incremented all at once initially, decrementing step-by-step;
+	upon returning to the alternation index (minus one), it jumps forward by that length again, proceeding in the initial direcion.
+
+	Whether in ascending or descending mode, the order of array operations per step is "cut; jump; insert; continue".
+	inserts and cuts are self-explanatory, while the dynamics of jumps are determined by direction and non-zero relative pre-post offset.
+	Basically, a jump initializes cut & insert positions, shifting intermediate elements peristaltically for non-zero relative pre-post offset.
+	For all but the highest-index step, these jump intervals are already stored in the (int) respliceDst[] array before we get here.
+	Obviously the final event is not followed by another one, so the very first thing we do is compute "dst" for the highest-index step.
 	*/
 
 #define	__ReSPLICE_DESC(		$isrc, $idst, $cut, $ins )							printf("\n	<__ReSPLICE_DESC	eji=%lld>\n", eji );	\
-			/*	jmp =	$cut +src -svC0 -$isrc;	uh.. jmp shud b based on dst?	*/	\
 				jmp =	dst -svC0 -$idst;									\
 	src = svC0 + $isrc +jmp;	\
 	if( $cut )	{									psv = svC0 +$isrc;			\
@@ -1490,7 +1519,7 @@ void _resplice( ui08 caller ){
 											*	psv = &PL_sv_undef;		printf("\r		x%d  	avICE[ %-2d ]    		= &PL_sv_undef;			cut: %d\n",	eji, psv-svC0,			$cut );	\
 							} while( -- $cut );								\
 			}															\
-	if(	src == dst ){			src-=jmp;		dst-=jmp;						\
+	if(	$isrc == $idst ){			src-=jmp;		dst-=jmp;						\
 	}else	if( jmp >0 )	do	{											printf("\r		%c%d  	avICE[ %-2d]    		= avICE[ %-2d];			jmp: %d\n",	\
 																					175, eji,	dst -svC0,			src -svC0,  				jmp );		\
 							*dst-- = *src--;								\
@@ -1506,16 +1535,41 @@ void _resplice( ui08 caller ){
 
 
 #define	__ReSPLICE_ASC(	$isrc, $idst, $cut, $ins  )								\
-		dst	=	svC0 +$idst;		rel	= 			$idst	- $isrc;			\
-		src	=	svC0 +$isrc;		jmp	= ( 1-respliceCut[ eji+1] ) +respliceSrc[ eji+1 ]	- $isrc;			\
+			dst	=	svC0 +$idst;											\
+			src	=	svC0 +$isrc;	jmp	= ( 1-respliceCut[ eji+1] ) +respliceDst[ eji+1 ]	- $idst;			\
 																		printf("\n	<__ReSPLICE_ASC	eji=%lld	jmp=%lld	rel=%lld >\n", eji, jmp, rel );	\
 	if( $cut )	{									psv = src-1;				\
 						do	{	SvREFCNT_dec(  *	psv);					\
 											*	psv-- = &PL_sv_undef;		printf("\r		x%d  	avICE[ %-2d ]    		= &PL_sv_undef;			cut: %d\n",		eji, psv+1-svC0,			$cut );	\
 							} while( -- $cut );								\
 			}															\
-	if( rel==0||jmp==0){		src+=jmp;	dst+=jmp;						\
-	}else				do	{											printf("\r		%c%d  	avICE[ %-2d]    		= avICE[ %-2d];			jmp: %d\n",	\
+	if( $ins )	{								psv = svR0 +r;  r -= $ins;			\
+						do	{											printf("\r		*%d  	avICE[ %-2d ]    		= avRack[ %d ];			ins: %d\n",	\
+																					eji,		dst-svC0,			psv-svR0,				$ins  );		\
+							*dst-- = *psv;	   *	psv-- = &PL_sv_undef;			\
+							} while( -- $ins );								\
+			dst	=	svC0 +$idst;											\
+			}															\
+	if(	$isrc == $idst ){		src+=jmp;	dst+=jmp;						\
+	}else	if( jmp >0 )	do	{											printf("\r		%c%d  	avICE[ %-2d]    		= avICE[ %-2d];			jmp: %d\n",	\
+																					175, eji,	dst -svC0,			src -svC0,  				jmp );		\
+							*dst++ = *src++;								\
+							} while( -- jmp );								printf("\n\t	</__ReSPLICE_ASC>\n");
+
+
+
+
+#define	__ReSPLICE_ASC_(	$isrc, $idst, $cut, $ins  )								\
+		dst	=	svC0 +$idst;												\
+		src	=	svC0 +$isrc;		jmp	= ( 1-respliceCut[ eji+1] ) +respliceDst[ eji+1 ]	- $idst;			\
+																		printf("\n	<__ReSPLICE_ASC	eji=%lld	jmp=%lld	rel=%lld >\n", eji, jmp, rel );	\
+	if( $cut )	{									psv = src-1;				\
+						do	{	SvREFCNT_dec(  *	psv);					\
+											*	psv-- = &PL_sv_undef;		printf("\r		x%d  	avICE[ %-2d ]    		= &PL_sv_undef;			cut: %d\n",		eji, psv+1-svC0,			$cut );	\
+							} while( -- $cut );								\
+			}															\
+	if(	$isrc == $idst ){		src+=jmp;	dst+=jmp;						\
+	}else	if( jmp >0 )	do	{											printf("\r		%c%d  	avICE[ %-2d]    		= avICE[ %-2d];			jmp: %d\n",	\
 																					175, eji,	dst -svC0,			src -svC0,  				jmp );		\
 							*dst++ = *src++;								\
 							} while( -- jmp );								\
@@ -1527,22 +1581,26 @@ void _resplice( ui08 caller ){
 			}															printf("\n\t	</__ReSPLICE_ASC>\n");
 
 
+	printf("\n before finalizing respliceAlt, rel_iC=%lld	cmpZ==%d	alt=%d\n\n", rel_iC, cmpZ, alt );
 
-	/* finalize array length	*/
-					rel_iC += respliceIns[ eji ] - respliceCut[ eji ];
-		post_zC =zC +	rel_iC;								if(	post_zC< 0 ){ AvFILLp( avICE ) =-1;	return ;	}
+	if(		rel_iC< 0 ){	if(	cmpZ >0 ){ 	respliceAlt[ alt++	] = eji -_eji;	respliceAlt[ alt ]=1; 	}
+						else{			respliceAlt[ alt		] = eji -_eji;					}	cmpZ =-1;
+	}else if(	rel_iC >0 ){	if( 	cmpZ< 0 ){ 	respliceAlt[ alt++	] = eji -_eji;	respliceAlt[ alt ]=1; 	}
+						else{			respliceAlt[ alt		] = eji -_eji;					}	cmpZ = 1;
+	}else{								respliceAlt[ alt		] = eji -_eji;					}
 
-	if(	post_zC >=AvMAX(	avICE ) ){			av_extend( avICE,		post_zC );	printf("\n	avICE extended to (%d)\n", post_zC );	}
 
-	respliceArc[ arc ] =eji -_eji;
-
+	printf("\n	finalizing step %d:	respliceAlt[ alt( %d ) ] = eji( %d ) - _eji( %d ); %lld\n\n", alt, eji, _eji );
 	/* finalize last resplice step		*/
-	respliceSrc[	eji		] =			rack_iC;
-	respliceDst[	eji		] =	rel_iC  +	rack_iC;	/* please note, "rel_iC" does not include the offsets of the final resplice op!	*/
-	if( rel_iC!=zC){
+	respliceSrc[	eji ]	=	rack_iC;
+	respliceDst[	eji ]	=	rack_iC 	+ 	rel_iC;
+//	if(		cmpZ==1 ){		if(		rel_iC< 0	){	cmpZ=0;				respliceAlt[	alt++	] = eji -_eji;  _eji = eji;  }
+//	}else if(	cmpZ==0		&&		rel_iC >0	){	cmpZ=1;				respliceAlt[	alt++	] = eji -_eji;  _eji = eji;  }
+
+//	if( rack_iC!=zC){
 		respliceSrc[	eji +1	] =	zC;
 		respliceDst[	eji +1	] =	post_zC;
-		}
+//		}
 
 	int	z, rel, dis, jmp, si, di, r	= AvFILLp(	avRack	);
 	SV **			svR0	= AvARRAY(	avRack	);
@@ -1551,7 +1609,7 @@ void _resplice( ui08 caller ){
 
 	printf("\n	racking schedule (pre process):\n	#		");
 							for( z=0; z<=7; ++z ){ printf("#%-7d", 			z );	}
-	printf("\n	respliceArc\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceArc[	z ] );	}
+	printf("\n	respliceAlt\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceAlt[	z ] );	}
 	printf("\n	respliceCut:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceCut[	z ] );	}
 	printf("\n	respliceIns:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceIns[ 	z ] );	}
 	printf("\n	respliceSrc:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceSrc[	z ] );	}
@@ -1559,39 +1617,39 @@ void _resplice( ui08 caller ){
 	printf("\n\n");
 
 
-	if( zC >post_zC )	{
-					eji	-=	respliceArc[ arc ] -1;
-					goto asc;
-					}
+	if( cmpZ< 0 ){
+		_eji = ( eji -=		respliceAlt[	alt ]-1 ) -1;
+		goto asc;
+		}
 
 	src	= svC0 +zC;
 	dst	= svC0 +post_zC;
 	do	{
 	dsc:	printf("\r	resplice entering descending mode at index #%d.\n", eji );
-		do		{	printf("\n	dsc:	%lld	<	%lld\n",				respliceSrc[ eji	],	respliceDst[ eji	] );		if( respliceSrc[ eji ] > respliceDst[ eji ]) printf("\n!	wrong direction ( %lld > %lld)\n", respliceSrc[eji], respliceDst[ eji ] );
-											__ReSPLICE_DESC(	respliceSrc[ eji	],	respliceDst[ eji	],		respliceCut[	eji ],	respliceIns[	eji ] );	
-		--eji;		} while( --	respliceArc[	arc ] >0 );	if( arc == 0 ) break;
-		eji	-=			respliceArc[--	arc ] -1;
-	asc:	_eji = eji-1;
-		src	=	svC0 +respliceSrc[ eji  ];	/*	rel	=	respliceDst[ eji+1	] - respliceSrc[ eji+1	];
-		dst	=	src +rel;						jmp	= 1+	respliceSrc[ eji+1	] - respliceSrc[ eji	];*/
-		printf("\r	resplice entering ascending mode at index #%d.\n", eji );
+		do		{	printf("\n	dsc:	%lld	< %lld	respliceAlt[ alt( %d ) ]: %lld\n",	respliceSrc[ eji	],	respliceDst[ eji	],	alt,	respliceAlt[	alt ] ); if(	respliceSrc[ eji ] > respliceDst[ eji ]) printf("\n!	wrong direction ( %lld > %lld)\n", respliceSrc[eji], respliceDst[ eji ] );
+											__ReSPLICE_DESC(				respliceSrc[ eji	],	respliceDst[ eji	],		respliceCut[	eji ],		respliceIns[	eji ] );	
+		--eji;		} while( --	respliceAlt[	alt ] >0 );	if( alt == 0 ) break;
+		_eji = ( eji -=		respliceAlt[ --	alt ] ) -1;
 
-		do		{	printf("\n	asc:	%lld	>	%lld\n",				respliceSrc[ eji	],	respliceDst[ eji	] );		if( respliceSrc[ eji ] < respliceDst[ eji ]) printf("\n!	wrong direction ( %lld < %lld)\n", respliceSrc[eji], respliceDst[ eji ] );
-											__ReSPLICE_ASC(	respliceSrc[ eji	],	respliceDst[ eji	],		respliceCut[	eji ],	respliceIns[	eji ] );	
-		++eji;	} while( --	respliceArc[	arc ] >0 );
+	asc:	src	=	svC0 +respliceSrc[ eji  ];	/*	rel	=	respliceDst[ eji+1	] - respliceSrc[ eji+1	];
+		dst	=	src +rel;						jmp	= 1+	respliceSrc[ eji+1	] - respliceSrc[ eji	];*/
+		printf("\r	resplice entering ascending mode at index #%d.	returning to descending  mode at index #%d.\n", eji, _eji);
+
+		do		{	printf("\n	asc:	%lld	> %lld	respliceAlt[ alt( %d ) ]: %lld\n",	respliceSrc[ eji	],	respliceDst[ eji	],	alt,	respliceAlt[	alt ] ); if(	respliceSrc[ eji ] < respliceDst[ eji ]) printf("\n!	wrong direction ( %lld < %lld)\n", respliceSrc[eji], respliceDst[ eji ] );
+											__ReSPLICE_ASC(				respliceSrc[ eji	],	respliceDst[ eji	],		respliceCut[	eji ],		respliceIns[	eji ] );	
+		++eji;	} while( --	respliceAlt[	alt ] >0 );
 
 		eji =		_eji;
-		} while( --	arc >=0 );
-	printf("	loop end;	eji=%lld	_eji=%lld	arc=%lld\n\n", eji, _eji, arc);
-	eji=_eji=arc=0;
+		} while( --	alt >=0 );
+	printf("	loop end;	eji=%lld	_eji=%lld	alt=%lld\n\n", eji, _eji, alt);
+	eji=_eji=alt=0;
 
 
 	if( AvFILLp( avICE ) != post_zC ){	AvFILLp(	avICE ) = post_zC;	printf("\r	AvFILLp( avICE ) = %lld;\n", post_zC );	}
 				
 	printf("\n	racking schedule (post process):\n	#		");
 							for( z=0; z<=7; ++z ){ printf("#%-7d", 			z );	}
-	printf("\n	respliceArc\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceArc[	z ] );	respliceArc[ z ]=0; }
+	printf("\n	respliceAlt\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceAlt[	z ] );	respliceAlt[ z ]=0; }
 	printf("\n	respliceCut:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceCut[	z ] );	respliceCut[	z ]=0; }
 	printf("\n	respliceIns:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceIns[ 	z ] );	respliceIns[ 	z ]=0; }
 	printf("\n	respliceSrc:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceSrc[	z ] );	respliceSrc[	z ]=0; }
@@ -1611,7 +1669,7 @@ bool	_set(){
 	skip=a=0;					za = AvFILLp(	avArg);	if( za ==-1)			/*	no args */				return 0;
 	x=ARG0;		post_zC=		zC = AvFILLp(	avICE);	if( zC ==-1){				ENDOcp(	0 );				return 0; }
 	mx0=0xFF;						/*<— how we know there's nothing to rack	*/
-	rel_iC = rack_iC = arc =	eji =0;		/*<— how we know there's nothing to resplice	*/
+	rel_iC = rack_iC = alt =	eji =0;		/*<— how we know there's nothing to resplice	*/
 						_eji=-1;
 	av_clear( avRack ); cmpZ=0;
 	t_xv	= SvTYPE( 	avICE	);		if( t_xv!=SVt_PVAV 		){ printf("\r!_set():	(AV*) avICE is not a valid perl array\n\t"	);	return 0; }
