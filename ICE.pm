@@ -31,21 +31,104 @@ use Inline 'C';	#		=> Config => ("BOOT", ";\n init();");
 #	while(	$_=<> ){	#	alloc() test
 #					$x= $ICE->alloc();		print("\r #$x<--	\n",					 @{ $ICE->toText() } );
 #					}
-sub replay1{
-	my $ICE= fromRvAV( [	1, 2, 12, 13, 21, 43, 57, 				undef, 
-						112, 119, 143, 154, 				undef,
-						162, 166, 179, 183, 195,				undef,
-						197, 208, 211, 221, 222,				undef,
-						234, 247, 249, 276, 289, 294, 311, 313,	undef,
-						326,								undef,
-						328,								undef	] );
+sub replay6{
+
+	my $ICE=fromRvAV([
+		0..23,							undef,
+		25..30,32..43,						undef,
+		45..49,51..53,55..56,59..61,63,67,69..70,72..75,	undef,
+		77..78,80,82..83,85,87,89,				undef,
+		91..92,96..101,105,107..108,110,			undef,
+		112..117,119..127,129,					undef,
+		131,133..145,147..152,154..158,				undef,
+		160..168,170..183,					undef,
+		185..190,192..193,195..201,203..206,			undef,
+		210..214,216..218,220..223,				undef,
+		225..229,231..232,234..239,241..244,247,249..250,	undef,
+		252..256,258..261,263..264,266..270,272,275..278,281,	undef,
+		284..288,290..291,293..296,299..303,305..308,310,	undef,
+		312,314,316..321,325..326,				undef,
+		328..330,						undef,
+		332								]);
 	print( @{	$ICE->toText() } );
-	my @keyBatch=( 14, 78, 88, 113, 121, 188, 255, 327 );
-	print("\r	batch 0: -->", join(', ', @keyBatch), "<--\n\n");
-					$ICE->set( \@keyBatch );
-	print(		@{	$ICE->toText() } );
-	exit;
+	my @keyBatch=( 24, 44, 65, 109, 196, 206, 230, 318 );
+				$ICE->set( \@keyBatch );
+	print(	@{	$ICE->toText() } );		print("\n	batch 0:	(", join(', ', @keyBatch), ")\n\n");
+	my $hit =	$ICE->screenKeys( \@keyBatch );
+	my $miss=0;		
+	if( 0< ( $miss = scalar( @keyBatch ) ) ){	print("\r($miss) missing keys:	(", join(', ', @keyBatch ), ")	failed replay 6\n\n" );	exit; }
 	}
+	replay6;
+
+sub replay5{
+	my $ICE = fromRvAV( [
+		1,2,11..12,17..19,21,29,31,39,			undef,
+		42,55..56,58,61,63..65,76,80,			undef,
+		88..90,102,104,112,117,				undef,
+		119,123,125..126,128,134,			undef,
+		149,151,159,163,166,				undef,
+		188,202,206,208,211,221,222,			undef,
+		228,234,246,247,251,252,261,270,274..275,	undef,
+		278,286,289,293..295,297,			undef,
+		303,						undef,
+		305..306,309,321,323,				undef,
+		330..331						] );
+	print( @{	$ICE->toText() } );
+	my @keyBatch=( 6, 24, 64, 75, 87, 243, 304, 326 );
+				$ICE->set( \@keyBatch );
+	print(	@{	$ICE->toText() } );		print("\n	batch 0:	(", join(', ', @keyBatch), ")\n\n");
+	my $hit =	$ICE->screenKeys( \@keyBatch );
+	my $miss=0;		
+	if( 0< ( $miss = scalar( @keyBatch ) ) ){	print("\r($miss) missing keys:	(", join(', ', @keyBatch ), ")	failed replay 5\n\n" );	exit; }
+	}
+	replay5;
+
+sub replay4{
+		
+	my $ICE=fromRvAV( [
+		1..2,4..5,12,21,29,			undef,
+		31,37,51,65,				undef,
+		85,100,112,159,179,183,			undef,
+		193,211,217,221,			undef,
+		230,233,240,258,288,291,306,325,	undef	] );
+	print( @{	$ICE->toText() } );
+	my @keyBatch=( 97, 159, 175, 206, 255, 292, 331, 332 );
+				$ICE->set( \@keyBatch );
+	print(	@{	$ICE->toText() } );		print("\n	batch 0:	(", join(', ', @keyBatch), ")\n\n");
+	my $hit =	$ICE->screenKeys( \@keyBatch );
+	my $miss=0;		
+	if( 0< ( $miss = scalar( @keyBatch ) ) ){	print("\r($miss) missing keys:	(", join(', ', @keyBatch ), ")	failed replay 4\n\n" );	exit; }
+	}
+	replay4;
+
+sub replay3{
+
+	my $ICE=fromRvAV([
+		0..2,4,						undef,
+		6..27,29,31..37,				undef,
+		39..43,						undef,
+		45..76,78..80,82..87,				undef,
+		89..94,						undef,
+		96..110,					undef,
+		112..143,					undef,
+		146..147,149,151..160,				undef,
+		162,164,					undef,
+		166..182,184..189,				undef,
+		192..195,					undef,
+		197..217,219..222,				undef,
+		224..245,					undef,
+		247..304,306..307,309..316,319,322..325,	undef,
+		327..329,					undef,
+		331..332,					undef	] );
+	print( @{	$ICE->toText() } );
+	my @keyBatch=( 11, 59, 60, 151, 163, 173, 237, 330 );
+				$ICE->set( \@keyBatch );
+	print(	@{	$ICE->toText() } );		print("\n	batch 0:	(", join(', ', @keyBatch), ")\n\n");
+	my $hit =	$ICE->screenKeys( \@keyBatch );
+	my $miss=0;		
+	if( 0< ( $miss = scalar( @keyBatch ) ) ){	print("\r($miss) missing keys:	(", join(', ', @keyBatch ), ")	failed replay 3\n\n" );	exit; }
+	}
+	replay3;
 sub replay2{
 	my	$ICE=fromRvAV( [
 		1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 18, 21, 							undef,
@@ -69,20 +152,31 @@ sub replay2{
 	
 	print( @{	$ICE->toText() } );
 	my @keyBatch=( 29, 149, 186, 203, 238, 265, 302, 326);
-	print("\r	batch 0: -->", join(', ', @keyBatch), "<--\n\n");
-					$ICE->set( \@keyBatch );
-	print(		@{	$ICE->toText() } );
-	exit;
+				$ICE->set( \@keyBatch );
+	print(	@{	$ICE->toText() } );		print("\n	batch 0:	(", join(', ', @keyBatch), ")\n\n");
+	my $hit =	$ICE->screenKeys( \@keyBatch );
+	my $miss=0;		
+	if( 0< ( $miss = scalar( @keyBatch ) ) ){	print("\r($miss) missing keys:	(", join(', ', @keyBatch ), ")	failed replay 2\n\n" );	exit; }
 	}
-#	replay2();
-	
-sub	divine{
-	my $ICE=fromRvAV([ 212 ]);
+	replay2;
+sub replay1{
+	my $ICE= fromRvAV( [	1, 2, 12, 13, 21, 43, 57, 				undef, 
+						112, 119, 143, 154, 				undef,
+						162, 166, 179, 183, 195,				undef,
+						197, 208, 211, 221, 222,				undef,
+						234, 247, 249, 276, 289, 294, 311, 313,	undef,
+						326,								undef,
+						328,								undef	] );
 	print( @{	$ICE->toText() } );
-	exit;
+	my @keyBatch=( 14, 78, 88, 113, 121, 188, 255, 327 );
+				$ICE->set( \@keyBatch );
+	print(	@{	$ICE->toText() } );		print("\n	batch 0:	(", join(', ', @keyBatch), ")\n\n");
+	my $hit =	$ICE->screenKeys( \@keyBatch );
+	my $miss=0;		
+	if( 0< ( $miss = scalar( @keyBatch ) ) ){	print("\r($miss) missing keys:	(", join(', ', @keyBatch ), ")	failed replay 1\n\n" );	exit; }
 	}
-#	divine();
-#	replay1();
+	replay1;
+	
 
 sub test_set_prompt{
 	my ($x, @A1, @D1);
@@ -137,7 +231,7 @@ sub test_set_loop_rand($$$){				# test &set and &unset by repeatedly filling, th
 			@keyBatchScreen = @keyBatch;
 			$hit = $ICE->screenKeys( \@keyBatchScreen );
 			
-			if( 0< ( $miss = scalar( @keyBatchScreen ) ) ){	print("\r$miss unknown entries: \n", join(', ', @keyBatchScreen ) );	exit; }
+			if( 0< ( $miss = scalar( @keyBatchScreen ) ) ){	print("\r($miss) missing keys: \n", join(', ', @keyBatchScreen ) );	exit; }
 
 			if( $#$ICE==0 && length( $$ICE[0] )==18){		print("\n completed ($i) test[s]\n\n\n");	next TEST;	}
 			}
@@ -190,7 +284,7 @@ void init(){	printf("\ninit()=====================================\n");
 	_O[	255 ]= 0;
 	Q[	255 ]= 0;
 	*( (ui64*) Hx )	= 0;
-	respliceArc[	0 ]=0;
+	respliceAlt[	0 ]=0;
 	respliceIns[	0 ]=0;
 	respliceCut[	0 ]=0;
 	respliceSrc[ 	0 ]=0;
@@ -262,9 +356,9 @@ c	I feel so coolbuf
 	danish		orance cat	oopcat boopcat can cat  cat cat cat  cat cat  cat	kate
 	macaroons	figs pomegranates		caaaaaat
 	cat 	car cat 	cat 	cat	cat	cat	cat	cat	cat	coolcat	cat	cat	cat cat	catfish	cattle	cats, the musical
-	fecat cat cat 	cat	cat 	cat	cat 	cat	cat	coolcat		cat	cat	cat cat 	catbird	cat tail	acds 
-wgcatcatcatccsdcds crwcsdcs fscdscdcdavdvre	wfe fccdesv
-	ccdsccdescdecesscvewfwetcfcdscsdavcst cat cacaf cwcrwcrvw csd	cat		1	fce
+	fecat cat cat 	cat	cat 	cat	cat 	cawwt	cat	coolcat		cat	cat	cat cat 	catbird	cat tail	acds 
+wgcaF
+	ccdwegcc   ec fscc c vf wgc   fgg sccdescde44wgwg w3s88sgwgrr  54wgwgfewwqgrwwgw  4242ffrwwswgfeqwrwcesscvew fsrwcrgvwefw csd	cat		1	fceacdccat  fsc
 	*/
 #define SvINIT( $AV, $SV )		AvINIT1(		$AV );				\
 						/*	SvREFCNT_inc(			$SV);	*/\
