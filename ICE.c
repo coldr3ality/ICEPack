@@ -1,4 +1,16 @@
-#define DEBUG
+#define DEBUGz
+#define DEBUG_RACK_L1z
+#define DEBUG_RACK_L2z
+#define DEBUG_ReSEQz
+#define DEBUG_SETz
+
+#ifdef DEBUG
+	#define dBUG_ReICEzSV_($v, $call)	printf("\nReICEzSV_( %d, %d )\n", $v, $call);
+	#define dBUG_SvCUR($CS, $VARNAME, $N)	if( $CS<16){ printf("\n!	%s< 16 ( %d )	catch #%d\n", $VARNAME, $CS, $N );	exit($N);	}
+#else
+	#define dBUG_ReICEzSV_($v, $call)
+	#define dBUG_SvCUR($CS, $VARNAME, $N)
+#endif
 /*	ICE::RELiC—	Regressive Exponent Laminar Index Counter (RELiC) over Inversion Cycle Encoding (ICE)
 	this jam is real																				*/
 
@@ -176,12 +188,14 @@ HV			*	hvICE,
 AV			*	avOut,
 			*	avICE;	long long int	iC, post_iC, zC, post_zC, rel_iC, iCs, iCd, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
 AV			*	avArg;	long long int	a, za; 					//	a list of integer value[s] to operate on.
-AV			*	avRack; 	long long int	rZ, rE;					//	contains a series of SV* cubes pending insertion into AV* avICE
 
+long long unsigned int	max_isq=0;
+SV			*	sv_max_isq;	//debugging stat
 SV			**	src,
 			**	dst,
 			**	psv,
-			**	svC0,
+			**	pSv0,
+			**	pSv0_,
 			*	rvOut,				/*	arrayref to AV* avOut								*/
 			*	rvArg,				/*	arrayref to AV* avArg								*/
 			*	rvICE,				/*	arrayref to AV* avICE								*/
@@ -193,11 +207,11 @@ SV			**	src,
 ui08			*	cube	=NULL,		/*	unsigned char * cube data (of index iC )				*/
 			*	cube_	=NULL,		/*	unsigned char * cube data (of index iC -1)				*/
 			*	_cube	=NULL,		/*	unsigned char * cube data (detached from avICE)		*/
-			*	hob[2]	={NULL, NULL};
+			*	qube;
 bool				L=0,
 				R=1;
 	
-STRLEN			CS,	CS_, _CS;
+STRLEN			CS,	CS_, _CS, cS;
 ui08				buf[	8 	+8	+8*16	+1	+15 ];	/*	buffers the output of ICE() and its variants
 /*	CUBE STRUCT:	^	^	^		^	^ overflow padding (to survive an overshot "long long" cast)
 					|	|	|		NULL byte
@@ -310,19 +324,21 @@ ui64		E[	256 ],	Eu,	Ev,	Ez,	/* "Epsilon" values	which bound	the absolute coordin
 ui08 	Hx[	256 ],				/* header codes	which alloc.	q-data field space			in	char *	cube			*/
 		I[	256 ],				/* cycla indeces	which align	pre-op byte positions		in	char *	cube			*/
 								/*				with			post-op matrix indeces		in	matrix { A[], B[], E[], Q[] }	*/
-		Q[	256 ],	Qx, Qu,	Qv,		/* q-data lengths	which define	each read increment		in	char *	cube			*/
+		Q[	256 ],	Qx, Qu, Qv,		/* q-data lengths	which define	each read increment		in	char *	cube			*/
 		_Q[	256 ],				/* q-data lengths	which define	each write increment		in	char *	cube			*/
 		O[	256 ],				/* q-data offsets	which mark	each read position			in	char *	cube			*/
 		_O[	256 ];				/* q-data offsets	which mark	each write position			in	char *	cube			*/
 ui64		G[	256 ];				/* "cube" indeces	which relate	cube->matrix mapping		for debugging purposes only.		*/
 char		cmpZ	=0;
-long long int		rel_zC,	eji, _eji, alt,
-				rack_iC	=0,		
-				respliceAlt[	256	],
-				respliceSrc[	256	],
-				respliceDst[	256	],
-				respliceIns[	256	],
-				respliceCut[	256	];
+long long int		rel_zC,	isq, isqa, jux,
+				rack_iC	=0,	
+			/*	rSeqJux[	256	],	*/	
+				rSeq_iR[	256	],
+				rSeqIns[	256	],
+				rSeqCut[	256	],
+				rSeqSrc[	256	],
+				rSeqDst[	256	];
+SV			*	rSeq_SV[	256 ]; 	long long int	zR, iR;					//	contains a series of SV* cubes pending insertion into AV* avICE
 
 const char	*	fmtLLU[	24	] ={
 				NULL,	" %c%-1llu ",	" %c%-2llu ",	" %c%-3llu ",	" %c%-4llu ",	" %c%-5llu ",	" %c%-6llu ",	" %c%-7llu ",
@@ -394,22 +410,14 @@ SV*	av_del( SV* rvICE,	SV* svI,	SV* svN){	if( !SvROK( rvICE) ){	printf("\r!	ICE:
 				else		{	*$pk   =	  	0xC0 |(	q=( (	q1=zIndexOf(	B[$v] ) )<< 3 ) | ( q0=zIndexOf(	A[$v] ) ) );	switch( q ){ qCASTab(	B[$v],	A[$v], 	$pq ); }	_Q[$v]=2 +q0 +q1;	}	\
 		}
 
-#define	ReICEzSV_(			$v, $call )																											pqz=cube_ +CS_  -	Q[$v];				\
-	if( A[$v]< 8){	if( B[$v]< 8 ){	cube_[zc_]=/*	0x00 |*/	(				B[$v]    << 3 ) |				A[$v];															Q[$v]=0;			}	\
-				else		{	cube_[zc_]=	0x80 |( (	q=zIndexOf(		B[$v] ) )<< 3 ) |				A[$v];		switch( q ){ qCASTa(	B[$v],			pqz ); }			Q[$v]=1 +q;		}	\
-	}else{		if( B[$v]< 8 ){	cube_[zc_]=  	0x40 |(					B[$v]    << 3 ) | ( q=zIndexOf( 	A[$v] ) );		switch( q ){ qCASTa(			A[$v],	pqz ); }			Q[$v]=1 +q;		}	\
-				else		{	cube_[zc_]=  	0xC0 |(	q=( (	q1=zIndexOf(	B[$v] ) )<< 3 ) | ( q0=zIndexOf(	A[$v] ) ) );	switch( q ){ qCASTab(	B[$v],	A[$v], 	pqz ); }			Q[$v]=2 +q0 +q1;	}	\
-		}			CS_=O[ $v ]+Q[ $v];	if( CS_<16){ printf("\n_set( ): CS_( %lld ) <16	catch #10-%d\n",CS_, $call );	exit(11+$call);	}	\
-	SvCUR_set( sv_,	CS_ );
 
-
-#define	ReICEzSV(			$v, $call )																											pqz=cube +CS  -	Q[$v];				\
-	if( A[$v]< 8){	if( B[$v]< 8 ){	cube[zc]=/*	0x00 |*/	(				B[$v]    << 3 ) |				A[$v];															Q[$v]=0;			}	\
-				else		{	cube[zc]=  	0x80 |( (	q=zIndexOf(		B[$v] ) )<< 3 ) |				A[$v];		switch( q ){ qCASTa(	B[$v],			pqz ); }			Q[$v]=1 +q;		}	\
-	}else{		if( B[$v]< 8 ){	cube[zc]=  	0x40 |(					B[$v]    << 3 ) | ( q=zIndexOf( 	A[$v] ) );		switch( q ){ qCASTa(			A[$v],	pqz ); }			Q[$v]=1 +q;		}	\
-				else		{	cube[zc]=  	0xC0 |(	q=( (	q1=zIndexOf(	B[$v] ) )<< 3 ) | ( q0=zIndexOf(	A[$v] ) ) );	switch( q ){ qCASTab(	B[$v],	A[$v], 	pqz ); }			Q[$v]=2 +q0 +q1;	}	\
-		}			CS=O[ $v ]+Q[ $v];		if( CS<16){ printf("\nset( ): CS( %lld ) <16	catch #10-%d\n",CS, $call );	exit(11+$call);	}	\
-	SvCUR_set( sv,	CS );
+#define	ReICEzSV_(			$v, $call )		dBUG_ReICEzSV_($v, $call)	\
+	if( A[$v]< 8){	if( B[$v]< 8 ){	cube_[zc_]=/*	0x00 |*/	(				B[$v]    << 3 ) |				A[$v];		CS_-=Q[$v];				Q[$v]=0;			}	\
+				else		{	cube_[zc_]=	0x80 |( (	q=zIndexOf(		B[$v] ) )<< 3 ) |				A[$v];		cS=CS_-Q[$v]; Qx=Q[$v];	Q[$v]=1 +q;		CS_=cS+Q[$v];	if(Qx< Q[$v] ) cube_= SvGROW( sv_, CS_+1	);	pqz=cube_+cS;	switch( q ){ qCASTa(	B[$v],			pqz ); }	}	\
+	}else{		if( B[$v]< 8 ){	cube_[zc_]=  	0x40 |(					B[$v]    << 3 ) | ( q=zIndexOf( 	A[$v] ) );		cS=CS_-Q[$v];	Qx=Q[$v];	Q[$v]=1 +q;		CS_=cS+Q[$v];	if(Qx< Q[$v] ) cube_= SvGROW( sv_, CS_+1	);	pqz=cube_+cS;	switch( q ){ qCASTa(			A[$v],	pqz ); }	}	\
+				else		{	cube_[zc_]=  	0xC0 |(	q=( (	q1=zIndexOf(	B[$v] ) )<< 3 ) | ( q0=zIndexOf(	A[$v] ) ) );	cS=CS_-Q[$v];	Qx=Q[$v];	Q[$v]=2 +q0 +q1;	CS_=cS+Q[$v];	if(Qx< Q[$v] ) cube_= SvGROW( sv_, CS_+1	);	pqz=cube_+cS;	switch( q ){ qCASTab(	B[$v],	A[$v], 	pqz ); }	}	\
+		}		dBUG_SvCUR(CS_, "CS_", 10+$call )	\
+	SvCUR_set( sv_,	CS_ );	cube_[CS_]=0;
 
 
 #define	reICE( $a, $b, $pk, $pq)			\
@@ -466,8 +474,8 @@ void _toText(){
 				fSigLn[		32 ],
 			*	pq;
 	long long int	x,  iC=0,		zC = AvFILLp(		avICE ),	nC =zC +1;
-	SV		**	svC0 =			AvARRAY(	avICE ),
-			*	sviC=*( svC0	+zC );
+	SV		**	pSv0 =			AvARRAY(	avICE ),
+			*	sviC=*( pSv0	+zC );
 
 	ui08		*	cube,
 				edge, r0,	r1,	vecS, cellS, rowSize, avSize=3,
@@ -521,7 +529,7 @@ void _toText(){
 
 	Ec=0;
 	for( iC=0; iC <= zC;  ++iC){
-		sviC = *( svC0 +iC );		if(NULL	==	sviC		){ pvS =sprintf( aString, "\r[%llu]: NULL\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+		sviC = *( pSv0 +iC );		if(NULL	==	sviC		){ pvS =sprintf( aString, "\r[%llu]: NULL\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 								if( !SvOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvOK\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 								if( SvTYPE( sviC )!=3	){ pvS =sprintf( aString, "\r[%llu]: SVTYPE != SVt_RV\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 		cube=SvPVbyte( sviC,  CS );	if( cube==NULL		){ pvS =sprintf( aString, "\r[%llu]: SvPVbyte(...)==NULL\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
@@ -558,6 +566,105 @@ void _toText(){
 
 	av_push(			avOut,	newSVpvn(	"\n\n", 2 ) );
 	}
+bool	_screenKeys(){
+//	hvArg is set already
+	miss =0;	// "hit" and "dis" would always have the same value— no need for "hit"
+	ui64			Ax, Bx, Ex, x;
+	ui08			Qx,	Ki,
+			*	cube,
+			*	pq;
+	SSize_t		hit;	//displacement
+	STRLEN		CS;
+	SV		**	src,
+			**	dst,
+			**	lim,
+			**	pSv0 = AvARRAY( avICE ),	*svC,
+			**	psvA0= AvARRAY( avArg ),	*svA;
+
+	long long	int	lb = 0, 	V,	ea = AvFILLp(	avArg )+1,	I,
+				ub=ea,	iC,	zC = AvFILLp(	avICE ),		i =	ub	 >>1;		if( ea==0	||zC==-1 ){			return 0;	}
+
+																		svA = *( dst= psvA0 +i );
+																svC=*pSv0;			if( svC==NULL){	printf(	"\r!	cube #0 broken: SV* pointer is null!\n" );				return 1; }
+												cube = SvPVbyte(	svC, CS);
+	char					ic,	zc = zIndexOf( *( (ui64*)	cube ) );	Ki = cube[0];	deICE0( Qx, x, Bx );  ic=0;
+			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
+				while(		x !=SvIVX(	svA ) ){
+					if(		x > SvIVX(	svA ) ){	lb	= i;	i =( i +ub	)>>1;	if( i==lb	)					goto _retry_x0_L0;
+					}else{						ub	= i;	i =( lb + i	)>>1;	if( i==ub	)					goto _retry_x0_L0;
+						}												svA = *(	dst= psvA0 +i );
+/* hit */				}			hit=1;	iC=0;	I = i++;	SvREFCNT_dec(	svA );  *	dst= &PL_sv_undef;	goto _next_x;
+_retry_x0_L0:					++	miss;	ub=ea;	lb =0;	i =	ub	 >>1;	svA = *(	dst= psvA0 +i );
+				}
+
+//	printf("\r_screenKeys(): loop 1\n");
+	/* none of the keys in the first cyclum were hits.  Enter a loop to search the rest of the first cube for the first hit. */
+		for(	ic = 1;		ic<=	zc;	++ic ){					Ki = cube[ ic ];	deICE( Qx, Ax, Bx );  x = Ex+Ax;
+			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
+				while(		x !=	SvIVX(	svA ) ){
+					if(		x > SvIVX(	svA ) ){	lb	= i;	i =( i +ub	)>>1;	if( i==lb	)					goto _retry_x0_L1;
+					}else{						ub	= i;	i =( lb + i	)>>1;	if( i==ub	)					goto _retry_x0_L1;
+						}												svA = *(	dst= psvA0 +i );
+/* hit */				}			hit=1;	iC=0;	I = i++;	SvREFCNT_dec(	svA ); *	dst=&PL_sv_undef;    	goto _next_x;		//	printf("\r..  	x( %-6llu ): found at index #%lld\n", x, i );
+_retry_x0_L1:					++	miss;	ub=ea;	lb = 0;	i =	ub	 >>1;	svA = *(	dst= psvA0 +i );
+			}	}	if(*( (ui64*)	cube +1 ) != Ex ){														printf(	"\n!	cube #0 broken: computed( %llu ) vs. stored( %llu ) Epsilon values do not match!\n",			Ex, *( (ui64*) cube +1 ) );	return 1; }
+					if( pq-cube!=CS){																	printf(	"\n	cube #0 broken: computed( %llu ) vs. stored( %llu ) CS values do not match!\n",			pq-cube, CS );				return 1; }
+
+//	printf("\r_screenKeys(): loop 2\n");
+	/* none of the keys in the first cube were hits.  Enter a loop to search the entire ICE array for the first hit. */
+	for(		iC=1;		iC<=	zC;	++iC ){							svC=*( pSv0 +iC );		if( svC==NULL){	printf("\n!!	cube #%lld broken: SV* pointer is null!\n", iC );				return 1; }
+												cube = SvPVbyte(	svC, CS );
+							zc = zIndexOf( *( (ui64*)	cube ) );	Ki = cube[0];	deICE0( Qx, Ax, Bx );  x = Ex+Ax;	  ic=0;
+			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
+				while(		x !=SvIVX(	svA ) ){
+					if(		x > SvIVX(	svA ) ){	lb	= i;	i =( i +ub	)>>1;	if( i==lb	)					goto _retry_x0_L2;
+					}else{						ub	= i;	i =( lb + i	)>>1;	if( i==ub	)					goto _retry_x0_L2;
+						}												svA = *(	dst= psvA0 +i );
+/* hit */				}			hit=1;			I = i++;	SvREFCNT_dec(	svA ); *	dst=&PL_sv_undef;    	goto _next_x;		//	printf("\r...  	x( %-6llu ): found at index #%lld\n", x, i );
+_retry_x0_L2:					++	miss;	ub=ea;	lb =0;	i =	ub	 >>1;	svA = *(	dst= psvA0 +i );
+				}
+
+//	printf("\r_screenKeys(): loop 3\n");
+		for(	ic = 1;		ic<=	zc;	++ic ){					Ki = cube[ ic ];	deICE( Qx, Ax, Bx );  x = Ex+Ax;
+			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
+				while(		x !=SvIVX(	svA ) ){
+					if(		x > SvIVX(	svA ) ){	lb	= i;	i =( i +ub	)>>1;	if( i==lb	)					goto _retry_x0_L3;
+					}else{						ub	= i;	i =( lb + i	)>>1;	if( i==ub	)					goto _retry_x0_L3;
+						}												svA = *(	dst= psvA0 +i );
+/* hit */				}			hit=1;			I = i++;	SvREFCNT_dec(	svA ); *	dst=&PL_sv_undef;		goto _next_x;		//	printf("\r....  	x( %-6llu ): found at index #%lld\n", x, i );
+_retry_x0_L3:					++	miss;	ub=ea;	lb =0;	i =	ub	 >>1;	svA = *(	dst= psvA0 +i );
+			}	}	if( *( (ui64*)	cube +1 ) != Ex ){														printf("\n!!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) Epsilon values do not match!\n",	iC, Ex,	*( (ui64*) cube +1 ) );	return 1; }
+					if( pq-cube!=CS){																	printf("\n!!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) CS values do not match!\n",		iC, pq-cube, CS );				return 1; }
+		}
+
+//	printf("\r_screenKeys(): nothing found\n");
+	return 0;
+
+	for(			;		iC<=	zC;	++iC ){							svC=*( pSv0 +iC );		if( svC==NULL){	printf("\n!!!	cube #%lld broken: SV* pointer is null!\n", iC );				return 1; }
+												cube = SvPVbyte(	svC, CS );
+							zc = zIndexOf( *( (ui64*)	cube ) );				pk=cube;	pq=cube+16;
+		for(	ic = 0;		ic<=	zc;	++ic ){					Ki = cube[ ic ];	deICE( Qx, Ax, Bx );  x = Ex+Ax;
+			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
+				while(		x !=SvIVX(	svA ) ){
+					if(		x > SvIVX(	svA ) ){	lb	= i;	i=( i +ub	)>>1;	if( i==lb	)					goto _next_x;
+					}else{						ub	= i;	i=( lb + i	)>>1;	if( i==ub	)					goto _next_x;
+						}												svA = *(	lim= psvA0 +i );
+/* hit */				} V =    		lim - dst - hit;				SvREFCNT_dec(	svA ); *	lim=&PL_sv_undef;						// printf("\r.....  	x( %-6llu ): found at index #%lld\n", x, i );
+/* collapse void */	if(	   V >0 )	{	src = dst + hit;		I = i;	do{	*dst++ = *src++; } while( src<	lim );
+							} ++	hit;				++i;
+
+_next_x:			if( i == ea){ AvFILLp( avArg ) -=hit; return 0; }
+										ub=ea;	lb	= i ;	i =( lb+ub	)>>1;	svA = *(	lim= psvA0 +i );
+			}	}	if( *( (ui64*)	cube +1 ) != Ex ){														printf("\n!!!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) Epsilon values do not match!\n",	iC,	Ex, *( (ui64*) cube +1 ) );	return 1; }
+					if( pq-cube!=CS){																	printf("\n!!!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) CS values do not match!\n",		iC, pq-cube, CS );				return 1; }
+		}
+_end:
+	lim= psvA0 + AvFILLp(	avArg );
+	src= psvA0 +lb;
+	while( src<=lim )	*dst++=*src++;
+	AvFILLp( avArg ) -=hit;
+	return 0;
+	}
 void	_toHV(){					hvOut = newHV();
 	ui64			x, Ax, Bx, Ex=0,	i=0;
 	char			ic, zc,
@@ -586,100 +693,6 @@ void	_toHV(){					hvOut = newHV();
 
 		}	}	}
 
-	}
-void	_screenKeys(){
-//	hvArg is set already
-	miss =0;	// "hit" and "dis" would always have the same value— no need for "hit"
-	ui64			Ax, Bx, Ex, x;
-	ui08			Qx,	Ki,
-			*	cube,
-			*	pq;
-	SSize_t		hit;	//displacement
-	STRLEN		CS;
-	SV		**	src,
-			**	dst,
-			**	lim,
-			**	svC0 = AvARRAY( avICE ),	*svC,
-			**	svA0= AvARRAY( avArg ),	*svA;
-	long long	int	lb = 0, 	V,	ea = AvFILLp(	avArg )+1,	I,
-				ub=ea,	iC,	zC = AvFILLp(	avICE ),		i =	ub	 >>1;		if( ea==0	||zC==-1 ){	printf("\n_screenKeys: something's empty ub: %llu, zC: %llu\n", ub, zC);
-																							return;	}
-																		svA = *( dst= svA0 +i );
-
-												cube = SvPVbyte(	*svC0, CS);
-	char					ic,	zc = zIndexOf( *( (ui64*)	cube ) );	Ki = cube[0];	deICE0( Qx, x, Bx );  ic=0;
-			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
-				while(		x !=SvIVX(	svA ) ){
-					if(		x > SvIVX(	svA ) ){	lb	= i;	i =( i +ub	)>>1;	if( i==lb	)					goto _retry_x0_L0;
-					}else{						ub	= i;	i =( lb + i	)>>1;	if( i==ub	)					goto _retry_x0_L0;
-						}												svA = *(	dst= svA0 +i );
-/* hit */				}			hit=1;	iC=0;	I = i++;	SvREFCNT_dec(	svA );  *	dst= &PL_sv_undef;	goto _next_x;
-_retry_x0_L0:					++	miss;	ub=ea;	lb =0;	i =	ub	 >>1;	svA = *(	dst= svA0 +i );
-				}
-
-//	printf("\r_screenKeys(): loop 1\n");
-	/* none of the keys in the first cyclum were hits.  Enter a loop to search the rest of the first cube for the first hit. */
-		for(	ic = 1;		ic<=	zc;	++ic ){					Ki = cube[ ic ];	deICE( Qx, Ax, Bx );  x = Ex+Ax;
-			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
-				while(		x !=	SvIVX(	svA ) ){
-					if(		x > SvIVX(	svA ) ){	lb	= i;	i =( i +ub	)>>1;	if( i==lb	)					goto _retry_x0_L1;
-					}else{						ub	= i;	i =( lb + i	)>>1;	if( i==ub	)					goto _retry_x0_L1;
-						}												svA = *(	dst= svA0 +i );
-/* hit */				}			hit=1;	iC=0;	I = i++;	SvREFCNT_dec(	svA ); *	dst=&PL_sv_undef;    	goto _next_x;		//	printf("\r..  	x( %-6llu ): found at index #%lld\n", x, i );
-_retry_x0_L1:					++	miss;	ub=ea;	lb = 0;	i =	ub	 >>1;	svA = *(	dst= svA0 +i );
-			}	}	if(*( (ui64*)	cube +1 ) != Ex ){											printf(	"\r!	cube #0 broken: computed( %llu ) vs. stored( %llu ) Epsilon values do not match!\n",			Ex, *( (ui64*) cube +1 ) );	goto _end; }
-					if( pq-cube!=CS){														printf(	"\r!	cube #0 broken: computed( %llu ) vs. stored( %llu ) CS values do not match!\n",			pq-cube, CS );				goto _end; }
-		
-//	printf("\r_screenKeys(): loop 2\n");
-	/* none of the keys in the first cube were hits.  Enter a loop to search the entire ICE array for the first hit. */
-	for(		iC=1;		iC<=	zC;	++iC ){			cube = SvPVbyte(	*( svC0 +iC ), CS );
-							zc = zIndexOf( *( (ui64*)	cube ) );	Ki = cube[0];	deICE0( Qx, Ax, Bx );  x = Ex+Ax;	  ic=0;
-			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
-				while(		x !=SvIVX(	svA ) ){
-					if(		x > SvIVX(	svA ) ){	lb	= i;	i =( i +ub	)>>1;	if( i==lb	)					goto _retry_x0_L2;
-					}else{						ub	= i;	i =( lb + i	)>>1;	if( i==ub	)					goto _retry_x0_L2;
-						}												svA = *(	dst= svA0 +i );
-/* hit */				}			hit=1;			I = i++;	SvREFCNT_dec(	svA ); *	dst=&PL_sv_undef;    	goto _next_x;		//	printf("\r...  	x( %-6llu ): found at index #%lld\n", x, i );
-_retry_x0_L2:					++	miss;	ub=ea;	lb =0;	i =	ub	 >>1;	svA = *(	dst= svA0 +i );
-				}
-
-//	printf("\r_screenKeys(): loop 3\n");
-		for(	ic = 1;		ic<=	zc;	++ic ){					Ki = cube[ ic ];	deICE( Qx, Ax, Bx );  x = Ex+Ax;
-			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
-				while(		x !=SvIVX(	svA ) ){
-					if(		x > SvIVX(	svA ) ){	lb	= i;	i =( i +ub	)>>1;	if( i==lb	)					goto _retry_x0_L3;
-					}else{						ub	= i;	i =( lb + i	)>>1;	if( i==ub	)					goto _retry_x0_L3;
-						}												svA = *(	dst= svA0 +i );
-/* hit */				}			hit=1;			I = i++;	SvREFCNT_dec(	svA ); *	dst=&PL_sv_undef;		goto _next_x;		//	printf("\r....  	x( %-6llu ): found at index #%lld\n", x, i );
-_retry_x0_L3:					++	miss;	ub=ea;	lb =0;	i =	ub	 >>1;	svA = *(	dst= svA0 +i );
-			}	}	if( *( (ui64*)	cube +1 ) != Ex ){											printf("\r!!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) Epsilon values do not match!\n",	iC, Ex,	*( (ui64*) cube +1 ) );	goto _end; }
-					if( pq-cube!=CS){														printf("\r!!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) CS values do not match!\n",		iC, pq-cube, CS );				goto _end; }
-		}
-//	printf("\r_screenKeys(): nothing found\n");
-	return;
-
-	for(			;		iC<=	zC;	++iC ){			cube = SvPVbyte(	*( svC0 +iC ), CS );
-							zc = zIndexOf( *( (ui64*)	cube ) );				pk=cube;	pq=cube+16;
-		for(	ic = 0;		ic<=	zc;	++ic ){					Ki = cube[ ic ];	deICE( Qx, Ax, Bx );  x = Ex+Ax;
-			for(	Ex=x  +Bx;	x< Ex;  ++x ){												
-				while(		x !=SvIVX(	svA ) ){
-					if(		x > SvIVX(	svA ) ){	lb	= i;	i=( i +ub	)>>1;	if( i==lb	)					goto _next_x;
-					}else{						ub	= i;	i=( lb + i	)>>1;	if( i==ub	)					goto _next_x;
-						}												svA = *(	lim= svA0 +i );
-/* hit */				} V =    		lim - dst - hit;				SvREFCNT_dec(	svA ); *	lim=&PL_sv_undef;						// printf("\r.....  	x( %-6llu ): found at index #%lld\n", x, i );
-/* collapse void */	if(	   V >0 )	{	src = dst + hit;		I = i;	do{	*dst++ = *src++; } while( src<	lim );
-							} ++	hit;				++i;
-
-_next_x:			if( i == ea){ AvFILLp( avArg ) -=hit; return; }
-										ub=ea;	lb	= i ;	i =( lb+ub	)>>1;	svA = *(	lim= svA0 +i );
-			}	}	if( *( (ui64*)	cube +1 ) != Ex ){											printf("\r!!!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) Epsilon values do not match!\n",	iC,	Ex, *( (ui64*) cube +1 ) );	goto _end; }
-					if( pq-cube!=CS){														printf("\r!!!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) CS values do not match!\n",		iC, pq-cube, CS );				goto _end; }
-		}
-_end:
-	lim= svA0 +ea;
-	src= svA0 +lb;
-	while( src< lim )	*dst++=*src++;
-	AvFILLp( avArg ) -=hit;
 	}
 void	_screenHV(){
 //	hvArg is set already
@@ -713,6 +726,7 @@ void	_screenHV(){
 		}	}	}
 	printf("\r...	_screenHV() %d key[s] remain\n", N );
 	}
+
 void	_print_mx( unsigned short caller ){
 	printf("\n_print_mx(	caller==%-4d )\n", caller, u, v, w);
 	long long int		col[		14	],
@@ -741,6 +755,7 @@ void	_print_mx( unsigned short caller ){
 				ugh[25];
 
 	while( r< 13 ){	xsl = strlen( label[ r ] );								if( xsl >size[ 0 ] ) size[ 0 ]=xsl;		++r;	};
+
 	r=0; c=1;
 	while( x!=16 ){	s =1 + (char) ceil( log10l( (long double) Hx  	[ x ]		) );				size[ h ]= s>5? s: 5;
 				s =1 + (char) ceil( log10l( (long double) A  	[ x ]		) );	if( s >size[ h ] )	size[ h ]=s;
@@ -798,68 +813,43 @@ void	_print_mx( unsigned short caller ){
 /*13: range	*/								sprintf( txt +c, fmtStrNl[	size[ 0 ] ],    label[r++]		);	c+= size[ 0 ]+3;
 	ptxt =txt +c;
 	for( i=0;  i< rowSize;  i+=8 )	*( (ui64*)( ptxt +i ) ) = 0x2020202020202020;
-						x =mx0 +1;	y =mxF +1;	z =mxZ +1;	//ptxt[ pos[ y ] ]=197;
+			x =mx0	>16? 0: mx0	+1;
+			y =mxF	>16? 0: mxF	+1;
+			z =mxZ	>16? 0: mxZ	+1;	//	ptxt[ pos[ y ] ]=197;
+	if(		x==z	)	if(		x==y ){		ptxt[ pos[ x ]		]=192;
+											ptxt[ pos[ x ] +1	]=197;
+											ptxt[ pos[ x ] +2	]=217;
 
-	if(		mx0==mxZ)	if(	mx0==mxF ){			ptxt[ pos[ x ]		]=192;
-												ptxt[ pos[ x ] +1	]=197;
-												ptxt[ pos[ x ] +2	]=217;
-
-						}else{					ptxt[ pos[ x ]		]=192;
-												ptxt[ pos[ x ] +1	]=196;
-												ptxt[ pos[ x ] +2	]=217;
-												ptxt[ pos[ z ] +1	]=179;
+						}else{				ptxt[ pos[ x ]		]=192;
+											ptxt[ pos[ x ] +1	]=196;
+											ptxt[ pos[ x ] +2	]=217;
+											ptxt[ pos[ z ] +1	]=179;
 							}
-	else if(	mx0<mxZ)	if(		mx0==mxF	){	ptxt[ pos[ x ]		]=192;
-												ptxt[ pos[ x ] +1	]=197;
-												ptxt[ pos[ z ] +1	]=217;
+	else if(	x< z		)	if(		x==y	){	ptxt[ pos[ x ]		]=192;
+											ptxt[ pos[ x ] +1	]=197;
+											ptxt[ pos[ z ] +1	]=217;
 
-						}else if(	mxZ==mxF	){	ptxt[ pos[ x ] +1	]=192;
-												ptxt[ pos[ z ] +1	]=197;
-												ptxt[ pos[ z ] +2	]=217;
-						}else if(	mxF>mxZ
-							||	mxF<mx0	){	ptxt[ pos[ x ] +1	]=192;
-												ptxt[ pos[ y ] +1	]=179;
-												ptxt[ pos[ z ] +1	]=217;
+						}else if(	z==y	){	ptxt[ pos[ x ] +1	]=192;
+											ptxt[ pos[ z ] +1	]=197;
+											ptxt[ pos[ z ] +2	]=217;
+						}else if(	y >z
+							||	y< x 	){	ptxt[ pos[ x ] +1	]=192;
+											ptxt[ pos[ y ] +1	]=179;
+											ptxt[ pos[ z ] +1	]=217;
 
-						}else{					ptxt[ pos[ x ] +1	]=192;
-												ptxt[ pos[ y ] +1	]=197;
-												ptxt[ pos[ z ] +1	]=217;
+						}else{				ptxt[ pos[ x ] +1	]=192;
+											ptxt[ pos[ y ] +1	]=197;
+											ptxt[ pos[ z ] +1	]=217;
 							}
 						
-	else		sprintf( txt +c, fmtStr[	size[ h ] ],	"[none]"	);
+	else	c+=sprintf( ptxt,	"[not marked]"	);
 
 	if( c>4368){	printf( lightning );	printf("\n_print_mx(): (char *) txt allocation not big enough!  used %d bytes\n\n", c);	printf( lightning ); }
+
 	printf( txt );
 	printf( "\n\n\t");
 	}
-void _init_mx(){
-	ui08	x=255;	post_zc=-1;
 
-	u= v= w= mxF =mxZ =0;	mx0=0xFF;
-	do{	F[x]=0;
-		A[x]=	B[x]=	E[x]=	X[x]=	0;
-		Hx[x]=	Q[x]=	_Q[x]=
-		I[x]=		O[x]=	_O[x]=			0;
-		} while( ++x != 255 );
-/*	if(	O[ 255 ] !=16 ){	printf( lightning );
-						printf("\n!	_init_mx(): O[ 255 ] was clobbered!\n");
-						O[255]=16;	}
-	if(	_O[ 255 ] !=0 ){	printf( lightning );
-						printf("\n!	_init_mx(): _O[ 255 ] was clobbered!\n");
-						_O[255]=0;	}
-	*/
-	_Q[255]=0;
-	*( (ui64*) Hx	)	=
-	*( (ui64*) Hx+1	)=0;
-
-	}
-void _init_mx_(){
-	f =mx0=mxF=0xFF;
-	do{	F[f]=0; E[f]=0;	} while( ++f != 15 );
-	*( (ui64*) Hx	)	=
-	*( (ui64*) Hx+1	)=0;
-
-	}
 
 
 
@@ -925,8 +915,8 @@ bool _alloc(){					zC = AvFILLp(	avICE );
 	if( zC==-1){  AvINIT1(	avICE );	
 			*AvARRAY(	avICE )=		newSVpvn(	cube0, 16 );										x=0;		caseTest|=256;	printf("	^+$		caseTest==%d\n\t", caseTest);	return 1;/* initialized */	
 			}
-	iC=0;	cube=SvPVbyte(	*(	svC0 = AvARRAY( avICE ) ),	CS );	Kx8 = *( (ui64*) cube );	zc = zIndexOf( Kx8);
-	if( zc==-1 ){ sv_insert(			*svC0, 0, CS,		cube0, 16);										x=0;		caseTest|=512;	printf("	^+$!		caseTest==%d\n\t", caseTest);	return 1;/* initialized */
+	iC=0;	cube=SvPVbyte(	*(	pSv0 = AvARRAY( avICE ) ),	CS );	Kx8 = *( (ui64*) cube );	zc = zIndexOf( Kx8);
+	if( zc==-1 ){ sv_insert(			*pSv0, 0, CS,		cube0, 16);										x=0;		caseTest|=512;	printf("	^+$!		caseTest==%d\n\t", caseTest);	return 1;/* initialized */
 			}
 					pqx	= buf +16;
 	ic=0; 			pq	= cube+16;	Eu =0;
@@ -985,7 +975,7 @@ bool _alloc(){					zC = AvFILLp(	avICE );
 
 
 						oq=pq -cube -16;	oqx =pqx -buf -16;
-	sv_insert( *svC0, 16,	oq, 	buf+16,		oqx  );		/* prepend the additional q data at offet +16	*/
+	sv_insert( *pSv0, 16,	oq, 	buf+16,		oqx  );		/* prepend the additional q data at offet +16	*/
 	return 1;
 /*	Finalization for case 1 & case 5y		*/
 	_frag__alloc:  FRAG_LoC_8p1;
@@ -993,16 +983,138 @@ bool _alloc(){					zC = AvFILLp(	avICE );
 	}
 
 
-#define	ARG( $a )	SvIVX( svX=*(	AvARRAY(	avArg) +$a	) )
-#define	ARG0		SvIVX( svX=*	AvARRAY(	avArg)		)
 
 
 void deIceV_KE(){	DeICEv_KE(	u, v );	}
 void deIceV_KEI(){	DeICEv_KEI(	u, v );	}
+void _init_mx(){
+	ui08	x=255;	post_zc=-1;
 
+	u= v= w= mxF =mxZ =0;	mx0=0xFF;
+	do{	F[x]=0;
+		A[x]=	B[x]=	E[x]=	X[x]=	0;
+		Hx[x]=	Q[x]=	_Q[x]=
+		I[x]=		O[x]=	_O[x]=			0;
+		} while( ++x != 255 );
+
+	_Q[255]=0;
+	*( (ui64*) Hx	)	=
+	*( (ui64*) Hx+1	)=0;
+	}
+void _init_mx_(){
+	f =mx0=mxF=0xFF;
+	do{	F[f]=0; E[f]=0;	} while( ++f != 15 );
+	*( (ui64*) Hx	)	=
+	*( (ui64*) Hx+1	)=0;
+
+	}
+#ifdef DEBUG_RACK_L1
+	#define dBUG_F1		printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes",	\
+										caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		CS );				\
+						\
+						printf("\n		F1	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	O[mxE]:	%3d\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d\n\t\t\t\t\t	 dis_c: %3d	rel_qq: %3d\n\t\t\t\t\t\t\t	 dis_q: %3d\n\n\t",	\
+										mx0, mxZ,		post_c,		post_q,		O[mxE],					rel_c,		rel_q,				dis_c,		rel_qq,					dis_q );	\
+
+	#define dBUG_F2L		printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes",	\
+										caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		   CS );				\
+						\
+						printf("\n		F2L	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	   _CS: %-2d bytes (		_O[ mxF ]( %d ) )\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d	   CS_: %-2d bytes ( CS +16 -	_O[ mxF ]( %d ) )\n\t\t\t\t\t\t\t	 dis_q: %3d\n	mods: L\n\n\t",	\
+										mx0, mxZ,		post_c,		post_q,		_CS,						_O[ mxF ],				rel_c,		rel_q,		CS_,						_O[ mxF ],				dis_q );
+
+	#define dBUG_F2R		printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes",	\
+										caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		CS	);				\
+						\
+						printf("\n		F2R	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	   _CS:	%-2d bytes (			O[ mxF ]( %d ) )\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d	   CS_:	%-2d bytes ( CS	+rel_q( %d ) +16	-O[ mxF ]( %d ) )\n\t\t\t\t\t\t\t	dis1_q: %3d\n\n\n\t",	\
+										mx0, mxZ,		post_c,		post_q,		_CS,							_O[ mxF ],				rel_c,		rel_q,		CS_,						rel_q,			O[ mxF ],						dis1_q );
+
+	#define dBUG_F2S		printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	  pre1_c: %3d	  pre_q: %3d		    CS: %-2d bytes",	\
+										caller,			iC,		mc0, mcZ,	pre1_c,		pre_q,			CS	);			\
+						\
+						printf("\n		F2S	matrix : %3d..%-3d	post0_xc: %3d	post1_c: %3d	post1_q: %3d    _CS: %-2d bytes (				O[ mxF ]( %d ) )",			\
+										mx0, mxZ,		post0_xc,		post1_c,		post1_q,		_CS,							O[ mxF ]	);				\
+						\
+						printf(					"\n\t\t\t\t\t	   rel_c: %3d	  dis_c: %3d	 dis1_q: %3d    CS_: %-2d bytes (16 +post1_q( %d )	+dis1_q( %d )	)\n\n\t",	\
+															rel_c,		dis_c,		dis1_q,		CS_,					post1_q,		dis1_q			);
+#else
+	#define dBUG_F1
+	#define dBUG_F2L
+	#define dBUG_F2R
+	#define dBUG_F2S
+#endif
+#ifdef DEBUG_RACK_L2
+	#define dBUG_F1_qGT		printf("\r%c	shift (%d) byte[s] by %-3d  	cube[%d..%d] = cube[%d..%d]\n",	\
+							175,			dis_q,		rel_q,		_O[	mxE ],	CS_	-1,			\
+																	O[	mxE ],	CS	-1	);
+	#define dBUG_F1_qLT		printf("\r%c	shift (%d) byte[s] by %-3d  	cube[%d..%d] = cube[%d..%d]\n",	\
+							174,			dis_q,		rel_q,		_O[	mxE ],	CS_	-1,			\
+																	O[	mxE ],	CS	-1	);
+	#define dBUG_F1_qC		printf("\r%c	re-cast (%d) byte[s] q-data for keybyte[s]	Hx[ %2d..%2d ]	to cube_[ %d..%d ] \n",	\
+							251,				post_q,							mx0, mxZ,		O[mx0], _O[mxE]-1 );
+	#define dBUG_F1_qCx		printf("\r%c	re-cast (%d) byte[s] q-data for keybyte	Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d]\n",	\
+							251,				_Q[m],							m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1);
+	#define dBUG_F2L_mv		printf("\rmv	bulk move ( %d ) bytes of leading data:\n	cube_[%d..%d] = cube[%d..%d]\n",	cube1_q,	\
+																			16,			CS_-1,					\
+																			O[ mxF ],		CS-1	);
+	#define dBUG_F2L_qGt		printf("\r%c	shift (%d) byte[s] by %-3d  	_cube[%d..%d]	= cube[%d..%d]\n",	\
+							175,			dis0_q,		rel_q,		_O[	mxE ],	_O[	mxF ] -1,			\
+																O[	mxE ],	O[	mxF ] -1	);
+	#define dBUG_F2L_qLt		printf("\r%c	shift (%d) byte[s] by %-3d  	_cube[%d..%d]	= cube[%d..%d]\n",	\
+							174,			dis0_q,		rel_q,		_O[	mxE ],	_O[	mxF ] -1,			\
+																O[	mxE ],	O[	mxF ] -1	);
+	#define dBUG_F2L_qGti		printf("\r%c\t\t\t	_cube[ %d +%d ]	= cube[ %d ];\n", 175, i, rel_q, i );
+	#define dBUG_F2L_qLti		printf("\r%c\t\t\t	_cube[ %d +%d ]	= cube[ %d ];\n", 174, i, rel_q, i );
+	#define dBUG_F2L_qC		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to _cube[ %d..%d ] \n",	\
+							251,								mx0, mxF-1,		O[mx0], _O[mxF]-1 );
+	#define dBUG_F2L_qCm	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to _cube[ %d..%d]\n",	\
+							251,								m,	Hx[ m ],		_pq-_cube, _pq +_Q[m] -_cube -1);
+	#define dBUG_F2R_lead		printf("\rmv	bulk move ( %d ) bytes of leading data:\n	cube_[%d..%d] = cube[%d..%d]\n",		\
+												lead1_q,						16,					15+lead1_q,	\
+																				O[ mxF ],				O[ mx0 ]-1	);
+	#define dBUG_F2R_qC		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to cube_[ %d..%d ] \n",		\
+							251,								mx0, mxZ,		q1,	15 +_O[ mxE] -O[ mxF ] );
+	#define dBUG_F2R_qCm	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d ]\n",		\
+							251,								m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1);
+	#define dBUG_F2S_1qC		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to cube_[ 16..%d ] \n",	\
+							251,								mxF, mxZ,		15+post1_q);
+	#define dBUG_F2S_1qCm	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d ]\n",	\
+							251,								m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1);
+	#define dBUG_F2S_dis1		printf("\rmv	bulk move ( %d ) bytes of trailing data:\n	cube_[%d..%d] = cube[%d..%d]\n",	dis1_q,	\
+																			16 +post1_q,		CS_	-1,				\
+																			O[ mxE ],		CS	-1	);
+	#define dBUG_F2S_0qC		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to _cube[ %d..%d ] \n",			\
+							251,								mx0, mxF-1,		O[ mx0 ], _O[ mxF ]-1 );
+	#define dBUG_F2S_0qCm	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to _cube[ %d..%d]\n",			\
+							251,								m,	Hx[ m ],		_pq-_cube, _pq +_Q[m] -_cube -1);
+	#define dBUG_F2R_dis1		printf("\rmv	bulk move (%d) byte[s] of trailing data:\n	cube_[%d..%d] = cube[%d..%d]\n",		\
+												dis1_q,						_O[	mxE] -cube0_q,	CS_	-1,		\
+																			O[	mxE ],			CS	-1 );
+#else
+	#define dBUG_F1_qGT
+	#define dBUG_F1_qLT
+	#define dBUG_F1_qC
+	#define dBUG_F1_qCx
+	#define dBUG_F2L_mv
+	#define dBUG_F2L_qGt
+	#define dBUG_F2L_qLt
+	#define dBUG_F2L_qGti
+	#define dBUG_F2L_qLti
+	#define dBUG_F2L_qC
+	#define dBUG_F2L_qCm
+	#define dBUG_F2R_lead
+	#define dBUG_F2R_qC
+	#define dBUG_F2R_qCm
+	#define dBUG_F2S_1qC
+	#define dBUG_F2S_1qCm
+	#define dBUG_F2S_dis1
+	#define dBUG_F2S_0qC	
+	#define dBUG_F2S_0qCm
+	#define dBUG_F2R_dis1
+#endif
 void _rack( unsigned short caller ){	//	"rack"		is the post-operational process of rendering changes to the elements of avICE.
+
 	ui64		head, body, tail, top, mid;
 	ui08		m, bs, hxbs, mc0xZ, mc1xZ;
+	char		ec0, ec1, ec=zc+1;
 /*	Going in, we expect (SV*) sv  to equal *( AvARRAY( iC ) ), and (char*) cube to equal SvPVbyte( sv... ).
 	In the 'operating' state,	(SV*) sv,  	(char*) cube,   	(int) iC, 	and (uchar) zc 	represent "this" 'pre-operational' cube.
 	The underscored aliases	(SV*) sv_, 	(char*) cube_,  	(int) iC_,	and (uchar) zc_	represent the cube preceding that one.
@@ -1014,38 +1126,37 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 	However, those operations do not require racking or extrication, since those mutations are simple and direct in-situ assignments.
 
 	*/
-
-	if(mx0==0xFF ){	printf("\n!_rack(	caller==%-4d ): nothing to rack\n", caller);	goto _end__rack;		}
-	if(cube==NULL){	printf("\n!_rack(	caller==%-4d ): *cube is NULL\n", caller);	goto _end__rack;		}
-
-												if(	svC0	!=	AvARRAY( avICE )	){	printf( lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(SV**) \"svC)\" is off!\n");	svC0=AvARRAY( avICE );	}
+	if(mx0==0xFF ){			printf("\n!_rack(	caller==%-4d ): nothing to rack\n", caller);	goto _end__rack;		}
+	if(cube==NULL){			printf("\n!_rack(	caller==%-4d ): *cube is NULL\n", caller);	goto _end__rack;		}
+/*
+												if(	pSv0	!=	AvARRAY( avICE )	){	printf( lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(SV**) \"svC)\" is off!\n");	pSv0=AvARRAY( avICE );	}
 	STRLEN	CS_chk;
-	SV*		svChk=*(svC0 +iC);						if(	&*sv	!=	&*svChk			){	printf(  lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(SV*) \"sv\" is off!\n");		sv=svChk;				}
+	SV*		svChk=*(pSv0 +iC);						if(	&*sv	!=	&*svChk			){	printf(  lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(SV*) \"sv\" is off!\n");		sv=svChk;				}
 	ui08*	cubeChk=SvPVbyte( svChk, CS_chk );		if(	&*cube	!=	&*cubeChk		){	printf(  lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(char *) \"cube\" is off! \n");	cube=cubeChk;			}
 												if(	CS		!=	CS_chk			){	printf(  lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(STRLEN) \"CS\" is off!\n");	CS=CS_chk;				}
 	char		zcChk= zIndexOf(  *( (ui64*)	cube) );		if(	zcChk	!=	zc				){	printf( lightning );	printf( "\n!	_rack(	caller==%-4d ): 	(char) \"zc\" is off!\n");		zc= zcChk;				}
-	char		ec0, ec1, ec=zc+1;
-
 	if(	O[ mx0 ] != _O[ mx0 ] ){	printf( lightning ); printf("\n!!!	O[ mx0 ( %d ) ] ( %lld )   != _O[ mx0 ]( %lld )!!!\n\n", mx0, O[mx0], _O[mx0] );
 							printf( lightning );	}
+*/	
 	pre_q		= O[   mcE ]	-O[   mc0 ];
-//	pre_q		= O[   mcZ ]+Q[mcZ]  -O[   mc0 ];
 	post_q		= _O[ mxE ]	-_O[ mx0 ];
 	rel_q		= _O[ mxE ]	-O[	mxE ];
 	rel_qq		= post_q		-pre_q;
 	post_iC		= post_zc >>3;
 
-	printf("\r_rack( %-4d ):	Determine fragmentation level (post_iC: %d )...\n", caller, post_iC);
-//	_print_mx( caller );
+//	printf("\r_rack( %-4d ):	Determine fragmentation level (post_iC: %d )...\n", caller, post_iC);
+#ifdef DEBUG_RACK_L1
+	_print_mx( caller );
+#endif
 //	switch( post_iC ){
 	if(			post_zc< 0	){	/* Cycla count drops to zero, extinguishing cube iC.						*/	printf("\r	Cycla count drops to zero, extinguishing cube iC.	[NOT IMPLEMENTED]\n\t");
-
+	/*	printf("0");*/
 	/*	mark element iC for deletion		*/
 		RACK_SvCUT( iC );
 
 		//get entire length of  cube # iC and  add it to the negative phase of cyclum 0 in cube iC +1	Ki=cube[ 0];
-		_cube= SvPVbyte(	_sv	= *( svC0 + iC -1	), _CS  );
-		cube_ = SvPVbyte(	sv_	= *( svC0 + ++iC	),  CS_ );
+		_cube= SvPVbyte(	_sv	= *( pSv0 + iC -1	), _CS  );
+		cube_ = SvPVbyte(	sv_	= *( pSv0 + ++iC	),  CS_ );
 		E_ = *( (ui64*) cube +1 ) -*( (ui64*)_cube +1 );
 		printf("	The total namespace inside cube %d is (was) %lld\n", E_ );
 		
@@ -1058,7 +1169,8 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 
 
 		}
-	else if(		post_zc<= 7	){	/* Cycla count is still within nominal capacity for cube iC.  					*/
+	else if(		post_zc<= 7	){	/* Cycla count is still within nominal capacity for cube iC.  					*/	dBUG_F1
+	/*	printf("1");*/
 		zc_			=		post_zc;
 		post_xc		=		mxZ			-mx0;	/*			post_xc is zero-based—	it is used as a bitvector.	*/
 		post_c		=		mxE			-mx0;	/*			post_c is one-based—	it is used in arithmetic.	*/
@@ -1066,31 +1178,23 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 		rel_c		=		post_c			-pre_c;
 		dis_q		=		CS		-O[		mxE	];
 		dis_c		=		ec				-mcE;
-#ifdef DEBUG
-		printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %3d\n\t\t	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	O[mxE]:	%3d\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d\n\t\t\t\t\t	 dis_c: %3d	rel_qq: %3d\n\t\t\t\t\t\t\t	 dis_q: %3d\n\n\t",
-						caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		CS,				mx0, mxZ,		post_c,		post_q,		O[mxE],					rel_c,		rel_q,				dis_c,		rel_qq,					dis_q );
-#endif
 	//	printf("\n	cube:	0x%016llX\n	Hx:	0x%016llX\n", *( (ui64*) cube ), *( (ui64*) Hx ) );
-		
+
+
 /*#####	SV RESIZE & PARASTALTIC DISPLACEMENT  / Q-DATA SHIFT	*/
 
-		if(		rel_q >0	){	CS_= CS +rel_q;			cube_ =	SvGROW(	sv_= *(svC0 +iC ),	CS_+1	);
-			if(	dis_q >0 ){//	printf("\r%c	shift (%d) byte[s] by %-3d  	cube[%d..%d] = cube[%d..%d]\n",
-						//	175,			dis_q,		rel_q,		_O[	mxE ],	CS_	-1,
-						//										O[	mxE ],	CS	-1	);
+		if(		rel_q==0	){	CS_= CS;					cube_ =	cube;		sv_= *(pSv0 +iC );
+		} else if(	rel_q >0	){	CS_= CS +rel_q;			cube_ =	SvGROW(	sv_= *(pSv0 +iC ),	CS_+1	);
+			if(	dis_q >0 ){																			dBUG_F1_qGT
 					for(  i = CS-1;		i >=O[mxE];	-- i )	{		cube_[ i +rel_q	]	= cube[ i ];
 					}								}		cube_[CS_]		= 0;
-															SvCUR_set(	sv_,	CS_  	);		if( CS_<16){ printf("\n_rack( %d ): CS_( %lld ) <16	catch #2\n", caller, CS_ );	exit(2);	}
+															SvCUR_set(	sv_,	CS_  	);				dBUG_SvCUR(CS_, "CS_",  2)
 
-		}else if(	rel_q <0	){	CS_= CS +rel_q;			cube_ =	cube;		sv_= *(svC0 +iC );
-			if(	dis_q >0 ){//	printf("\r%c	shift (%d) byte[s] by %-3d  	cube[%d..%d] = cube[%d..%d]\n",
-						//	174,			dis_q,		rel_q,		_O[	mxE ],	CS_	-1,
-						//										O[	mxE ],	CS	-1	);
+		}else{				CS_= CS +rel_q;			cube_ =	cube;		sv_= *(pSv0 +iC );
+			if(	dis_q >0 ){																			dBUG_F1_qLT
 					for(  i = O[mxE];	i < CS;		++i )	{		cube_[ i +rel_q	]	= cube[ i ];
 					}								}		cube_[CS_]		= 0;
-															SvCUR_set(	sv_,	CS_  	);		if( CS_<16){ printf("\n_rack( %d ): CS_( %lld ) <16	catch #3\n", caller, CS_ );	exit(3);	}
-
-		}else{				CS_= CS;					cube_ =	cube;		sv_= *(svC0 +iC );
+															SvCUR_set(	sv_,	CS_  	);				dBUG_SvCUR(CS_, "CS_", 3)
 			}
 
 	//	printf("\n	cube_:	0x%016llX\n	Hx:	0x%016llX\n", *( (ui64*) cube_ ), *( (ui64*) Hx ) );
@@ -1107,11 +1211,8 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 
 	//	printf("\n	cube_:	0x%016llX\n	Hx:	0x%016llX\n", *( (ui64*) cube_ ), *( (ui64*) Hx ) );
 		/*	re-encode modified cycla from matrix[ mx0..mxE ] to upper fragment char * cube_[ 16..16 +post_q -1 ]	*/
-		if( post_q ){	m=mx0;	pq_  = cube_ +O[ mx0 ];	
-				//	printf("\r%c	re-cast (%d) byte[s] q-data for keybyte[s]	Hx[ %2d..%2d ]	to cube_[ %d..%d ] \n",
-				//		251,				post_q,						mx0, mxZ,		O[mx0], _O[mxE]-1 );
-			do	{ //	printf("\r%c	re-cast (%d) byte[s] q-data for keybyte	Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d]\n",
-				//		251,				_Q[m],						m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1);
+		if( post_q ){	m=mx0;	pq_  = cube_ +O[ mx0 ];														dBUG_F1_qC
+			do	{																					dBUG_F1_qCx
 				switch( Hx[ m ] ){  hiCASTt0inc(	A[m], B[m], pq_ )	}
 				} while( ++m< mxE );
 			}
@@ -1140,7 +1241,7 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 
 	/*	retain char * pointer and char * length of pre-op cube iC for final step later	*/
 		_cube	= cube;
-		_sv		= *(svC0 +iC );
+		_sv		= *(pSv0 +iC );
 	//	preCS	= CS;	//we're going to leave CS alone after all
 
 			
@@ -1150,40 +1251,34 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 /*######	|null	|_—	_—	_—	_—	_+	_+	_+	_+	|_—	_—	_—	_—	_—	_—	_—	_—	|		######	*/
 /*######	|^	|				^. . . .Hx	 . . . .$	|								|		######	*/
 
-		if(		mxZ< mxF ){	_CS =	_O[		mxF   ];	/*	printf("\r######	Lower fragment envelops the mod range.\n");	*/
-			post_xc	=		mxZ			-mx0;	/*			post_xc is zero-based—	it is used as a bitvector.	*/
-			post_c	=		mxE			-mx0;	/*			post_c is one-based—	it is used in arithmetic.	*/
+		if(		mxZ< mxF ){	_CS =	_O[		mxF   ];													dBUG_F2L
+			post_xc	=		mxZ			-mx0;	/*	post_xc is zero-based—	it is used as a bitvector.	*/
+			post_c	=		mxE			-mx0;	/*	post_c is one-based—	it is used in arithmetic.	*/
 			pre_c	=		mcE				-mc0;
 			rel_c	=		post_c			-pre_c;
 			cube1_q	=		CS		-O[  	mxF  	];
-		//	dis0_q	=		_CS -1	-_O[  	mxE ];		see "2026-01-08 debug LSeq dis0_q A.txt" and 2026-01-08 debug LSeq dis0_q B.txt"
 			dis0_q	=		_CS		-_O[  	mxE  	];
 
 
 /*######	UPPER FRAGMENT [1]:	SV SETUP	*/
 		/*	create new cube to serve as the higher fragment	*/
 			CS_		= 16 +cube1_q;		
-			sv_		= newSVpvz( 0x6 |	CS_	);		// round sv_ allocation up to the nearest quad, +0 / -1
-			SvCUR_set(			sv_,	CS_	);
-			cube_  	= SvPVbyte(	sv_,	CS_	); 
+			sv_		= newSVpvz(	0x6 |	CS_	);		// round sv_ allocation up to the nearest quad, +0 / -1
+			SvCUR_set(				sv_,	CS_	);
+			cube_  	= SvPVbyte_nolen(	sv_	); 
 			cube_[ CS_ ] = 0;
-			*( (ui64*) cube_+1 ) =		*( (ui64*) cube+1 );	/* set Epsilon of upper fragment (it carries the original)	*/
-			*( (ui64*) _cube+1 ) =		E[ mxF -1	];	/* set Epsilon of lower fragment while we're at it			*/
-#ifdef DEBUG
-			printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes\n\t\t	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	   _CS: %-2d bytes (		_O[ mxF ]( %d ) )\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d	   CS_: %-2d bytes ( CS +16 -	_O[ mxF ]( %d )\n\t\t\t\t\t\t\t	 dis_q: %3d\n	mods: L\n\n\t",
-							caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		   CS,					mx0, mxZ,		post_c,		post_q,	_CS,						_O[ mxF ],				rel_c,		rel_q,		CS_,						_O[ mxF ],				dis_q );
-			if( CS_<16){ printf("\n_rack( %d ): CS_( %lld ) <16	catch #4\n", caller, CS_ );	exit(4);	}
-#endif
+			*( (ui64*) cube_+1 ) =		*( (ui64*) cube+1 );	/* set Epsilon of upper fragment (carry original value)	*/
+			*( (ui64*) _cube+1 ) =		E[ mxF -1	];	/* set Epsilon of lower fragment while we're at it		*/	dBUG_SvCUR(CS_, "CS_", 4)
 
-		/*	rack the new cube for now— all array splice operations are deferred until once-and-for-all call to _resplice()	*/
+		/*	rack the new cube for now— all array splice operations are deferred for the only call to _reseqence()	*/
 			RACK_SvINS( iC, sv_ );
 
-/*######	UPPER FRAGMENT [1]:	SPLICE KEYBYTE SECTION		(L-Seq)									*/
-		/*	copy the top part of the original cube to the upper fragment, at the pre-offset which corresponds to mxF.	*/
+/*######	UPPER FRAGMENT [1]:	SPLICE KEYBYTE SECTION		(L-Seq)								*/
+		/*	copy the top of the pre-op cube to the upper fragment, at the pre-offset which corresponds to mxF.	*/
 													*( (ui64*) cube_ ) =		*( (ui64*)(  cube+I[ mxF ]) );
 			switch(	zc_ ){		SwCASE_LOWPASS_1IS(	*( (ui64*) cube_ )	);			}
 
-/*			LOWER FRAGMENT [0]:	SPLICE KEYBYTE SECTION		(L-Seq)									*/
+/*			LOWER FRAGMENT [0]:	SPLICE KEYBYTE SECTION		(L-Seq)								*/
 		/*	crossover modified cycla (as uquad* Hx ) with unaltered leading / trailing in-situ    	*/
 							mc0xZ = mc0 |(	post_xc<< 3 );
 			if(		rel_c == 0 ){		/* Cycla count unchanged;	trailing cycla stay.			*/
@@ -1198,13 +1293,10 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 		/*	trim everything off the lower fragment that went to the upper fragment.		*/
 			switch( _zc ){			SwCASE_LOWPASS_1IS(	*( (ui64*) _cube )	);			}
 
-/*######	UPPER FRAGMENT [1]:	SPLICE Q-DATA SECTION	(L-Seq)										*/
-		/*	bulk move (cube1_q) bytes of trailing unaltered q-data to upper fragment								*/
-			if( cube1_q ){		/*	dest: 					cube_[	16		..	CS_-1	] =				*/
-							/*	src:						cube[	O[ mxF ]	..	CS-1	]				*/
-			//	printf("\rmv	bulk move ( %d ) bytes of leading data:\n	cube_[%d..%d] = cube[%d..%d]\n",	cube1_q,
-			//													16,			CS_-1,
-			//													O[ mxF ],		CS-1	);	sign= O[ mxF ] >16? 243: 240;
+/*######	UPPER FRAGMENT [1]:	SPLICE Q-DATA SECTION	(L-Seq)									*/
+		/*	bulk move (cube1_q) bytes of trailing unaltered q-data to upper fragment							*/
+			if( cube1_q ){		/*	dest: 					cube_[	16		..	CS_-1	] =			*/	dBUG_F2L_mv
+							/*	src:						cube[	O[ mxF ]	..	CS-1	]			*/
 				pqx 	= cube	+O[ mxF ];
 				pq_	= cube_	+16;
 				while( cube1_q >7 ){	*( (ui64*) pq_ ) = *( (ui64*) pqx );		pq_ +=8;	pqx+=8;	cube1_q-=8;	}
@@ -1213,31 +1305,21 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 				while( cube1_q >0 ){	*( (ui08*) pq_ ) = *( (ui08*) pqx );	++	pq_;	++	pqx;	--	cube1_q;		}
 				}
 
-/*######	LOWER FRAGMENT [0]:	SV RESIZE & PARASTALTIC DISPLACEMENT  / Q-DATA SHIFT					*/
+/*######	LOWER FRAGMENT [0]:	SV RESIZE & PARASTALTIC DISPLACEMENT  / Q-DATA SHIFT				*/
 
-			if(		rel_q >0 )	{							 	_cube =	SvGROW(	_sv, _CS +1	);
-				if(	dis0_q >0 ){															//	printf("\r%c	shift (%d) byte[s] by %-3d  	_cube[%d..%d]	= cube[%d..%d]\n",
-																						//	175,			dis0_q,		rel_q,		_O[	mxE ],	_O[	mxF ] -1,
-																						//										O[	mxE ],	O[	mxF ] -1	);
-						for( i = O[ mxF ] -1;		i >=O[ mxE ];	-- i )	{	_cube[ i +rel_q	] =	_cube[ i ];	//	printf("\r%c\t\t\t	_cube[ %d +%d ]	= cube[ %d ];\n", 175, i, rel_q, i );
+			if(		rel_q >0 )	{								 	_cube =	SvGROW(	_sv, _CS +1	);
+				if(	dis0_q >0 ){																		dBUG_F2L_qGt
+						for( i = O[ mxF ] -1;		i >=O[ mxE ];	-- i )	{	_cube[ i +rel_q	] =	_cube[ i ];				dBUG_F2L_qGti
 						}									}
 			}else if(	rel_q< 0 )	{
-				if(	dis0_q >0 ){															//	printf("\r%c	shift (%d) byte[s] by %-3d  	_cube[%d..%d]	= cube[%d..%d]\n",
-																						//	174,			dis0_q,		rel_q,		_O[	mxE ],	_O[	mxF ] -1,
-																						//										O[	mxE ],	O[	mxF ] -1	);
-						for( i = O[ mxE ];		i <O[ mxF ];	++i )	{	_cube[ i +rel_q	] =	_cube[ i ];	//	printf("\r%c\t\t\t	_cube[ %d +%d ]	= cube[ %d ];\n", 174, i, rel_q, i );
+				if(	dis0_q >0 ){																		dBUG_F2L_qLt
+						for( i = O[ mxE ];		i <O[ mxF ];	++i )	{	_cube[ i +rel_q	] =	_cube[ i ];				dBUG_F2L_qLti
 				}		}									}	_cube[ _CS ]		= 0;
-																SvCUR_set(		_sv,	_CS  	);			if( _CS<16){ printf("\n_rack( %d ): _CS( %lld ) <16	catch #6\n", caller, _CS );	exit(6);	}
-				
+																SvCUR_set(		_sv,	_CS  	);		dBUG_SvCUR(_CS, "_CS", 6)
 
-
-
-		/*	re-encode modified cycla from op matrix[ mx0..mxF-1 ] to lower fragment char * _cube					*/
-			if( post_q ){	m=mx0;		_pq = _cube +O[ mx0 ]; 
-					//	printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to _cube[ %d..%d ] \n",
-					//		251,								mx0, mxF-1,		O[mx0], _O[mxF]-1 );
-				do	{//	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to _cube[ %d..%d]\n",
-					//		251,								m,	Hx[ m ],		_pq-_cube, _pq +_Q[m] -_cube -1);
+		/*	re-encode modified cycla from op matrix[ mx0..mxF-1 ] to lower fragment char * _cube				*/
+			if( post_q ){	m=mx0;		_pq = _cube +O[ mx0 ]; 												dBUG_F2L_qC
+				do	{																				dBUG_F2L_qCm
 					switch( Hx[ m ] ){  hiCASTt0inc(	A[m], B[m], _pq )	}
 					} while( ++m< mxF );
 			}	}
@@ -1250,10 +1332,10 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 /*######		|					^_zc |	^mc0					||			|		######	*/
 /*######		|						|0	1	2	3	4	5	6	||			|		######	*/
 
-		else if(	mx0 >= mxF ){	_CS = O[ mxF ];	/*	printf("\r######	Upper fragment envelops the mod range.\n"); */
+		else if(	mx0 >= mxF ){	_CS = O[ mxF ];														dBUG_F2R
 		// 	Cap'n Obvious Asserts:  In this case, mx0 >= mxF ( mod range start is gt/eq frag1 start).
-			post_xc	=		mxZ			-mx0;	/*			post_xc is zero-based—	it is used as a bitvector.	*/
-			post_c	=		mxE			-mx0;	/*			post_c is one-based—	it is used in arithmetic.	*/
+			post_xc	=		mxZ			-mx0;	/*	post_xc is zero-based—	it is used as a bitvector.	*/
+			post_c	=		mxE			-mx0;	/*	post_c is one-based—	it is used in arithmetic.	*/
 			pre_c	=		mcE				-mc0;
 			rel_c	=		post_c			-pre_c;
 			rel1_c	=		rel_c	-I[		mxF		];
@@ -1261,7 +1343,6 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 			cube0_q	=	O[ 	mxF ]			-16;		// only used once
 			lead1_c	=		mx0			-mxF;
 			lead1_q	=	O[	mx0 ]	-O[		mxF ];
-		//	dis1_q	=		CS		-O[		mxZ ];
 			dis1_q	=		CS		-O[		mxE	];
 			dis1_i	=	I[	mxF	]	-		rel_c;
 
@@ -1269,24 +1350,20 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 /*######	UPPER FRAGMENT [1]:	SV SETUP	*/
 		/*	create new cube to serve as the higher fragment	*/
 			CS_		= CS +rel_q   	-cube0_q;		// length of upper frag will be original length +rel_q less cube0_q
-			sv_		= newSVpvz( 0x6 |	CS_	);		// round sv_ allocation up to the nearest quad, +0 / -1
-			SvCUR_set(			sv_,	CS_	);
-			cube_  	= SvPVbyte(	sv_,	CS_	); 
-			cube_[ CS_ ] = 0;
-#ifdef DEBUG
-			printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes\n\t\t	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	   _CS:	%-2d bytes (			O[ mxF ]( %d ) )\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d	   CS_:	%-2d bytes ( CS	+rel_q( %d ) +16	-O[ mxF ]( %d ) )\n\t\t\t\t\t\t\t	dis1_q: %3d\n	mods: R\n\n\t",
-							caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		CS,						mx0, mxZ,		post_c,		post_q,		_CS,							_O[ mxF ],				rel_c,		rel_q,		CS_,						rel_q,			O[ mxF ],						dis1_q );
-			if( CS_<16){ printf("\n_rack( %d ): CS_( %lld ) <16	catch #7\n", caller, CS_ );	exit(7);	}
-#endif
-		/*	rack the new cube for now— all array splice operations are deferred until once-and-for-all call to _resplice()	*/
+			sv_		= newSVpvz(	0x6 |	CS_	);	// round sv_ allocation up to the nearest quad, +0 / -1
+			SvCUR_set(				sv_,	CS_	);
+			cube_  	= SvPVbyte_nolen(	sv_	); 
+			cube_[ CS_ ] = 0;																			dBUG_SvCUR(CS_, "CS_", 7)
+
+		/*	rack the new cube for now— all array splice operations are deferred until the only call to _reseqence()	*/
 		//	++iC;
 			RACK_SvINS( iC, sv_ );
 
 /*######	UPPER FRAGMENT [1]:	SPLICE KEYBYTE SECTION	(R-Seq)			*/
-		/*	prime the upper fragment's keybyte section for splicing with the upper split from the original.					*/
-			*( (ui64*) cube_ )		=	*( (ui64*)( cube+I[ mxF ] ) );	/*	only the lead is kept over the next step.		*/
+		/*	prime the upper fragment's keybyte section for splicing with the pre-op cube.						*/
+			*( (ui64*) cube_ )		=	*( (ui64*)( cube+I[ mxF ] ) );	/*	only the leading part is kept.			*/
 
-		/*	crossover high part of modified cycla (from Hx) with displacement (from char * _cube) to yield upper fragment	*/
+		/*	cross high part of modified cycla (from Hx) with displacement (from char * _cube) to yield upper frag	*/
 						mc1xZ = lead1_c| ( post_xc<< 3 );
 			if(		zc == mcZ	){																	*( (ui64*) cube_+1 ) = E[ mxZ ];			/* set Epsilon of upper fragment	( there is no displacement, so mxZ is the new ending cyclum)	*/
 				switch(	mc1xZ ){	SwCASE_LPXOVER_01T(								*( (ui64*)( Hx +mxF ) ),	*( (ui64*) cube_ )  )  }
@@ -1310,11 +1387,8 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 /*######	UPPER FRAGMENT [1]:	SPLICE Q-DATA SECTION 	(R-Seq)									*/
 		/*	bulk move (lead1_q) bytes of leading unaltered q-data to upper fragment							*/
 			pq_  = cube_ +16;
-			if( lead1_q ){		/*	dest: 					cube_[	16		..	16+lead1_q	] =		*/
+			if( lead1_q ){		/*	dest: 					cube_[	16		..	16+lead1_q	] =		*/	dBUG_F2R_lead
 							/*	src:						cube[	O[ mxF ]	..	O[ mx0 ]		]		*/
-			//	printf("\rmv	bulk move ( %d ) bytes of leading data:\n	cube_[%d..%d] = cube[%d..%d]\n",
-			//						lead1_q,						16,					15+lead1_q,	
-			//													O[ mxF ],				O[ mx0 ]-1	);	sign= O[ mxF ] >16? 243: 240;
 				pqx = cube+O[ mxF ];
 				while( lead1_q >7 ){	*( (ui64*) pq_ ) = *( (ui64*) pqx );		pq_ +=8;	pqx+=8;	lead1_q-=8;	}
 				while( lead1_q >3 ){	*( (ui32*) pq_ ) = *( (ui32*) pqx );		pq_ +=4;	pqx+=4;	lead1_q-=4;	}
@@ -1325,21 +1399,15 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 		/*	re-encode modified cycla from matrix[ mx0..mxE ] to upper fragment char * cube_[ 16..16 +post_q -1 ]	*/
 			if( post_q ){	m=mx0;
 				q1= pq_ -cube_;
-				pq_ =cube_ +q1;
-				//		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to cube_[ %d..%d ] \n",
-				//			251,								mx0, mxZ,		q1,	15 +_O[ mxE] -O[ mxF ] );
-				do	{//	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d ]\n",
-					//		251,								m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1);
+				pq_ =cube_ +q1;																		dBUG_F2R_qC
+				do	{																				dBUG_F2R_qCm
 					switch( Hx[ m ] ){  hiCASTt0inc(	A[m], B[m], pq_ )	}
 					} while( ++m< mxE );
 				}
 
 		/*	bulk move (dis1_q) bytes of trailing unaltered q-data to upper fragment							*/
-			if( dis1_q ){		/*	dest: 					cube_[	_O[ mxE] -post0_qS ..	CS_	-1 ] =	*/
+			if( dis1_q ){		/*	dest: 					cube_[	_O[ mxE] -post0_qS ..	CS_	-1 ] =	*/	dBUG_F2R_dis1
 							/*	src:						cube[	O[ mxE ],		 ..	CS	-1 ];		*/
-			//	printf("\rmv	bulk move (%d) byte[s] of trailing data:\n	cube_[%d..%d] = cube[%d..%d]\n",
-			//						dis1_q,						_O[	mxE] -cube0_q,	CS_	-1,
-			//													O[	mxE ],			CS	-1 );		sign= post0_qS? 243: 240;
 				pqx= cube +O[ mxE ];
 				while( dis1_q >7 ){	*( (ui64*) pq_ ) = *( (ui64*) pqx );		pq_ +=8;	pqx+=8;	dis1_q-=8;	}
 				while( dis1_q >3 ){	*( (ui32*) pq_ ) = *( (ui32*) pqx );		pq_ +=4;	pqx+=4;	dis1_q-=4;	}
@@ -1349,7 +1417,7 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 
 /*			LOWER FRAGMENT [0]: Resize						(R-Seq)								*/
 			if(			CS !=	_CS	){//	printf("\r	resize char * _cube from (%d) byte[s] to (%d) byte[s]\n", CS, _CS );
-				SvCUR_set(	_sv,	_CS	);			if( _CS<16){ printf("\n_rack( %d ): _CS( %lld ) <16	catch #8\n", caller, _CS );	exit(8);	}
+				SvCUR_set(	_sv,	_CS	);																dBUG_SvCUR(_CS, "_CS", 8)
 				_cube[			_CS	]=0;
 			}	}
 
@@ -1358,8 +1426,7 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 /*######	|-1	|0	1	2	3	4	5	6	7	8	|9	10	11	12	13	14	15	|		######	*/
 /*######	|null	|_—	_—	_—	_—	_+	_+	_+	_+	|_+	_+	_+	_+	_*	_*	_—	_—	|		######	*/
 /*######	|^	|				^. . . .	 . . . .	| . . . .	. . . .		. . . .	$			|		######	*/
-		else	{					_CS  = _O[ mxF ];	/*	printf("\r######	Each fragment envelops part of the mod range.\n");	*/
-
+		else	{					_CS  = _O[ mxF ];														dBUG_F2S
 		//	pre0_c	=	 I[	mxF ]	 		-mc0;	/*	not used?	*/
 			pre1_c	= 		mcE		-I[		mxF		];
 			post0_xc	= 		mxF -1			-mx0;
@@ -1376,18 +1443,13 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 
 /*######	UPPER FRAGMENT [1]:	SV SETUP
 		/*	create new cube to serve as the higher fragment	*/
-			CS_		= 16 +post1_q +dis1_q;			// length of upper frag will be upper part of post-mod-q plus displacement
-			sv_		= newSVpvz( 0x6 |	CS_	);		// round sv_ allocation up to the nearest quad, +0 / -1
-			SvCUR_set(			sv_,	CS_	);
-			cube_  	= SvPVbyte(	sv_,	CS_	); 
-			cube_[ CS_ ] = 0;
+			CS_		= 16 +post1_q +dis1_q;						// length of upper frag will be upper part of post-mod-q plus displacement
+			sv_		= newSVpvz(	0x6 |	CS_	);				// round sv_ allocation up to the nearest quad, +0 / -1
+			SvCUR_set(				sv_,	CS_	);
+			cube_  	= SvPVbyte_nolen(	sv_	); 
+			cube_[ CS_ ] = 0;																			dBUG_SvCUR(CS_, "CS_", 9)
 
-#ifdef DEBUG
-			printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d			 pre1_c: %3d	  pre_q: %3d	 CS: %-2d bytes\n\t\t	matrix : %3d..%-3d	post0_xc: %3d	post1_c: %3d	post1_q: %3d    _CS: %-2d bytes (				O[ mxF ]( %d ) )\n\t\t\t\t\t	   rel_c: %3d	  dis_c: %3d	 dis1_q: %3d    CS_: %-2d bytes (16 +post1_q( %d )	+dis1_q( %d )	)\n	mods: LR\n\n\t",		
-							caller,			iC,		mc0, mcZ,			pre1_c,		pre_q,		CS,					mx0, mxZ,		post0_xc,		post1_c,		post1_q,		_CS,							O[ mxF ],					rel_c,		dis_c,		dis1_q,		CS_,					post1_q,		dis1_q				);
-			if( CS_<16){ printf("\n_rack( %d ): CS_( %lld ) <16	catch #9\n", caller, CS_ );	exit(9);	}
-#endif
-		/*	rack the new cube for now— all array splice operations are deferred 'til once-and-for-all call to _resplice()	*/
+		/*	rack the new cube for now— all array splice operations are deferred 'til once-and-for-all call to _reseqence()	*/
 		//	++iC;
 			RACK_SvINS( iC, sv_ );
 
@@ -1414,21 +1476,15 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 /*######	UPPER FRAGMENT [1]:	SPLICE Q-DATA SECTION 	(RL-Split)			*/
 		/*	re-encode modified cycla from op matrix[ mxF..mxE ] to upper fragment char * cube_[ 16.._O[ mxE ] ]	*/
 			if( post1_q ){
-				pq_  = cube_ +16;  m=mxF;
-				//		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to cube_[ 16..%d ] \n",
-				//			251,								mxF, mxZ,		15+post1_q);
-				do	{//	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d ]\n",
-					//		251,								m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1);
+				pq_  = cube_ +16;  m=mxF;																dBUG_F2S_1qC
+				do	{																				dBUG_F2S_1qCm
 					switch( Hx[ m ] ){  hiCASTt0inc(	A[m], B[m], pq_  )	}
 					} while( ++m< mxE );
 				}
 
 		/*	bulk move (dis1_q) bytes of trailing / displaced unaltered q-data to upper fragment					*/
-			if( dis1_q ){		/*	dest: 					cube_[	16 +post1_q	..	CS_	-1 ] =		*/
+			if( dis1_q ){		/*	dest: 					cube_[	16 +post1_q	..	CS_	-1 ] =		*/	dBUG_F2S_dis1
 							/*	src:						_cube[	O[ mxE ]		..	CS	-1 ];			*/
-		//		printf("\rmv	bulk move ( %d ) bytes of trailing data:\n	cube_[%d..%d] = cube[%d..%d]\n",	dis1_q,
-		//														16 +post1_q,		CS_	-1,
-		//														O[ mxE ],		CS	-1	); 		sign= post1_q? 243: 240;
 				pq_= cube_ +16 +post1_q;
 				pqx= cube +O[ mxE ];
 				while( dis1_q >7 ){	*( (ui64*) pq_ ) = *( (ui64*) pqx );		pq_ +=8;	pqx+=8;	dis1_q-=8;	}
@@ -1441,21 +1497,18 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 		/*	re-size frag 0 now to make sure it has space for new cycla									*/
 			if(		CS !=	_CS	){//	printf("\r	resize char * _cube from (%d) byte[s] to (%d) byte[s]\n", CS, _CS );
 				if(	CS <	_CS )	_cube =	SvGROW(	_sv,	_CS +1 );
-				_cube[		_CS ] = 0;			SvCUR_set(	_sv,	_CS	);		if( _CS<16){ printf("\n_rack( %d ): _CS( %lld ) <16	catch #0\n", caller, _CS );	exit(0);	}
+				_cube[		_CS ] = 0;			SvCUR_set(	_sv,	_CS	);									dBUG_SvCUR(_CS, "_CS", 0)
 				}
 
 		/*	re-encode modified cycla from op matrix[ mx0..mxF-1 ] to lower fragment char * _cube			*/
 			if( post0_q ){
-				_pq  = _cube +O[ mx0 ];	 m=mx0;
-					//	printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to _cube[ %d..%d ] \n",
-					//		251,								mx0, mxF-1,		O[ mx0 ], _O[ mxF ]-1 );
-				do	{//	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to _cube[ %d..%d]\n",
-					//		251,								m,	Hx[ m ],		_pq-_cube, _pq +_Q[m] -_cube -1);
+				_pq  = _cube +O[ mx0 ];	 m=mx0;															dBUG_F2S_0qC
+				do	{																				dBUG_F2S_0qCm
 					switch( Hx[ m ] ){  hiCASTt0inc(	A[m], B[m], _pq  )	}
 					} while( ++m< mxF );
 		}	}	}
 	else					{	/* Cycla count exceeds the capacity of cube iC, creating an array of new cubes.	[NOT IMPLEMENTED]*/	printf("\r	Cycla count exceeds the capacity of cube iC, creating an array of new cubes.	[not implemented]\n\t");
-
+		printf("\n"); printf( lightning );	printf("\n");
 		bal_c	= ec +rel_c;
 		bal_C	= (bal_c >>3)	+1;
 		if(	bal_C >1 ){
@@ -1463,41 +1516,85 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 			rem_c	= bal_c %	bal_C;
 			}
 		}
-
-//	_print_mx( caller );
 _end__rack:
 	O[mxZ]=_O[mxZ];
 	O[mxE]=_O[mxZ] +( Q[mxZ] = _Q[mxZ] );
 	mx0=0xFF;
 	*( (ui64*) Hx )=0;
-//	printf("\n	</RACK>\n");
+#ifdef DEBUG_RACK_L1
+	_print_mx( caller );
+	printf("\n	</RACK>\n");
+#endif
 	}
-void _resplice( ui08 caller ){		//	"resplice"	is the post-operational process of rendering changes to the avICE array itself.
-	printf("\n_resplice( caller==%d ):	eji=%lld	_eji=%lld	alt=%lld\n", caller, eji, _eji, alt );
+
+#ifdef DEBUG_ReSEQ
+	#define dBUG$qASCE	else	if(	src< dst )				printf("\ngoing in the wrong direction for ReSEQ_ASCEND 	src( %lld ) < dst( %lld ), step #%d/%d\n", src - pSv0, dst -pSv0, isqa,	isqz );
+	#define dBUG$qDESC	else	if(	src >dst )				printf("\ngoing in the wrong direction for ReSEQ_DESCEND	src( %lld ) > dst( %lld ), step #%d/%d\n", src - pSv0, dst -pSv0, isq,	isqz );
+	#define dBUG$qIa		printf("\r+I+	avICE[ %4d ]	= SV%-4d			isqa: %d/%d	jux: %d	psv/dst: %d/%d\n",			dst-pSv0-1, 		rSeq_iR[isqa]-1,	isqa,	isqz, jux, psv-pSv0, dst-pSv0 );
+	#define dBUG$qCa	printf("\r-X-	avICE[ %4d ]	= NULL				isqa: %d/%d	jux: %d	psv/dst: %d/%d\n",			psv-pSv0, 				  		isqa,	isqz, jux, psv-pSv0, dst-pSv0 );
+	#define dBUG$qJa		printf("\r++%c	avICE[ %4d ]	=	avICE[ %4d ];		isqa: %d/%d	jux: %d	psv/dst: %d/%d\n",	174, 	dst-pSv0-1, 		src-pSv0-1,	  	isqa,	isqz, jux, psv-pSv0, dst-pSv0 );
+	#define dBUG$qTa		printf("\r++%c	avICE[ %4d ]	=	avICE[ %4d ]; [T]	isqa: %d/%d	jux: %d	psv/dst: %d/%d\n",	174, 	dst-pSv0, 		src-pSv0,  		isqa,	isqz, jux, psv-pSv0, dst-pSv0 );
+
+	#define dBUG$qId		printf("\r+I+	avICE[ %4d ]	= SV%-4d			isq: %d/%d	jux: %d	psv/dst: %d/%d\n",		1+	dst-pSv0,	1+	rSeq_iR[isq],		isq,		isqz, jux, psv-pSv0, dst-pSv0);
+	#define dBUG$qCd	printf("\r-X-	avICE[ %4d ]	= NULL				isq: %d/%d	jux: %d	psv/dst: %d/%d\n",			psv-pSv0,						isq,		isqz, jux, psv-pSv0, dst-pSv0);
+	#define dBUG$qJd		printf("\r%c--	avICE[ %4d ]	=	avICE[ %4d ];		isq: %d/%d	jux: %d	psv/dst: %d/%d\n",	175,	1+	dst-pSv0,	1+	src-pSv0,  		isq,		isqz, jux, psv-pSv0, dst-pSv0);
+	#define dBUG$qTd		printf("\r%c--	avICE[ %4d ]	=	avICE[ %4d ]; [T]	isq: %d/%d	jux: %d	psv/dst: %d/%d\n",	175,		dst-pSv0, 		src-pSv0,  		isq,		isqz, jux, psv-pSv0, dst-pSv0);
+	#define dBUG_ReSEQ_SCHED_PRE	\
+		printf("\r<ReSPLICE>\n	zC:		%lld\n	post_zC:	%lld\n", zC, post_zC );			\
+		printf("\n	racking schedule (pre process):\n	#		");							\
+		int	z;					for( z=0; z<=7; ++z ){ printf("#%-7d", 			z );	}	\
+		printf("\n	rSeq_iR:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeq_iR[ 	z ] );	}	\
+		printf("\n	rSeqIns:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqIns[ 	z ] );	}	\
+		printf("\n	rSeqCut:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqCut[	z ] );	}	\
+		printf("\n	rSeqSrc:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqSrc[	z ] );	}	\
+		printf("\n	rSeqDst:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqDst[	z ] );	}	\
+		printf("\n\n");
+	#define dBUG_ReSEQ_SCHED_POST	\
+		printf("\n	racking schedule (post process):\n	#		");										\
+								for( z=0; z<=7; ++z ){ printf("#%-7d", 			z );	}				\
+		printf("\n	rSeq_iR:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeq_iR[ 	z ] );	}				\
+		printf("\n	rSeqIns:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqIns[ 	z ] );	rSeqIns[ 	z ]=0; }	\
+		printf("\n	rSeqCut:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqCut[	z ] );	rSeqCut[	z ]=0; }	\
+		printf("\n	rSeqSrc:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqSrc[	z ] );	rSeqSrc[	z ]=0; }	\
+		printf("\n	rSeqDst:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqDst[	z ] );	rSeqDst[	z ]=0; }	\
+		printf("\n	</ReSPLICE>\n\n\n\n\n");
+#else
+	#define dBUG$qASCE
+	#define dBUG$qDESC
+	#define dBUG$qIa
+	#define dBUG$qCa
+	#define dBUG$qJa
+	#define dBUG$qTa
+	#define dBUG$qId
+	#define dBUG$qCd
+	#define dBUG$qJd
+	#define dBUG$qTd
+	#define dBUG_ReSEQ_SCHED_PRE
+	#define dBUG_ReSEQ_SCHED_POST
+#endif
+void _reseqence( ui08 caller ){	//	"resequence"	is the post-operational process of rendering changes to the avICE array itself.
+	long long int jmp;
+	//printf("\n_resequence( caller==%d ):	isq=%lld	isqa=%lld	jux=%lld	cmpZ=%d\n", caller, isq, isqa, jux, cmpZ );
 	if( zC!= AvFILLp( avICE ) ){	printf( lightning );
 							printf("\n!	zC( %llu ) != AvFILLp( avICE )( %llu )\n", zC, AvFILLp( avICE ) );
 							zC = AvFILLp( avICE );
 							}
 	
-	/* rel. AvFILLp:	*/				rel_iC += respliceIns[ eji ] - respliceCut[ eji ];
-	/* new AvFILLp:	*/	post_zC =zC +	rel_iC;								if(	post_zC< 0 ){ AvFILLp( avICE ) =-1;	return ;	}
-	if(					post_zC >=AvMAX(	avICE ) ){			av_extend( avICE,		post_zC );	printf("\n	avICE extended to (%d)\n", post_zC );	}
-
 /*	"Re-splice" streamlines any number of deferred array splice operations into one, using a bistable loop with 2nd order dynamics.
 	Inputs are the (5) global arrays:
-		> respliceSrc	—the absolute index number of the operand element in the pre-operational array.
-		> respliceDst	—the absolute index number of the operand element in the post-operational array.
-		> respliceIns	—the number of elements to be inserted at destination index.
-		> respliceCut	—the number of elements to be removed at source index.
-		> respliceAlt	—not a part of the main vector.  Uses a separate iterator, "alt".  Governs ascending / descending alternation.
+		> rSeqSrc 	—the absolute index number of the operand element in the pre-operational array.
+		> rSeqDst 	—the absolute index number of the operand element in the post-operational array.
+		> rSeqIns 	—the number of elements to be inserted at destination index.
+		> rSeqCut 	—the number of elements to be removed at source index.
+	*	> rSeqJux 	—not a part of the main vector.  Uses a separate iterator, "jux".  Governs ascending / descending alternation.
 
-	The first (4) arrays share a common iterator"eji", and they align as one matrix, such that "eji" represents a vector, crossing the (4).
+	The first (4) arrays share a common iterator"isq", and they align as one matrix, such that "isq" represents a vector, crossing the (4).
 	The fifth array is the main array of the outer loop below.  It subdivides the step matrix into ascending / descending ranges,
 	directing sequential numbers of iterations for the two nested inner loops as they swap over to each other within the main loop.
 
 	Prior to getting here, the population of the resplice matrix is event-based; the only two events are "insert" and "cut".
-	Events which occur at the same index increment the counter of a single "eji" step, and are thus aggregated; additionally,
-	"cut" events which occur on consecutive elements are also aggregated in a single "eji" step, since "cut" implies "next".
+	Events which occur at the same index increment the counter of a single "isq" step, and are thus aggregated; additionally,
+	"cut" events which occur on consecutive elements are also aggregated in a single "isq" step, since "cut" implies "next".
 	
 	The loop starts by determining which end to start on / direction to iterate in depending on whether the new length is greater.
 	The direction of iteration reverses each time the relative difference between source and destination index crosses zero.
@@ -1507,231 +1604,220 @@ void _resplice( ui08 caller ){		//	"resplice"	is the post-operational process of
 	Whether in ascending or descending mode, the order of array operations per step is "cut; jump; insert; continue".
 	inserts and cuts are self-explanatory, while the dynamics of jumps are determined by direction and non-zero relative pre-post offset.
 	Basically, a jump initializes cut & insert positions, shifting intermediate elements peristaltically for non-zero relative pre-post offset.
-	For all but the highest-index step, these jump intervals are already stored in the (int) respliceDst[] array before we get here.
+	For all but the highest-index step, these jump intervals are already stored in the (int) rSeqDst[] array before we get here.
 	Obviously the final event is not followed by another one, so the very first thing we do is compute "dst" for the highest-index step.
+
+	for monospace:
+
+		 0                    1     2               3            4        5            6    7    8    9
+	---------|--------------------|-----|---------------|------------|--------|------------|----|----|----|
+	.......xx|...............xxxxx|...xx|............xxx|....xxxxxxxx|.......x|...........x|xxxx|....|...x|..........$
+		2-2                  3-5   8-2             3-3          1-8      2-1          6-1  8-4  1-0  0-1
+		 0                   -2     4               4           -3       -2            3    7    8    7
+	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡.......|+‡...........|+++++‡|+++++++‡....|‡...|..........$
+	       0                 1      2                    3       4        5             6      7            8    9
+
+
 	*/
-
-#define	__ReSPLICE_DESC(		$isrc, $idst, $cut, $ins )							printf("\n	<__ReSPLICE_DESC	eji=%lld>\n", eji );	\
-				jmp =	dst -svC0 -$idst;									\
-	src = svC0 + $isrc +jmp;	\
-	if( $cut )	{									psv = svC0 +$isrc;			\
-			dst-=$cut;	do	{	SvREFCNT_dec(  *	--psv);					\
-											*	psv = &PL_sv_undef;		printf("\r		x%d  	avICE[ %-2d ]    		= &PL_sv_undef;			cut: %d\n",	eji, psv-svC0,			$cut );	\
-							} while( -- $cut );								\
-			}															\
-	if(	$isrc == $idst ){			src-=jmp;		dst-=jmp;						\
-	}else	if( jmp >0 )	do	{											printf("\r		%c%d  	avICE[ %-2d]    		= avICE[ %-2d];			jmp: %d\n",	\
-																					175, eji,	dst -svC0,			src -svC0,  				jmp );		\
-							*dst-- = *src--;								\
-							} while( -- jmp );								\
-	if( $ins )	{								psv = svR0 +r;  r -= $ins;			\
-						do	{											printf("\r		*%d  	avICE[ %-2d ]    		= avRack[ %d ];			ins: %d\n",	\
-																					eji,		dst-svC0,			psv-svR0,				$ins  );		\
-							*dst-- = *psv;	   *	psv-- = &PL_sv_undef;			\
-							} while( -- $ins );								\
-			}\
-																		printf("\n\t	</__ReSPLICE_DESC>\n");	\
-
-
-
-#define	__ReSPLICE_ASC(	$isrc, $idst, $cut, $ins  )								\
-			dst	=	svC0 +$idst;											\
-			src	=	svC0 +$isrc;	jmp	= ( 1-respliceCut[ eji+1] ) +respliceDst[ eji+1 ]	- $idst;			\
-																		printf("\n	<__ReSPLICE_ASC	eji=%lld	jmp=%lld	rel=%lld >\n", eji, jmp, rel );	\
-	if( $cut )	{									psv = src-1;				\
-						do	{	SvREFCNT_dec(  *	psv);					\
-											*	psv-- = &PL_sv_undef;		printf("\r		x%d  	avICE[ %-2d ]    		= &PL_sv_undef;			cut: %d\n",		eji, psv+1-svC0,			$cut );	\
-							} while( -- $cut );								\
-			}															\
-	if( $ins )	{								psv = svR0 +r;  r -= $ins;			\
-						do	{											printf("\r		*%d  	avICE[ %-2d ]    		= avRack[ %d ];			ins: %d\n",	\
-																					eji,		dst-svC0,			psv-svR0,				$ins  );		\
-							*dst-- = *psv;	   *	psv-- = &PL_sv_undef;			\
-							} while( -- $ins );								\
-			dst	=	svC0 +$idst;											\
-			}															\
-	if(	$isrc == $idst ){		src+=jmp;	dst+=jmp;						\
-	}else	if( jmp >0 )	do	{											printf("\r		%c%d  	avICE[ %-2d]    		= avICE[ %-2d];			jmp: %d\n",	\
-																					175, eji,	dst -svC0,			src -svC0,  				jmp );		\
-							*dst++ = *src++;								\
-							} while( -- jmp );								printf("\n\t	</__ReSPLICE_ASC>\n");
-
-
-
-
-#define	__ReSPLICE_ASC_(	$isrc, $idst, $cut, $ins  )								\
-		dst	=	svC0 +$idst;												\
-		src	=	svC0 +$isrc;		jmp	= ( 1-respliceCut[ eji+1] ) +respliceDst[ eji+1 ]	- $idst;			\
-																		printf("\n	<__ReSPLICE_ASC	eji=%lld	jmp=%lld	rel=%lld >\n", eji, jmp, rel );	\
-	if( $cut )	{									psv = src-1;				\
-						do	{	SvREFCNT_dec(  *	psv);					\
-											*	psv-- = &PL_sv_undef;		printf("\r		x%d  	avICE[ %-2d ]    		= &PL_sv_undef;			cut: %d\n",		eji, psv+1-svC0,			$cut );	\
-							} while( -- $cut );								\
-			}															\
-	if(	$isrc == $idst ){		src+=jmp;	dst+=jmp;						\
-	}else	if( jmp >0 )	do	{											printf("\r		%c%d  	avICE[ %-2d]    		= avICE[ %-2d];			jmp: %d\n",	\
-																					175, eji,	dst -svC0,			src -svC0,  				jmp );		\
-							*dst++ = *src++;								\
-							} while( -- jmp );								\
-	if( $ins )	{								psv = svR0 +r;  r -= $ins;			\
-						do	{											printf("\r		*%d  	avICE[ %-2d ]    		= avRack[ %d ];			ins: %d\n",	\
-																					eji,		dst-svC0,			psv-svR0,				$ins  );		\
-							*dst-- = *psv;	   *	psv-- = &PL_sv_undef;			\
-							} while( -- $ins );								\
-			}															printf("\n\t	</__ReSPLICE_ASC>\n");
-
-
-	printf("\n before finalizing respliceAlt, rel_iC=%lld	cmpZ==%d	alt=%d\n\n", rel_iC, cmpZ, alt );
-
-	if(		rel_iC< 0 ){	if(	cmpZ >0 ){ 	respliceAlt[ alt++	] = eji -_eji;	respliceAlt[ alt ]=1; 	}
-						else{			respliceAlt[ alt		] = eji -_eji;					}	cmpZ =-1;
-	}else if(	rel_iC >0 ){	if( 	cmpZ< 0 ){ 	respliceAlt[ alt++	] = eji -_eji;	respliceAlt[ alt ]=1; 	}
-						else{			respliceAlt[ alt		] = eji -_eji;					}	cmpZ = 1;
-	}else{								respliceAlt[ alt		] = eji -_eji;					}
-
-
-	printf("\n	finalizing step %d:	respliceAlt[ alt( %d ) ] = eji( %d ) - _eji( %d ); %lld\n\n", alt, eji, _eji );
 	/* finalize last resplice step		*/
-	respliceSrc[	eji ]	=	rack_iC;
-	respliceDst[	eji ]	=	rack_iC 	+ 	rel_iC;
-//	if(		cmpZ==1 ){		if(		rel_iC< 0	){	cmpZ=0;				respliceAlt[	alt++	] = eji -_eji;  _eji = eji;  }
-//	}else if(	cmpZ==0		&&		rel_iC >0	){	cmpZ=1;				respliceAlt[	alt++	] = eji -_eji;  _eji = eji;  }
+			rSeq_iR[	isq ]	=	iR;
+			rSeqSrc[	isq ]	=	rack_iC;			rel_iC -=	rSeqCut[ isq ];
+			rSeqDst[	isq ]	=	rack_iC 		+	rel_iC;
+							post_zC=zC	+	rel_iC +	rSeqIns[ isq ];	if( post_zC< 0 ){	AvFILLp( avICE ) =-1;	return;	}
 
-//	if( rack_iC!=zC){
-		respliceSrc[	eji +1	] =	zC;
-		respliceDst[	eji +1	] =	post_zC;
-//		}
+	/* unless last step reached last index of avICE, append placeholder step */
+	if(	rack_iC<	zC ){
+++	isq;		rSeqDst[	isq ]	=	post_zC;
+			rSeqSrc[	isq ]	=	zC;
+			rSeq_iR[	isq ]	=	0;
+			rSeqIns[	isq ]	=	0;
+			rSeqCut[	isq ]	=	0;
+			}
+	int isqz=isq;
+	/* compute destination array size and return now if it's lteq zero, or extend if it's gt AvMAX  (AvFILLp is set last of all) */
+	if( zC< post_zC ){	av_extend(	avICE,	post_zC+1 );	pSv0=AvARRAY( avICE );	}		dBUG_ReSEQ_SCHED_PRE
 
-	int	z, rel, dis, jmp, si, di, r	= AvFILLp(	avRack	);
-	SV **			svR0	= AvARRAY(	avRack	);
-					svC0	= AvARRAY(	avICE	);
-	printf("\r<ReSPLICE>\n	zC:		%lld\n	post_zC:	%lld\n", zC, post_zC );
+	#define $insD		rSeqIns[	isq		]
+	#define $cutD		rSeqCut[	isq		]
+	#define $cutD1	rSeqCut[	isq+1	]
+	#define $srcD 	rSeqSrc[	isq		]
+	#define $srcD1	rSeqSrc[	isq+1	]
+	#define $dstD 	rSeqDst[	isq		]
+	#define $dstD1	rSeqDst[	isq+1	]
 
-	printf("\n	racking schedule (pre process):\n	#		");
-							for( z=0; z<=7; ++z ){ printf("#%-7d", 			z );	}
-	printf("\n	respliceAlt\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceAlt[	z ] );	}
-	printf("\n	respliceCut:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceCut[	z ] );	}
-	printf("\n	respliceIns:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceIns[ 	z ] );	}
-	printf("\n	respliceSrc:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceSrc[	z ] );	}
-	printf("\n	respliceDst:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceDst[	z ] );	}
-	printf("\n\n");
+	#define $insA		rSeqIns[	isqa		]
+	#define $cutA		rSeqCut[	isqa		]
+	#define $cutA1	rSeqCut[	isqa+1	]
+	#define $srcA		rSeqSrc[	isqa		]
+	#define $srcA1	rSeqSrc[	isqa+1	]
+	#define $dstA 	rSeqDst[	isqa		]
+	#define $dstA1	rSeqDst[	isqa+1	]
 
+		rSeqSrc[	isq+1 ]=0;	//why dis halp?
+		rSeqDst[	isq+1 ]=0;
+	isqa=isq;
+	if(								$srcD-$cutD	>=$dstD ){
+			do --isq;	while( isq >=0 &&	$srcD-$cutD	>= $dstD );		jux =  isqa -isq;	isqa=isq+1;	src = pSv0+$srcA;	dst = pSv0+$dstA;		//printf("\n starting in ascending mode at step #%d/%d for %lld iterations\n\n", isqa, isqz, jux);
+			goto _asce;
 
-	if( cmpZ< 0 ){
-		_eji = ( eji -=		respliceAlt[	alt ]-1 ) -1;
-		goto asc;
-		}
-
-	src	= svC0 +zC;
-	dst	= svC0 +post_zC;
-	do	{
-	dsc:	printf("\r	resplice entering descending mode at index #%d.\n", eji );
-		do		{	printf("\n	dsc:	%lld	< %lld	respliceAlt[ alt( %d ) ]: %lld\n",	respliceSrc[ eji	],	respliceDst[ eji	],	alt,	respliceAlt[	alt ] ); if(	respliceSrc[ eji ] > respliceDst[ eji ]) printf("\n!	wrong direction ( %lld > %lld)\n", respliceSrc[eji], respliceDst[ eji ] );
-											__ReSPLICE_DESC(				respliceSrc[ eji	],	respliceDst[ eji	],		respliceCut[	eji ],		respliceIns[	eji ] );	
-		--eji;		} while( --	respliceAlt[	alt ] >0 );	if( alt == 0 ) break;
-		_eji = ( eji -=		respliceAlt[ --	alt ] ) -1;
-
-	asc:	src	=	svC0 +respliceSrc[ eji  ];	/*	rel	=	respliceDst[ eji+1	] - respliceSrc[ eji+1	];
-		dst	=	src +rel;						jmp	= 1+	respliceSrc[ eji+1	] - respliceSrc[ eji	];*/
-		printf("\r	resplice entering ascending mode at index #%d.	returning to descending  mode at index #%d.\n", eji, _eji);
-
-		do		{	printf("\n	asc:	%lld	> %lld	respliceAlt[ alt( %d ) ]: %lld\n",	respliceSrc[ eji	],	respliceDst[ eji	],	alt,	respliceAlt[	alt ] ); if(	respliceSrc[ eji ] < respliceDst[ eji ]) printf("\n!	wrong direction ( %lld < %lld)\n", respliceSrc[eji], respliceDst[ eji ] );
-											__ReSPLICE_ASC(				respliceSrc[ eji	],	respliceDst[ eji	],		respliceCut[	eji ],		respliceIns[	eji ] );	
-		++eji;	} while( --	respliceAlt[	alt ] >0 );
-
-		eji =		_eji;
-		} while( --	alt >=0 );
-	printf("	loop end;	eji=%lld	_eji=%lld	alt=%lld\n\n", eji, _eji, alt);
-	eji=_eji=alt=0;
+	}else	{		while( isqa>=0 &&	$srcA-$cutD	<= $dstA ) --isqa;	jux = isq -isqa;		isqa=isq+1;	src = pSv0 +zC;	dst = pSv0 +post_zC;	//printf("\n starting in descending mode at step #%d/%d for %lld iterations	\n\n", isq, isqz, jux);
+	/*	goto _desc;	*/
+			}
 
 
-	if( AvFILLp( avICE ) != post_zC ){	AvFILLp(	avICE ) = post_zC;	printf("\r	AvFILLp( avICE ) = %lld;\n", post_zC );	}
-				
-	printf("\n	racking schedule (post process):\n	#		");
-							for( z=0; z<=7; ++z ){ printf("#%-7d", 			z );	}
-	printf("\n	respliceAlt\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceAlt[	z ] );	respliceAlt[ z ]=0; }
-	printf("\n	respliceCut:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceCut[	z ] );	respliceCut[	z ]=0; }
-	printf("\n	respliceIns:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceIns[ 	z ] );	respliceIns[ 	z ]=0; }
-	printf("\n	respliceSrc:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceSrc[	z ] );	respliceSrc[	z ]=0; }
-	printf("\n	respliceDst:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	respliceDst[	z ] );	respliceDst[	z ]=0; }
 
-	printf("\n	</ReSPLICE>\n\n\n\n\n");
-	}
+	juke: do	{
+	_desc:	do	{	if( isq< 0 )  	printf("\n\n!	isq( %d ) < 0!!!\n\n", 		isq		);
+					if( isq >isqz )	printf("\n\n!	isq( %d ) >isqz( %d )!!!\n\n",	isq, isqz	);
+															psv =pSv0 +$srcD;
+					if( $cutD)			do	{	SvREFCNT_dec(*--	psv );			dBUG$qCd	} while( -- $cutD);
+					
+						jmp = (src-pSv0) -$srcD;
+					if(	jmp >0 )	if( src == dst )	dst-=jmp;						dBUG$qDESC
+								else	do	{	*dst-- = *src--;					dBUG$qJd	} while( -- jmp );
 
+					if( $insD)	{								rSeq_iR[ isq ] +=$insD;
+									do	{	*dst-- = rSeq_SV[--	rSeq_iR[ isq ] ];	dBUG$qId	} while( -- $insD);
+							//								rSeq_iR[ isq ]=-1;
+							}
+					if(	dst -pSv0 != $srcD ){	*dst = *( pSv0 +$srcD);				dBUG$qTd }
+					--	dst;	src =psv -1;
+
+			--isq;	} while( --jux ); 	if( isq< 0) break;
+
+			if( isq==0){				isq=-1;						jux=1;			isqa=0;
+			}else{	isqa=isq;
+					while( isq >0 &&	$srcD-$cutD	>= $dstD ) --isq;	jux =isqa -isq;		isqa=isq+1; }	src = pSv0+$srcA;	dst = pSv0+$dstA;
+									isq=-1;
+	//			do --isq;	while( isq >0 &&	$srcD-$cutD >= $dstD );		jux =isqa -isq;		isqa=isq+1; }	src = pSv0+$srcA;	dst = pSv0+$dstA;
+
+
+			printf("\n switching to ascending mode at step #%d/%d for %lld iterations\n\n", isqa, isqz, jux);
+
+
+
+	_asce:	do	{	if( isqa< 0)	printf("\n\n!	isqa( %d ) < 0!!!\n\n", 		isqa		);
+					if( isqa >isqz)	printf("\n\n!	isqa( %d ) >isqz( %d )!!!\n\n",	isqa, isqz	);
+															psv =pSv0 +$srcA;
+					if( $cutA)			do	{	SvREFCNT_dec(*--	psv );			dBUG$qCa	} while( -- $cutA);
+							
+						jmp =	psv -src;
+					if(	jmp >0 )	if( src == dst )	dst+=jmp;						dBUG$qASCE
+								else	do	{	*dst++ = *src++;					dBUG$qJa	} while( -- jmp );
+
+					if(	dst -pSv0 != $srcA ){	*dst = *( pSv0 +$srcA );				dBUG$qTa	}
+					++	dst;	src = pSv0 +$srcA +1;
+
+					if( $insA )	{    		do	{	*dst++ = rSeq_SV[	rSeq_iR[ isqa ]++ ];	dBUG$qIa	} while( -- $insA);
+							//								rSeq_iR[ isqa ]=-1;
+							}
+			++isqa;	} while( --jux ); 	if( isq< 0) break;
+			src	=	//pSv0 +rSeqSrc[ isq+1 ];
+			dst	=	pSv0 +rSeqDst[ isq+1 ];
+			isqa=isq;
+			while( isqa >0 && $srcA-$cutA <= $dstA )  --isqa;	jux =1 +isq -isqa;
+
+			printf("\n switching to descending mode at step #%d/%d for %lld iterations\n\n", isq, isqz, jux);
+			} while( 1 );
+
+
+//	printf("	array resequenced.	isq=%lld	isqa=%lld	jux=%lld\n\n", isq, isqa, jux);	
+	isq=isqa=jux=0;
+//	for( z=0; z<128; ++z){	rSeqSrc[z]=0;	rSeqDst[z]=0; rSeqIns[z]=0; rSeqCut[z]=0; rSeq_iR[z]=-1; 	}
+
+	if( AvFILLp( avICE ) != post_zC ){ AvFILLp( avICE ) = post_zC;		//printf("\n	AvFILLp( avICE ) = zC( %lld )+ %lld	(%lld)\n",	zC,	rel_iC,	post_zC);
+	}	}
+
+#ifdef DEBUG_SET
+	#define dBUGop0	printf("\r=+|_	x( %5llu )	=+|_ 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t", x, iC, zC, *((ui64*)cube_+1) );		//_print_mx(21);
+	#define dBUGop1 	printf("\r!|+=	x( %5llu )	!|+= 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t", x, iC, zC, *((ui64*)cube_+1) );		//_print_mx(23);
+	#define dBUGop2	printf("\r=|+=	x( %5llu )	=|+= 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t", x, iC, zC, *((ui64*)cube_+1) );		//_print_mx(24);
+	#define dBUGop3	printf("\r=+|$	x( %5llu )	=+|$ 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t", x, iC, zC, *((ui64*)cube_+1) );		//_print_mx(11);
+	#define dBUGop4	printf("\r=+_ 	x( %5llu )	=+_  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC, u, E[u] );		//_print_mx(311);	
+	#define dBUGop5	printf("\r=+= 	x( %5llu )	=+=  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC,  u, E[u] );		//_print_mx(312);	
+	#define dBUGop6	printf("\r_+_	x( %5llu )	_+_  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC,  u, E[u] );
+	#define dBUGop7	printf("\r_+=	x( %5llu )	_+=  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC,  u, E[u] );		//_print_mx(302);	
+	#define dBUGop8	printf("\r===	x( %5llu )	===  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC,  u, E[u] );		//_print_mx(303);	
+#else
+	#define dBUGop0
+	#define dBUGop1 
+	#define dBUGop2
+	#define dBUGop3
+	#define dBUGop4
+	#define dBUGop5
+	#define dBUGop6
+	#define dBUGop7
+	#define dBUGop8
+#endif
 bool	_set(){
-#define uOK   	F[ u ] = ok
-#define uMOD	F[ u ] = mod
-#define vMOD	F[ v ] = mod
-#define vNUL		F[ v ] = null;
-#define uNEW 	F[ u ] = new
-#define vNEW 	F[ v ] = new
-#define uNUL 	F[ u ] = null;
-	skip=a=0;					za = AvFILLp(	avArg);	if( za ==-1)			/*	no args */				return 0;
-	x=ARG0;		post_zC=		zC = AvFILLp(	avICE);	if( zC ==-1){				ENDOcp(	0 );				return 0; }
-	mx0=0xFF;						/*<— how we know there's nothing to rack	*/
-	rel_iC = rack_iC = alt =	eji =0;		/*<— how we know there's nothing to resplice	*/
-						_eji=-1;
-	av_clear( avRack ); cmpZ=0;
-	t_xv	= SvTYPE( 	avICE	);		if( t_xv!=SVt_PVAV 		){ printf("\r!_set():	(AV*) avICE is not a valid perl array\n\t"	);	return 0; }
-	svC0 = AvARRAY(	avICE );			if( *svC0==&PL_sv_undef	){ printf("\r!_set():	*AvARRAY( avICE) is undef\n\t"			);	return 0; }
-									if( *svC0==&PL_sv_no		){ printf("\r!_set():	*AvARRAY( avICE) is false\n\t"			);	return 0; }
-									if( *svC0==NULL			){ printf("\r!_set():	*AvARRAY( avICE) is NULL\n\t"			);	return 0; }
-
+	#define MODu	F[ u ] = mod
+	#define MODv	F[ v ] = mod
+	#define NULv		F[ v ] = null;
+	#define NEWu 	F[ u ] = new
+	#define NEWv 	F[ v ] = new
+	#define	ARG( $a )	SvIVX( svX=*(	AvARRAY(	avArg) +$a	) )
+	#define	ARG0		SvIVX( svX=*	AvARRAY(	avArg)		)
+						pSv0	= AvARRAY(	avICE );
+						pSv0_	= AvARRAY(	avICE );
+	skip=a=0;					za	= AvFILLp(	avArg);	if( za ==-1){				/*	no args */		return 0;	}
+	x=ARG0;		post_zC=		zC	= AvFILLp(	avICE);	if( zC ==-1){					NEW(	0 );		return 0;	}
+	mx0=0xFF;					/*<— how we know there's nothing to rack	*/
+	jux= rel_iC= rack_iC= 	isq	= 0;	/*<— how we know there's nothing to resplice	*/
+	cmpZ=0;			iR=	isqa	=-1;
+//	rSeq_iR[0]=-1;
+//	rSeqSrc[0]=0;
+//	rSeqDst[0]=0;
 /* search for iC of x			*/						lb = 0;			/* search window of first search starts at cube 0 */																				//_print_mx(1);
 												iC= ( ub	= zC +1	)>>1;
-do{										cube = SvPVbyte(		sv =*(svC0+iC ),	CS );
-	if(						x == *( (ui64*)	cube +1) ){ cube_=cube;	sv_=sv;	CS_	=	CS;							_endoloc:
-																				ENDOLOC;																									//_print_mx(10);
-		if( iC< zC ){ 						cube = SvPVbyte(		sv =*(svC0+ ++iC),	CS);	INTERLOC;																									//_print_mx(20);
-/*	=+|_	*/	do{	if(		A[ 0 ] >1 ){	/* =+|_	*/ --	A[ 0 ];	   ++	B[ 255 ];		++	*( (ui64*) cube_ +1);							printf("\r=+|_\t\t\t\t\t\tx( %5llu )	=+|_ 	iC( %5llu )	*((ui64*)cube_+1) == %llu \n\t", x, iC, *((ui64*)cube_+1) );		//_print_mx(21);
+do	{									cube = SvPVbyte_nolen(	sv =*(pSv0+iC ) );
+	if(						x == *( (ui64*)	cube +1) ){ 	sv_=	sv;
+							cube_	=	cube;	CS_ = SvCUR(	sv );			_endoloc:	ENDOLOC;																									//_print_mx(10);
+		if( iC< zC ){ 						cube = SvPVbyte_nolen(	sv =*(pSv0+ ++iC) );	INTERLOC;																							//_print_mx(20);
+/*	=+|_	*/	do{	if(		A[ 0 ] >1 ){	/* =+|_	*/ --	A[ 0 ];	   ++	B[ 255 ];		++	*( (ui64*) cube_ +1);						dBUGop0
 						if(	za == a++ ){				ReICEzSV_( 255,3 );							goto	_exit;		}
 					}else if(	A[ 0 ]==1 ){				A[ 0 ]=A[255];	B[ 0 ]+=B[255]+1;																												//_print_mx(22);
-/*	!|+=		*/			if(	zc_ == 0 ){ 	/* !|+=	*/ 	RACK_SvReCUT( iC );														printf("\r!|+=\t\t\t\t\t\tx( %5llu )	!|+= 	iC( %5llu )	*((ui64*)cube_+1) == %llu \n\t", x, iC, *((ui64*)cube_+1) );		//_print_mx(23);
+/*	!|+=		*/			if(		zc_ == 0 ){/* !|+=	*/ 	RACK_SvReCUT( iC );													dBUGop1
 /*	=|+=	*/			}else{			/* =|+=	*/	d=A[255]+B[255];				*( (ui64*) cube_+1) -=(  A[255] +B[255] );
-																														
-							cube_[zc_--]=0;			SvCUR_set( sv_, O[ 255 ] );													printf("\r=|+=\t\t\t\t\t\tx( %5llu )	=|+= 	iC( %5llu )	*((ui64*)cube_+1) == %llu \n\t", x, iC, *((ui64*)cube_+1) );		//_print_mx(24);
+							cube_[zc_--]=0;			SvCUR_set( sv_, O[ 255 ] );		cube_[O[255]]=0;							dBUGop2
 						}if(	za == a++ ){															goto	_exit;		}
 	x=ARG(a);																					goto	_next_x;
 /*	==|=	*/		}else{		printf( lightning ); printf("\n	INTERLOC: null gap	(==|=) \n");				goto	_next_x;
 						}
-	x=ARG(a);		} while(	x == *((ui64*)	cube_+1) );	ReICEzSV_( 255,4 );							goto	_next_x;
-		}else{	do	{					/*	=+|$  */			  ++	B[ 255 ];		++	*((ui64*)cube_+1);								printf("\r=+|$\t\t\t\t\t\tx( %5llu )	=+|$ 	iC( %5llu )	*((ui64*)cube_+1) == %llu \n\t", x, iC, *((ui64*)cube_+1) );		//_print_mx(11);
-/*	=+|$	*/			if(	za == a++ ){				ReICEzSV_( 255,1 );							goto	_resplice; 	}
+	x=ARG(a);		} while(	x == *((ui64*)	cube_+1) );	ReICEzSV_( 255,4 ); 							goto	_next_x;
+		}else{
+				do	{					/*	=+|$  */			  ++	B[ 255 ];		++	*((ui64*)cube_+1);							dBUGop3
+/*	=+|$	*/			if(	za == a++ ){				ReICEzSV_( 255,1 );							goto	_reseqence; 	}
 	x=ARG(a);		} while(	x == *((ui64*)	cube_+1) );	ReICEzSV_( 255,2 ); 	ENDOcp(	*((ui64*)cube_+1));	return 0;
 			}
-
 	}else if(					x <	*( (ui64*)	cube +1) ){ iC=(( ub	= iC )+lb	)>>1;  if( iC==ub ){	INTRALOC;		goto	_intra_op; 	}
 	}else{				/*	x >	*( (ui64*)	cube +1)*/ iC=(( lb	= iC )+ub	)>>1;  if( iC==lb  ){	INTRALOC1Up;			_intra_op:
-		do{	//	if( a>1) _print_mx(100);
-			if(				x==E[u]){	uMOD;
+		do{	if(				x==E[u]){	MODu;
 				if(		F[ v ]== null ){	DeICEv_KEI( u, v );  }																																		//_print_mx(310);	
-/*	=+_		*/	if(		A[ v ] >1 ){	vMOD;		    --	A[ v ];	   ++	B[ u ];		   ++	E[ u ];									//	printf("\r=+_ \t\t\t\t\t\tx( %5llu )	=+_  	E[%d]( %llu )\n\t", x, u, E[u] );		//_print_mx(311);	
-/*	=+=		*/	}else{//_print_mx(10101);
-						--post_zc;	vNUL;	Q[u]+=Q[v];			B[ u ]+= A[v]+B[v];	E[ u ] =E[ v ];	O[v]+=Q[v];					//	printf("\r\t\t\t\t\t\t\t\t\t\tx( %llu )	=+=  	E[%d]( %llu )\n\t", x, u, E[u] );		//_print_mx(312);	
-					//_print_mx(20202);	//		^ try it a bunch before you  f with it again
-					}
+/*	=+_		*/	if(		A[ v ] >1 ){	MODv;		    --	A[ v ];	   ++	B[ u ];		   ++	E[ u ];									dBUGop4
+/*	=+=		*/	}else{	--post_zc;	NULv;	Q[u]+=Q[v];			B[ u ]+= A[v]+B[v];	E[ u ] =E[ v ];	O[v]+=Q[v];					dBUGop5
+					}				//		^ try it a bunch before you  f with it again
 			}else{			d = E[u] -x -B[u];																																					//_print_mx(300);
-/*	_+_		*/	if(			d >1	){	vNEW;	Q[v]=0;	A[ v ] = d -1;	B[ v ]  = B[ u ];		E[ v ] =E[ u ];	O[v]=O[u]+Q[u];	O[v+1]=O[v];	//	printf("\r_+_ \t\t\t\t\t\tx( %5llu )	_+_  	E[%d]( %llu )\n\t", x, u, E[u] );
-						++post_zc;	uMOD;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	I[ v ] = I[ u ];																						//_print_mx(301);	
-/*	_+=		*/	}else if(		d==1 ){	uMOD;		    --	A[ u ];	   ++	B[ u ];													//	printf("\r_+= \t\t\t\t\t\tx( %5llu )	_+=  	E[%d]( %llu )\n\t", x, u, E[u] );		//_print_mx(302);	
-/*	===		*/	}else{		++skip;																						//	printf("\r=== \t\t\t\t\t\tx( %5llu )	===  	E[%d]( %llu )\n\t", x, u, E[u] );		//_print_mx(303);	
+/*	_+_		*/	if(			d >1	){	NEWv;	Q[v]=0;	A[ v ] = d -1;	B[ v ]  = B[ u ];		E[ v ] =E[ u ];	O[v]=O[u]+Q[u];	O[v+1]=O[v];	dBUGop6
+						++post_zc;	MODu;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	I[ v ] = I[ u ];																						//_print_mx(301);	
+/*	_+=		*/	}else if(		d==1 ){	MODu;		    --	A[ u ];	   ++	B[ u ];													dBUGop7
+/*	===		*/	}else{		++skip;																						dBUGop8
 				}	}	/*			F []		Q []		A []			B []				E []					*/
 			if(				za ==	a++ ){														goto	_exit; 		}
 	x=ARG(a);																							_next_x:
-			if(				x<	*( (ui64*)	cube +1) ){    								CoINTRALOC;
-			}else{					/*	cube_= cube;	(EXTRICATE effects this		) */	EXTRICATE;	
-				if(			x == *( (ui64*)	cube_ +1) ){/*	(keep sv_, CS_ values too	) */					goto	_endoloc;
+			if(				x<	*( (ui64*)	cube +1) ){   								CoINTRALOC;
+			}else{					/*	cube_= cube;	(EXTRICATE effects this	) */		EXTRICATE;
+				if(			x == *( (ui64*)	cube_ +1) ){												goto	_endoloc;
 				}else if(		iC == zC	){									ENDOcp(	*((ui64*) cube_+1));	return 0;
-				}else{								cube = SvPVbyte(	sv = *( svC0 + ++iC),	CS );
-					if(		x<	*( (ui64*)	cube +1) ){   								ReINTRALOC;		goto	_intra_op;
-					}else if(	x == *( (ui64*)	cube +1) ){	cube_=cube;		sv_=sv;		CS_	=	CS;		goto	_endoloc;
+				}else{					cube = SvPVbyte_nolen(	sv = *( pSv0 + ++iC) );
+					if(		x<	*( (ui64*)	cube +1) ){ CS =SvCUR(	sv);					ReINTRALOC;		goto	_intra_op;
+					}else if(	x == *( (ui64*)	cube +1) ){ CS_=SvCUR(	sv);	cube_=cube;	sv_=sv;				goto	_endoloc;
 					}else if(	iC == zC	){									ENDOcp(	*( (ui64*) cube+1));	return 0;
 					}else{	break;
 			}	}	}	}	while(1);	/* dwell on iC	*/
-							lb =iC+1;	ub=zC +1;	iC= ( lb+ub )>>1;					printf("\r........SEARCH %d < %d < %d\n", lb, iC, ub );
+							lb =iC+1;	ub=zC +1;	iC= ( lb+ub )>>1;		//	printf("\r........SEARCH %d < %d < %d\n", lb, iC, ub );
 	}	}	} while( 1 );	/* search	*/
-	_exit:																		EXTRICATE;	
-	_resplice:		if( eji || respliceIns[0] || respliceCut[0] )	_resplice(1);	
+	_exit:																		EXTRICATE;
+	_reseqence:		if( isq || rSeqIns[0] || rSeqCut[0] )	_reseqence(1);	
 	return 0;
 	}
 
