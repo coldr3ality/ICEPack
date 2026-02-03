@@ -343,7 +343,7 @@
 				q1	=1+	(($K>>3)	&7);										rCASTq2i( A[$v], _pq, q0);	CASTq2i(		B[$v], _pq, q1 );						\
 				Q[$v] =q0 +q1; 		O[w] =16 +Q[$v];																								\
 		}
-#define _DeICEzu					Hx[$u]=$K;	/*<-- these (2) assignments are for temp. debug */\
+#define _DeICEzu(	$cube, $CS, $K, $u		)				Hx[$u]=$K;	/*<-- these (2) assignments are for temp. debug */\
 			f = $K >>6;								\
 	switch(	f ){										\
 		case 0:	Q[$u]=0;				O[$u]=$CS;			pqz=$cube+O[$u];			A[$u]= $K &7;					B[$u] =( $K >>3) &7;			break;	\
