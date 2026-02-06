@@ -1,20 +1,10 @@
-#define DEBUGz
+	#define DEBUG_ReSEQ_L2
 
-#define MkIn( $mx0 )				\
-	if(	mx0==0xFF)	mx0= $mx0;		\
-	else{																	\
-		printf( lightning );														\
-		printf("\n!	 ^MkIn( %d )	cube%-3d: %3d..%-3d\n\t\t	matrix : %3d..%-3d	!	already marked in!\n\n",	\
-					$mx0,		iC,		mc0, mcZ,		mx0, mxZ		);	\
-		}
 
-#define MkOut( $v, $ic ) 	mxZ = $v;	mcZ = $ic;	\
-						mxE = $v +1;	mcE = $ic +1;
-
-#ifdef DEBUG
-	#define dBUG_SvINS(		$iC, $sv )		printf("\r%c	in step #%d:	insertion after index %lld (%lld)	rel_iC=%d	(rSeq_SV[ %d ])\n\n",	241, isq, $iC, $iC+1, 	rel_iC, iR );
-	#define dBUG_SvCUT(		$iC, $sv )		printf("\r%c	in step #%d:	deletion at index %lld			rel_iC=%d\n\n",					241,	isq, $iC, 			rel_iC );
-	#define dBUG_SvReCUT(	$iC, $sv )		printf("\r%c	in step #%d:	deletion before index %lld (%lld)	rel_iC=%d\n\n",					241, isq, $iC, $iC-1, 	rel_iC );
+#ifdef DEBUG_ReSEQ_L2
+	#define dBUG_SvINS(		$iC, $sv )		cS=sprintf(aString, "\r%c	in step #%d:	insertion after index %lld (%lld)	rel_iC=%d	(rSeq_SV[ %d ])\n\n",	241, dsc, $iC, $iC+1, 	rel_iC, iR );	av_push( avDBUG, newSVpvn(  aString, cS ) );
+	#define dBUG_SvCUT(		$iC, $sv )		cS=sprintf(aString, "\r%c	in step #%d:	deletion at index %lld			rel_iC=%d\n\n",					241,	dsc, $iC, 			rel_iC );		av_push( avDBUG, newSVpvn(  aString, cS ) );
+	#define dBUG_SvReCUT(	$iC, $sv )		cS=sprintf(aString, "\r%c	in step #%d:	deletion before index %lld (%lld)	rel_iC=%d\n\n",					241, dsc, $iC, $iC-1, 	rel_iC );		av_push( avDBUG, newSVpvn(  aString, cS ) );
 #else
 	#define dBUG_SvINS(		$iC, $sv )
 	#define dBUG_SvCUT(		$iC, $sv )
@@ -22,37 +12,34 @@
 #endif
 
 
-#define	RACK_SvINS( $iC, $sv )																		\
-		if(	rack_iC	==	$iC ){						++	rSeqIns[ isq ];								\
-		}else{	rSeq_iR[	isq ]	=	iR;																\
-				rSeqSrc[	isq ]	=	rack_iC;		rel_iC -=						rSeqCut[ isq ];				\
-				rSeqDst[	isq ]	=	rack_iC 	+	rel_iC;												\
-											rel_iC +=		rSeqIns[ isq ];								\
-/* new step	*/		++	isq;		rack_iC = $iC;				rSeqIns[ isq ]=1;	rSeqCut[ isq ] = 0;			\
+#define	xAvPOSTins( $iC, $sv )																		\
+		if(	rack_iC	==	$iC ){						++	rSeqIns[ dsc ];								\
+		}else{	rSeq_iR[	dsc ]	=	iR;															\
+				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
+				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
+												rel_iC +=	rSeqIns[ dsc ];								\
+/* new step	*/		++	dsc;			rack_iC = $iC;			rSeqIns[ dsc ]=1;	rSeqCut[ dsc ] = 0;			\
 			}	rSeq_SV[ ++iR ]=$sv;																dBUG_SvINS( $iC, $sv )
 
 
-#define	RACK_SvCUT( $iC )		/* automatically increments iC				*/							\
-		if(	rack_iC	==	$iC ){										++	rSeqCut[ isq ];				\
-		}else{	rSeq_iR[	isq ]	=	iR;																\
-				rSeqSrc[	isq ]	=	rack_iC;		rel_iC -=						rSeqCut[ isq ];				\
-				rSeqDst[	isq ]	=	rack_iC 	+	rel_iC;												\
-											rel_iC +=		rSeqIns[ isq ];								\
-/* new step	*/		++	isq;								rSeqIns[ isq ]=0;	rSeqCut[ isq ] = 1;			\
+#define	xAvPOSTcut( $iC )		/* automatically increments iC				*/							\
+		if(	rack_iC	==	$iC ){										++	rSeqCut[ dsc ];			\
+		}else{	rSeq_iR[	dsc ]	=	iR;															\
+				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
+				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
+												rel_iC +=	rSeqIns[ dsc ];								\
+/* new step	*/		++	dsc;								rSeqIns[ dsc ]=0;	rSeqCut[ dsc ] = 1;			\
 			}																					dBUG_SvCUT( $iC, $sv )
 
-#define	RACK_SvReCUT( $iC )	/* assumes iC is incremented already			*/							\
-		if(	rack_iC	==	$iC-1 ){	rack_iC = $iC;    						++	rSeqCut[ isq ];				\
-		}else{	rSeq_iR[	isq ]	=	iR;																\
-				rSeqSrc[	isq ]	=	rack_iC;		rel_iC -=						rSeqCut[ isq ];				\
-				rSeqDst[	isq ]	=	rack_iC 	+	rel_iC;												\
-											rel_iC +=		rSeqIns[ isq ];								\
-/* new  step	*/		++	isq;		rack_iC = $iC;				rSeqIns[ isq ]=0;	rSeqCut[ isq ] = 1;			\
+
+#define	xAvPOSTcut_retro( $iC )	/* assumes iC is incremented already			*/							\
+		if(	rack_iC	==	$iC-1 ){	rack_iC = $iC;    						++	rSeqCut[ dsc ];			\
+		}else{	rSeq_iR[	dsc ]	=	iR;															\
+				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
+				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
+												rel_iC +=	rSeqIns[ dsc ];								\
+/* new  step	*/		++	dsc;			rack_iC = $iC;			rSeqIns[ dsc ]=0;	rSeqCut[ dsc ] = 1;			\
 			}																					dBUG_SvReCUT( $iC, $sv )
-
-
-
-
 
 
 
@@ -67,14 +54,47 @@
 
 
 
+#define	AvPOSTins( $iC, $sv )																		\
+		if(	rack_iC == $iC ){							++	rSeqIns[ dsc ];								\
+		}else{	rSeq_iR[	dsc ]	=	iR;															\
+				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
+				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
+												rel_iC +=	rSeqIns[ dsc ];								\
+/* new step	*/		++	dsc;			rack_iC = $iC;			rSeqIns[ dsc ]=1;	rSeqCut[ dsc ] = 0;			\
+			}	rSeq_SV[ ++iR ]=$sv;																dBUG_SvINS( $iC, $sv )
+
+
+#define	AvPOSTcut( $iC )		SvREFCNT_dec(*( pSv0+$iC ) );	/* automatically increments iC			*/	\
+		if(	rack_iC == $iC	){											++	rSeqCut[ dsc ];			\
+		}else{	rSeq_iR[	dsc ]	=	iR;															\
+				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
+				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
+												rel_iC +=	rSeqIns[ dsc ];								\
+/* new step	*/		++	dsc;								rSeqIns[ dsc ]=0;	rSeqCut[ dsc ] = 1;			\
+			}						rack_iC = ++$iC;												dBUG_SvCUT( $iC, $sv )
+
+
+#define	AvPOSTcut_retro( $iC )								/* assumes iC is incremented already		*/	\
+		if(	rack_iC == $iC-1 ){	SvREFCNT_dec(*( pSv0+rack_iC ) );		++	rSeqCut[ dsc ];				\
+		}else{	rSeq_iR[	dsc ]	=	iR;															\
+				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
+				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
+												rel_iC +=	rSeqIns[ dsc ];								\
+/* new  step	*/		++	dsc;	SvREFCNT_dec(*( pSv0+$iC-1 ) );	rSeqIns[ dsc ]=0;	rSeqCut[ dsc ] = 1;			\
+			}						rack_iC = $iC;													dBUG_SvReCUT( $iC, $sv )
+
+
+
+
+
 #define AvCUBE( $avICE, $cube, $pk, $pq, $avArg, $a, $za, $E0 )	/* "Cube" an ascending list of unsigned integers	*/					\
 	if( pSv0 != AvARRAY( avICE )  ){	printf("\npSv0 is out of sync with avICE going into AvCUBE\n");	pSv0=AvARRAY( avICE );	}		\
 /*	printf("\r<AvCUBE	starting at arg %lld/%lld	E_( %llu ) <	x( %llu ) 		\n", a, za, $E0, x );		*/								\
 															Ax =x-$E0;	Bx =1;										\
 	if( $a >=$za){	/* no  args	*/				zc = 0;	reICE0(	Ax,			Bx,		$cube, $pq );	*( (ui64*)	$cube+1 ) =x+1;	*pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube with only x		*/	\
 	}else{									zc = -1;																		\
-		do	{			Ex	=	x +1;		psv= AvARRAY( $avArg ) + ++$a;												\
-			if( SvIOK( *psv ) ){		x= SvIVX(   *	psv );																	\
+		do	{			Ex	=	x +1;		pSv= AvARRAY( $avArg ) + ++$a;												\
+			if( SvIOK( *pSv ) ){		x= SvIVX(   *	pSv );																	\
 				if(		Ex ==	x )	{								  ++	Bx;	  				}						/*	=+|$	*/	\
 				else if(	Ex < 	x )	{	if(	zc==7 ){											*( (ui64*)	$cube+1) = $E0;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
 											zc=0;								$pk=$cube+1;	*( (ui64*)	$cube ) =0;													/* reset cube buffer	*/	\
@@ -83,18 +103,18 @@
 											}				Ax =x -Ex;	Bx=1;	$E0=Ex;								/*	_+|$	*/	\
 									}																				\
 			/* !SvIOK on argument x treated as a cube boundary directive	*/\
-			}else if( zc!=-1){				if(	zc==7 ){											*( (ui64*)	$cube+1) = $E0;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
+			}else{						if(	zc==7 ){											*( (ui64*)	$cube+1) = $E0;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
 																							*( (ui64*)	$cube ) =0;															/* reset cube buffer	*/	\
 													reICE0(	Ax,			Bx,		$cube, $pq );  	*( (ui64*)	$cube+1) = Ex;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
 										}else{		reICE(	Ax,			Bx,		$pk,	 $pq );  	*( (ui64*)	$cube+1) = Ex;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
 											}zc=-1;								$pk=$cube;	*( (ui64*)	$cube ) =0;													/* reset cube buffer	*/	\
 			/* ...but we must ignore consecutive !SvIOK's				*/				$pq=$cube +16;						\
-				while(	$a< $za )	if( SvIOK( *( psv= AvARRAY( $avArg ) + ++$a ) ) )										\
+				while(	$a< $za )	if( SvIOK( *( pSv= AvARRAY( $avArg ) + ++$a ) ) )										\
 								{																			\
-								x= SvIVX(   *	psv );			Ax =x -Ex;	Bx=1;	$E0=Ex;	break;				\
+								x= SvIVX(   *	pSv );			Ax =x -Ex;	Bx=1;	$E0=Ex;	break;				\
 								}																			\
 			}	}	while( $a< $za );																			\
-		if(	SvIOK( *psv ) ){				if(	zc==7 ){											*( (ui64*)	$cube+1) = $E0;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
+		if(	SvIOK( *pSv ) ){				if(	zc==7 ){											*( (ui64*)	$cube+1) = $E0;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
 																				$pk=$cube+1;	*( (ui64*) $cube ) =0;													/* reset cube buffer	*/	\
 													reICE0(	Ax,			Bx,		$cube,$pq );  						/* encode x in cyclum 0	*/	\
 										}else{		reICE(	Ax,			Bx,		$pk,  $pq );  						/* encode x in cyclum zc */	\
@@ -103,36 +123,14 @@
 
 
 
-
-#define NEW( $E0 )															pSv0=AvARRAY( avICE );	\
-	*( (ui64*) 		buf		)=0;											\
-	*( (ui64*) 		buf+1	)=0;	pk =buf;	pq =buf +16;		a=0; 	E_=0;	\
-	AvEXT(  avICE,	buf,			pk,		pq,		avArg,	a, za,	E_ 		);
-
-#define ENDO( $E0 )														\
-	if( isq || rSeqIns[0] || rSeqCut[0] )	_reseqence(2);					else		pSv0=AvARRAY( avICE );	\
-	*( (ui64*)			buf		)=0;											\
-	*( (ui64*)			buf+1	)=0;	pk =buf;	pq =buf +16;						\
-	AvEXT(  avICE,	buf,			pk,		pq,		avArg,	a, za,	$E0		);
-
-#define ENDOcp( $E0 )														\
-	if( isq || rSeqIns[0] || rSeqCut[0] )	_reseqence(3);					else		pSv0=AvARRAY( avICE );	\
-	*( (ui64*)			buf		)=0;											\
-	*( (ui64*)			buf+1	)=0;	pk =buf;	pq =buf +16;				E_=$E0;	\
-	AvEXT(  avICE,	buf,			pk,		pq,		avArg,	a, za,	E_		);
-
-
-
-
-
 #define AvEXT( $avICE, $cube, $pk, $pq, $avArg, $a, $za, $E0 )	/* "Cube" an ascending list of unsigned integers	*/					\
 	if( pSv0 != AvARRAY( avICE )  ){	printf("\npSv0 is out of sync with avICE going into AvCUBE\n");	pSv0=AvARRAY( avICE );	}		\
 /*	printf("\r<AvCUBE	starting at arg %lld/%lld	E_( %llu ) <	x( %llu ) 		\n", a, za, $E0, x );		*/								\
-															Ax =x-$E0;	Bx =1;										\
-	if( $a >=$za){	/* no  args	*/				zc = 0;	reICE0(	Ax,			Bx,		$cube, $pq );	*( (ui64*)	$cube+1 ) =x+1;	*pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube with only x		*/	\
+											zc = 0;				Ax =x-$E0;	Bx =1;										\
+	if( $a >=$za){	/* no  args	*/						reICE0(	Ax,			Bx,		$cube, $pq );	*( (ui64*)	$cube+1 ) =x+1;	*pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube with only x		*/	\
 	}else{									zc = -1;																		\
-		do	{			Ex	=	x +1;		psv= AvARRAY( $avArg ) + ++$a;												\
-			if( SvIOK( *psv ) ){		x= SvIVX(   *	psv );																	\
+		do	{			Ex	=	x +1;		pSv= AvARRAY( $avArg ) + ++$a;												\
+			if( SvIOK( *pSv ) ){		x= SvIVX(   *	pSv );																	\
 				if(		Ex ==	x )	{								  ++	Bx;	  				}						/*	=+|$	*/	\
 				else if(	Ex < 	x )	{	if(	zc==7 ){											*( (ui64*)	$cube+1) = $E0;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
 											zc=0;								$pk=$cube+1;	*( (ui64*)	$cube ) =0;													/* reset cube buffer	*/	\
@@ -141,12 +139,34 @@
 											}				Ax =x -Ex;	Bx=1;	$E0=Ex;								/*	_+|$	*/	\
 									}																				\
 			}	}	while( $a< $za );																			\
-		if(	SvIOK( *psv ) ){				if(	zc==7 ){											*( (ui64*)	$cube+1) = $E0;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
+		if(	SvIOK( *pSv ) ){				if(	zc==7 ){											*( (ui64*)	$cube+1) = $E0;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
 																				$pk=$cube+1;	*( (ui64*) $cube ) =0;													/* reset cube buffer	*/	\
 													reICE0(	Ax,			Bx,		$cube,$pq );  						/* encode x in cyclum 0	*/	\
 										}else{		reICE(	Ax,			Bx,		$pk,  $pq );  						/* encode x in cyclum zc */	\
 											}												*( (ui64*)	$cube+1 ) =x+1;	*$pq=0;	av_push( $avICE, newSVpvn( $cube, $pq -$cube ) );	pSv0=AvARRAY( $avICE );	/* push new cube		*/	\
 		}				}
+
+
+#define NEW( $E0 )															pSv0=AvARRAY( avICE );	\
+	*( (ui64*) 		buf		)=0;											\
+	*( (ui64*) 		buf+1	)=0;	pk =buf;	pq =buf +16;		a=0; 	E_=0;	\
+	AvEXT(  avICE,	buf,			pk,		pq,		avArg,	a, za,	E_ 		);
+
+#define ENDO( $E0 )														\
+	if( dsc || rSeqIns[0] || rSeqCut[0] )	_reseqence(2);					else		pSv0=AvARRAY( avICE );	\
+	*( (ui64*)			buf		)=0;											\
+	*( (ui64*)			buf+1	)=0;	pk =buf;	pq =buf +16;						\
+	AvEXT(  avICE,	buf,			pk,		pq,		avArg,	a, za,	$E0		);
+
+#define ENDOcp( $E0 )														\
+	if( dsc || rSeqIns[0] || rSeqCut[0] )	_reseqence(3);					else		pSv0=AvARRAY( avICE );	\
+	*( (ui64*)			buf		)=0;											\
+	*( (ui64*)			buf+1	)=0;	pk =buf;	pq =buf +16;				E_=$E0;	\
+	AvEXT(  avICE,	buf,			pk,		pq,		avArg,	a, za,	E_		);
+
+
+
+
 
 
 
@@ -203,50 +223,50 @@
 
 #define AvDELETE( $av, $I, $N)	displacement = 1+AvFILLp( $av) -$I -$N;										\
 							for( i= $I; i <$N; ++i)	SvREFCNT_dec( *( AvARRAY( $av) +i	) );					\
-							if ($I <displacement) {	psv	= AvARRAY( $av);	/*	lower elements shift up		*/	\
-								if( $I>0){		src=	psv +$I -1;											\
+							if ($I <displacement) {	pSv	= AvARRAY( $av);	/*	lower elements shift up		*/	\
+								if( $I>0){		src=	pSv +$I -1;											\
 										dst=	src +$N;													\
-									while(	src >psv )	*dst--	= *src--;								\
+									while(	src >pSv )	*dst--	= *src--;								\
 														*dst--	= *src;								\
-								}else	dst=	psv +$N -1;												\
-								while(	dst >psv )		*dst--	= NULL;								\
+								}else	dst=	pSv +$N -1;												\
+								while(	dst >pSv )		*dst--	= NULL;								\
 														*dst  	= NULL;								\
 								AvARRAY(	$av) +=$N;												\
 								AvMAX(		$av) -=$N;												\
 							}else{									/*	higher elements shift down */	\
-												psv	= AvARRAY( $av) +AvFILLp( $av);					\
+												pSv	= AvARRAY( $av) +AvFILLp( $av);					\
 								if (displacement) {	dst	= AvARRAY( $av) +$I;							\
 											src=	dst +$N;											\
-									while(	src <psv )	*dst++	= *src++;							\
+									while(	src <pSv )	*dst++	= *src++;							\
 														*dst++ 	= *src;							\
 								}else	dst	= AvARRAY( $av) +$I +$N -1;								\
-								while(	dst <psv )		*dst++	= NULL;							\
+								while(	dst <pSv )		*dst++	= NULL;							\
 														*dst 	= NULL;							\
 								}AvFILLp( $av) -=$N
 #define AvDELETE1( $av, $I ) 	displacement = /* 1+ */ AvFILLp( $av) -$I /* -$N */;							\
 						/*	for( i= $I; i <$N; ++i)	SvREFCNT_dec( *( AvARRAY( $av) +i	) );	*/			\
 						/*~*/					SvREFCNT_dec( *( AvARRAY( $av) +$I	) );				\
-							if ($I <displacement) {	psv	= AvARRAY( $av);	/*	lower elements shift up	*/	\
-								if( $I>0){		src=	psv +$I -1;										\
+							if ($I <displacement) {	pSv	= AvARRAY( $av);	/*	lower elements shift up	*/	\
+								if( $I>0){		src=	pSv +$I -1;										\
 						/*				dst=	src +$N;					*/							\
 						/*~*/			dst=	src +1;												\
-									while(	src >psv )	*dst--	= *src--;							\
+									while(	src >pSv )	*dst--	= *src--;							\
 														*dst--	= *src;							\
-								}else	dst=	psv/* +$N -1 */;										\
-								while(	dst >psv )		*dst--	= NULL;							\
+								}else	dst=	pSv/* +$N -1 */;										\
+								while(	dst >pSv )		*dst--	= NULL;							\
 														*dst  	= NULL;							\
 							++	AvARRAY(	$av)/* +=$N*/;										\
 							--	AvMAX(		$av)/* -=$N*/;										\
 							}else{									/* higher elements shift down */	\
-												psv	= AvARRAY( $av) +AvFILLp( $av);					\
+												pSv	= AvARRAY( $av) +AvFILLp( $av);					\
 								if (displacement) {	dst	= AvARRAY( $av) +$I;							\
 						/*					src=	dst +$N;				*/							\
 						/*~*/				src=	dst +1;											\
-									while(	src <psv )	*dst++	= *src++;							\
+									while(	src <pSv )	*dst++	= *src++;							\
 														*dst++ 	= *src;							\
 						/*		}else	dst	= AvARRAY( $av) +$I +$N -1;	*/							\
 						/*~*/	}else	dst	= AvARRAY( $av) +$I;									\
-								while(	dst <psv )		*dst++	= NULL;							\
+								while(	dst <pSv )		*dst++	= NULL;							\
 														*dst 	= NULL;							\
 						/*		}AvFILLp( $av) -=$N					*/							\
 						/*~*/	}--AvFILLp( $av);
@@ -410,6 +430,17 @@
 
 
 
+#define MkIn( $mx0 )				\
+	if(	mx0==0xFF)	mx0= $mx0;		\
+	else{																	\
+		printf( lightning );														\
+		printf("\n!	 ^MkIn( %d )	cube%-3d: %3d..%-3d\n\t\t	matrix : %3d..%-3d	!	already marked in!\n\n",	\
+					$mx0,		iC,		mc0, mcZ,		mx0, mxZ		);	\
+		}
+
+#define MkOut( $v, $ic ) 	mxZ = $v;	mcZ = $ic;	\
+						mxE = $v +1;	mcE = $ic +1;
+
 
 /*		ENDOLOC		/*	Vector (U) low-bounds mod scope of x as cyclum (zc) at end of cube iC				*/
 #define	ENDOLOC		/*	Vector (U) low-bounds mod scope of x as cyclum (zc) at end of cube iC				*/	\
@@ -441,7 +472,7 @@
 #define	INTRALOC1Up	/*	Vectors (U, V) intralocate mod scope of x as cycla (ic-1, ic) in cube iC+1				*/	/*	printf("\r........INTRALOC1Up    	cube %3lld+1		x( %5llu )		cube E( %5llu )		CS: %lld	sv( %llx )\n\t",	*/\
 	_init_mx();																							/*								iC,				x,			*( (ui64*) cube+1),	CS,		&*sv );		*/\
 	u=0;  v=1;											Ev =		*( (ui64*) cube +1);							\
-	if( zC  ==	iC){		CS =SvCUR(	sv );				ENDO(	Ev );									return 0;		\
+	if( zC  ==	iC){		CS =SvCUR(	sv );				ENDO(	Ev );								return dBUGr;		\
 	}else{ cube_=cube;	CS_=SvCUR(	sv );	sv_=sv;  		zc_=zIndexOf(		*( (ui64*) cube_ ) );							\
 		  cube = SvPVbyte_nolen( 	sv =*( pSv0 + ++iC ));			/*	printf(".");*/								\
 					CS =SvCUR(	sv );							/*	printf("%c", 198);*/							\
