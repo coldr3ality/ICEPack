@@ -1,16 +1,25 @@
-#define DEBUGz
-#define DEBUG_RACK_L1z
-#define DEBUG_RACK_L2z
-#define DEBUG_ReSEQz
-#define DEBUG_SETz
+//	#define DEBUG_RACK_L1
+//	#define DEBUG_RACK_L2
+	#define DEBUG_ReSEQ_L1
+	#define DEBUG_ReSEQ_L2
+	#define DEBUG_SET_L1
+//	#define DEBUG_SET_L2
 
-#ifdef DEBUG
-	#define dBUG_ReICEzSV_($v, $call)	printf("\nReICEzSV_( %d, %d )\n", $v, $call);
+#if	defined( DEBUG_RACK_L1)	||defined( DEBUG_RACK_L2)		\
+||	defined( DEBUG_ReSEQ_L1)	||defined( DEBUG_ReSEQ_L2)	\
+||	defined( DEBUG_SET_L2)
+	#define	DEBUG
 	#define dBUG_SvCUR($CS, $VARNAME, $N)	if( $CS<16){ printf("\n!	%s< 16 ( %d )	catch #%d\n", $VARNAME, $CS, $N );	exit($N);	}
 #else
-	#define dBUG_ReICEzSV_($v, $call)
 	#define dBUG_SvCUR($CS, $VARNAME, $N)
 #endif
+
+#ifdef DEBUG_SET_L2
+	#define dBUG_ReICEzSV_($v, $call)			cS=sprintf(aString, "\nReICEzSV_( %d, %d )\n", $v, $call ); av_push( avDBUG, newSVpvn( aString, cS ) );
+#else
+	#define dBUG_ReICEzSV_($v, $call)
+#endif
+
 /*	ICE::RELiC—	Regressive Exponent Laminar Index Counter (RELiC) over Inversion Cycle Encoding (ICE)
 	this jam is real																				*/
 
@@ -179,21 +188,24 @@
 #define	CUBEvc(	$iC )(  		__builtin_clzll( *( (ui64*) (	cube =	SvPVbyte( *( AvARRAY( avICE) +$iC ), CS	) ) +1 ) )	>>3)
 
 char	*	lightning = "\n!! !  !   !    !     !      !       !        !         !          !           !            !             !              !               !                !\n",
-		aString[256];
-
+		aString[256],
+	*	ps;
 svtype			t_xv;
 HV			*	hvICE,
 			*	hvArg,
 			*	hvOut;
 AV			*	avOut,
+			*	avDBUG,
 			*	avICE;	long long int	iC, post_iC, zC, post_zC, rel_iC, iCs, iCd, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
 AV			*	avArg;	long long int	a, za; 					//	a list of integer value[s] to operate on.
 
 long long unsigned int	max_isq=0;
-SV			*	sv_max_isq;	//debugging stat
+SV			*	sv_max_isq;	//debugging stats
 SV			**	src,
 			**	dst,
-			**	psv,
+			**	srca,
+			**	dsta,
+			**	pSv,
 			**	pSv0,
 			**	pSv0_,
 			*	rvOut,				/*	arrayref to AV* avOut								*/
@@ -324,15 +336,14 @@ ui64		E[	256 ],	Eu,	Ev,	Ez,	/* "Epsilon" values	which bound	the absolute coordin
 ui08 	Hx[	256 ],				/* header codes	which alloc.	q-data field space			in	char *	cube			*/
 		I[	256 ],				/* cycla indeces	which align	pre-op byte positions		in	char *	cube			*/
 								/*				with			post-op matrix indeces		in	matrix { A[], B[], E[], Q[] }	*/
-		Q[	256 ],	Qx, Qu, Qv,		/* q-data lengths	which define	each read increment		in	char *	cube			*/
+		Q[	256 ],	Qx, Qu, Qv,	/* q-data lengths	which define	each read increment		in	char *	cube			*/
 		_Q[	256 ],				/* q-data lengths	which define	each write increment		in	char *	cube			*/
 		O[	256 ],				/* q-data offsets	which mark	each read position			in	char *	cube			*/
 		_O[	256 ];				/* q-data offsets	which mark	each write position			in	char *	cube			*/
-ui64		G[	256 ];				/* "cube" indeces	which relate	cube->matrix mapping		for debugging purposes only.		*/
+
 char		cmpZ	=0;
-long long int		rel_zC,	isq, isqa, jux,
+long long int		rel_zC,	dsc, asc, jux,
 				rack_iC	=0,	
-			/*	rSeqJux[	256	],	*/	
 				rSeq_iR[	256	],
 				rSeqIns[	256	],
 				rSeqCut[	256	],
@@ -443,15 +454,40 @@ SV*	av_del( SV* rvICE,	SV* svI,	SV* svN){	if( !SvROK( rvICE) ){	printf("\r!	ICE:
 									:	8	-(__builtin_clzll( A[$u] ) >>3 )	\
 						: A[$u]< 8	?	8	-(__builtin_clzll( B[$u] ) >>3 )	\
 									:	16	-(__builtin_clzll( A[$u] ) >>3 )	-(__builtin_clzll( B[$u] ) >>3 )
-void _printAvOut(){
-	int x, zO		= AvFILLp(	avOut	);
-	STRLEN OL;
-	char * pStr;
 
-	for(x=0; x<= zO; ++x){
-		pStr= SvPVX( sv= *(AvARRAY( avOut) +x) );
-		printf( pStr );
+
+#define PRINT_AvSvIVX($av)							\
+	q=AvFILLp( $av );								\
+	for(	s=0;  s<=q; ++s){							\
+		svX= *(AvARRAY( $av ) +s );	if( SvPOK( svX) ){	\
+			ps= SvPVX( svX );	printf( ps );			\
+		}	}									\
+	av_clear( $av );
+
+void _init(){
+#if	defined( DEBUG )
+	printf("\ninitialize avDBUG...\n");
+	avDBUG=newAV();
+#endif
+	hvICE		= gv_stashpv(	"ICE",			0);
+	avOut		= get_av(		"ICE::avOut",		GV_ADD);
+	sv_max_isq	= get_sv(		"ICE::max_isq",	GV_ADD);
+	A[	255 ]=255;
+	B[	255 ]=255;
+	O[	255 ]=16;
+	_O[	255 ]= 0;
+	Q[	255 ]= 0;
+	*( (ui64*) Hx )	= 0;
+	int x;
+	for( x=0; x<128; ++x){
+		rSeq_iR[	x ]=-1;
+		rSeqIns[	x ]=0;
+		rSeqCut[	x ]=0;
+		rSeqSrc[ 	x ]=0;
+		rSeqDst[	x ]=0;
+		rSeq_SV[	x ]=NULL;
 		}
+//cube =SvPVbyte(	sv, 	CS );	Kx8=	*( (ui64*) cube );	zc = zIndexOf( Kx8);
 	}
 
 #define __ToTEXT_ROW_ALLOC	224
@@ -565,6 +601,27 @@ void _toText(){
 		}
 
 	av_push(			avOut,	newSVpvn(	"\n\n", 2 ) );
+	}
+bool _epsilonCheck(){
+	ui64			Ax, Bx, Ex;
+	ui08		*	pq;										STRLEN	CS;
+	long long	int	iC,	zC = AvFILLp(	avICE );	if( zC==-1 ) return 0; // no prob.
+	SV		**	pSv0 = AvARRAY(	avICE ),					*	svC=*pSv0;			if( svC==NULL){	printf(	"\r!	cube #0 broken: SV* pointer is null!\n" );	return 1; }
+	ui08			Ki,						*	cube = SvPVbyte(	svC,	CS),		Qx;
+	char				ic,	zc = zIndexOf( *( (ui64*)	cube ) );	Ki =	cube[0];	deICE0(	Qx, Ax, Bx );	Ex = Ax +Bx;
+		for(	ic = 1;	ic<=	zc;	++ic )	{				Ki =	cube[ ic ];	deICE(	Qx, Ax, Bx );	Ex+=Ax +Bx;
+									}		if(*( (ui64*)	cube +1 ) 				!=	Ex ){		printf(	"\n!	cube #0 broken: computed( %llu ) vs. stored( %llu ) Epsilon values do not match!\n",			Ex, *( (ui64*) cube +1 ) );	return 1; }
+											if(		pq -	cube!=	CS){								printf(	"\n!	cube #0 broken: computed( %llu ) vs. stored( %llu ) CS values do not match!\n",			pq-cube, CS );				return 1; }
+
+
+	for(		iC=1;	iC<=	zC;	++iC ){							svC=*( pSv0 +iC );		if( svC==NULL){	printf(	"\n!	cube #%lld broken: SV* pointer is null!\n", iC );				return 1; }
+											cube = SvPVbyte(	svC, CS );
+						zc = zIndexOf( *( (ui64*)	cube ) );	Ki =	cube[0];	deICE0(	Qx, Ax, Bx );	Ex+=Ax +Bx;
+		for(	ic = 1;	ic<=	zc;	++ic )	{				Ki =	cube[ ic ];	deICE(	Qx, Ax, Bx );	Ex+=Ax +Bx;
+									}		if(*( (ui64*)	cube +1 ) 				!=	Ex ){		printf(	"\n!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) Epsilon values do not match!\n",	iC,	Ex, *( (ui64*) cube +1 ) );	return 1; }
+											if(		pq -	cube!=	CS){								printf(	"\n!	cube #%lld broken: computed( %llu ) vs. stored( %llu ) CS values do not match!\n",		iC,	pq-cube, CS );				return 1; }
+		}
+	return 0; // no prob.
 	}
 bool	_screenKeys(){
 //	hvArg is set already
@@ -728,7 +785,8 @@ void	_screenHV(){
 	}
 
 void	_print_mx( unsigned short caller ){
-	printf("\n_print_mx(	caller==%-4d )\n", caller, u, v, w);
+	cS=sprintf( aString, "\n_print_mx(	caller==%-4d )\n", caller);
+	av_push( avDBUG, newSVpvn( aString, cS ) );
 	long long int		col[		14	],
 					rowSize;
 	STRLEN			xsl;
@@ -844,10 +902,10 @@ void	_print_mx( unsigned short caller ){
 						
 	else	c+=sprintf( ptxt,	"[not marked]"	);
 
-	if( c>4368){	printf( lightning );	printf("\n_print_mx(): (char *) txt allocation not big enough!  used %d bytes\n\n", c);	printf( lightning ); }
+	c+=sprintf( txt +c,	"\n\n");
 
-	printf( txt );
-	printf( "\n\n\t");
+	if( c>4368){	printf( lightning );	printf("_print_mx(): (char *) txt allocation not big enough!  used %d bytes", c);	printf( lightning ); }
+	av_push( avDBUG, newSVpvn( txt, c ) );
 	}
 
 
@@ -871,7 +929,7 @@ char vstepr0_mx(){	/*	Returns 1 if it steps past the end of the last cube; past 
 																	lost_ic= 0;
 	if( ic==zc ){
 			do	{	if(	zC	==	iC ){	mxOVERSTEP( v );											return 1;
-					}else{ RACK_SvCUT( iC ); ++iC;
+					}else{ AvPOSTcut( iC ); ++iC;
 						cube=CUBE( iC );	zc= zIndexOf(  *( (ui64*)	cube) );
 						}		} while(	zc == -1);
 			DeICE0v_KE(	u, v );
@@ -880,7 +938,7 @@ char vstepr0_mx(){	/*	Returns 1 if it steps past the end of the last cube; past 
 	while( A[ v ] ==0){				B[u]+=B[v];  E[u]+=B[v];					++lost_ic;	if(ic!=0) printf("\r!vstepr0_mx(): strange monopole detected, cyclum %d, cube %d.\n\t", ic, iC );
 		if( ic==zc ){
 			do	{	if(	zC	==	iC ){	mxOVERSTEP( v );											return 1;
-					}else{ RACK_SvCUT( iC ); ++iC;
+					}else{ AvPOSTcut( iC ); ++iC;
 						cube=CUBE( iC );	zc= zIndexOf(  *( (ui64*)	cube) );	lost_ic= 0;
 
 						}		} while(	zc == -1);
@@ -892,7 +950,7 @@ char vstepr0(){	/*	Returns 1 if it steps past the end of the last cube; past the
 																	lost_ic= 0;
 	if( ic==zc ){
 			do	{	if(	zC	==	iC ){	OVERSTEP( Qv, Av, Bv, Ev, Fv);								return 1;
-					}else{ RACK_SvCUT( iC );	++iC;
+					}else{ AvPOSTcut( iC );	++iC;
 						cube=CUBE( iC );	zc= zIndexOf(  *( (ui64*)	cube) );	Kx8=*( (ui64*) cube );
 						}		} while(	zc == -1);
 
@@ -902,7 +960,7 @@ char vstepr0(){	/*	Returns 1 if it steps past the end of the last cube; past the
 	while( Av ==0){				Bu+=Bv;  Eu+=Bv;						++lost_ic;	if(ic!=0) printf("\r!vstepr0(): strange monopole detected, cyclum %d, cube %d.\n\t", ic, iC );
 		if( ic==zc ){
 			do	{	if(	zC	==	iC ){	OVERSTEP( Qv, Av, Bv, Ev, Fv);								return 1;
-					}else{ RACK_SvCUT( iC );	++iC;							lost_ic= 0;
+					}else{ AvPOSTcut( iC );	++iC;							lost_ic= 0;
 						cube=CUBE( iC );	zc= zIndexOf(  *( (ui64*)	cube) );	Kx8=*( (ui64*) cube );
 						}		} while(	zc == -1);
 
@@ -1008,86 +1066,97 @@ void _init_mx_(){
 	*( (ui64*) Hx+1	)=0;
 
 	}
-#ifdef DEBUG_RACK_L1
-	#define dBUG_F1		printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes",	\
-										caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		CS );				\
-						\
-						printf("\n		F1	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	O[mxE]:	%3d\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d\n\t\t\t\t\t	 dis_c: %3d	rel_qq: %3d\n\t\t\t\t\t\t\t	 dis_q: %3d\n\n\t",	\
-										mx0, mxZ,		post_c,		post_q,		O[mxE],					rel_c,		rel_q,				dis_c,		rel_qq,					dis_q );	\
 
-	#define dBUG_F2L		printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes",	\
-										caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		   CS );				\
-						\
-						printf("\n		F2L	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	   _CS: %-2d bytes (		_O[ mxF ]( %d ) )\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d	   CS_: %-2d bytes ( CS +16 -	_O[ mxF ]( %d ) )\n\t\t\t\t\t\t\t	 dis_q: %3d\n	mods: L\n\n\t",	\
-										mx0, mxZ,		post_c,		post_q,		_CS,						_O[ mxF ],				rel_c,		rel_q,		CS_,						_O[ mxF ],				dis_q );
+/*	(6) distinct modes for racking:
+		| Condition:												| Effect:
+	#1.	| rel_c is neutral.											| Overwrite cycles mc0..mcZ in cube iC.  No change in cycle count.
+	#2.	| rel_c is positive;	(2+) new cubes must be inserted to make space.	| Fragment cube iC, and distribute intermediate cubes in-between.
+	#3.	| rel_c is positive;	(1) new cube must be inserted to make space.	| Fragment cube iC in a similar way as in the _alloc() function.
+	#4.	| rel_c is negative;	Cycle count drops to zero, extinguishing cube iC.	| Delete cube iC.
+	#5.	| rel_c is negative;	Cycle count decreases, but still non-zero.		| Right-shift trailing cycles & overwrite medial cycles if any.
+	#6.	| rel_c is positive.	cube iC has enough vacant capacity.			| Left-shift trailing cycles, insert new & overwrite medials.
 
-	#define dBUG_F2R		printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes",	\
-										caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		CS	);				\
+	*/
+#ifdef DEBUG_RACK_L1		//	verbose audit of nominal activity
+	#define dBUG_F1		cS =sprintf( aString, "\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes",	\
+												caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		CS );				\
 						\
-						printf("\n		F2R	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	   _CS:	%-2d bytes (			O[ mxF ]( %d ) )\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d	   CS_:	%-2d bytes ( CS	+rel_q( %d ) +16	-O[ mxF ]( %d ) )\n\t\t\t\t\t\t\t	dis1_q: %3d\n\n\n\t",	\
-										mx0, mxZ,		post_c,		post_q,		_CS,							_O[ mxF ],				rel_c,		rel_q,		CS_,						rel_q,			O[ mxF ],						dis1_q );
+						cS+=sprintf( aString +cS,			"\n		F1	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	O[mxE]:	%3d\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d\n\t\t\t\t\t	 dis_c: %3d	rel_qq: %3d\n\t\t\t\t\t\t\t	 dis_q: %3d\n\n\t",	\
+																mx0, mxZ,		post_c,		post_q,		O[mxE],					rel_c,		rel_q,				dis_c,		rel_qq,					dis_q );			av_push( avDBUG, newSVpvn( aString, cS ) );
 
-	#define dBUG_F2S		printf("\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	  pre1_c: %3d	  pre_q: %3d		    CS: %-2d bytes",	\
-										caller,			iC,		mc0, mcZ,	pre1_c,		pre_q,			CS	);			\
+	#define dBUG_F2L		cS =sprintf( aString,"\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes",	\
+												caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		   CS );				\
 						\
-						printf("\n		F2S	matrix : %3d..%-3d	post0_xc: %3d	post1_c: %3d	post1_q: %3d    _CS: %-2d bytes (				O[ mxF ]( %d ) )",			\
-										mx0, mxZ,		post0_xc,		post1_c,		post1_q,		_CS,							O[ mxF ]	);				\
+						cS+=sprintf( aString +cS,			"\n		F2L	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	   _CS: %-2d bytes (		_O[ mxF ]( %d ) )\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d	   CS_: %-2d bytes ( CS +16 -	_O[ mxF ]( %d ) )\n\t\t\t\t\t\t\t	 dis_q: %3d\n	mods: L\n\n\t",	\
+																mx0, mxZ,		post_c,		post_q,		_CS,						_O[ mxF ],				rel_c,		rel_q,		CS_,						_O[ mxF ],					dis_q );						av_push( avDBUG, newSVpvn( aString, cS ) );
+
+	#define dBUG_F2R		cS =sprintf( aString,"\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	 pre_c: %3d	 pre_q: %3d	    CS: %-2d bytes",	\
+												caller,			iC,		mc0, mcZ,	pre_c,		pre_q,		CS	);				\
 						\
-						printf(					"\n\t\t\t\t\t	   rel_c: %3d	  dis_c: %3d	 dis1_q: %3d    CS_: %-2d bytes (16 +post1_q( %d )	+dis1_q( %d )	)\n\n\t",	\
-															rel_c,		dis_c,		dis1_q,		CS_,					post1_q,		dis1_q			);
+						cS+=sprintf( aString +cS,			"\n		F2R	matrix : %3d..%-3d	post_c: %3d	post_q: %3d	   _CS:	%-2d bytes (			O[ mxF ]( %d ) )\n\t\t\t\t\t	 rel_c: %3d   	 rel_q: %3d	   CS_:	%-2d bytes ( CS	+rel_q( %d ) +16	-O[ mxF ]( %d ) )\n\t\t\t\t\t\t\t	dis1_q: %3d\n\n\n\t",	\
+																mx0, mxZ,		post_c,		post_q,		_CS,							_O[ mxF ],				rel_c,		rel_q,		CS_,						rel_q,			O[ mxF ],						dis1_q );				av_push( avDBUG, newSVpvn( aString, cS ) );
+
+	#define dBUG_F2S		cS =sprintf( aString,"\n_rack(	caller==%-4d ):	cube%-3d: %3d..%-3d	  pre1_c: %3d	  pre_q: %3d		    CS: %-2d bytes",	\
+												caller,			iC,		mc0, mcZ,	pre1_c,		pre_q,			CS	);				\
+						\
+						cS+=sprintf( aString +cS,			"\n		F2S	matrix : %3d..%-3d	post0_xc: %3d	post1_c: %3d	post1_q: %3d    _CS: %-2d bytes (				O[ mxF ]( %d ) )",			\
+																mx0, mxZ,		post0_xc,		post1_c,		post1_q,		_CS,							O[ mxF ]	);				\
+						\
+						cS+=sprintf( aString +cS,						"\n\t\t\t\t\t	   rel_c: %3d	  dis_c: %3d	 dis1_q: %3d    CS_: %-2d bytes (16 +post1_q( %d )	+dis1_q( %d )	)\n\n\t",	\
+																			rel_c,		dis_c,		dis1_q,		CS_,					post1_q,		dis1_q			);				av_push( avDBUG, newSVpvn( aString, cS ) );
 #else
 	#define dBUG_F1
 	#define dBUG_F2L
 	#define dBUG_F2R
 	#define dBUG_F2S
 #endif
-#ifdef DEBUG_RACK_L2
-	#define dBUG_F1_qGT		printf("\r%c	shift (%d) byte[s] by %-3d  	cube[%d..%d] = cube[%d..%d]\n",	\
-							175,			dis_q,		rel_q,		_O[	mxE ],	CS_	-1,			\
-																	O[	mxE ],	CS	-1	);
-	#define dBUG_F1_qLT		printf("\r%c	shift (%d) byte[s] by %-3d  	cube[%d..%d] = cube[%d..%d]\n",	\
-							174,			dis_q,		rel_q,		_O[	mxE ],	CS_	-1,			\
-																	O[	mxE ],	CS	-1	);
-	#define dBUG_F1_qC		printf("\r%c	re-cast (%d) byte[s] q-data for keybyte[s]	Hx[ %2d..%2d ]	to cube_[ %d..%d ] \n",	\
-							251,				post_q,							mx0, mxZ,		O[mx0], _O[mxE]-1 );
-	#define dBUG_F1_qCx		printf("\r%c	re-cast (%d) byte[s] q-data for keybyte	Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d]\n",	\
-							251,				_Q[m],							m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1);
-	#define dBUG_F2L_mv		printf("\rmv	bulk move ( %d ) bytes of leading data:\n	cube_[%d..%d] = cube[%d..%d]\n",	cube1_q,	\
-																			16,			CS_-1,					\
-																			O[ mxF ],		CS-1	);
-	#define dBUG_F2L_qGt		printf("\r%c	shift (%d) byte[s] by %-3d  	_cube[%d..%d]	= cube[%d..%d]\n",	\
-							175,			dis0_q,		rel_q,		_O[	mxE ],	_O[	mxF ] -1,			\
-																O[	mxE ],	O[	mxF ] -1	);
-	#define dBUG_F2L_qLt		printf("\r%c	shift (%d) byte[s] by %-3d  	_cube[%d..%d]	= cube[%d..%d]\n",	\
-							174,			dis0_q,		rel_q,		_O[	mxE ],	_O[	mxF ] -1,			\
-																O[	mxE ],	O[	mxF ] -1	);
-	#define dBUG_F2L_qGti		printf("\r%c\t\t\t	_cube[ %d +%d ]	= cube[ %d ];\n", 175, i, rel_q, i );
-	#define dBUG_F2L_qLti		printf("\r%c\t\t\t	_cube[ %d +%d ]	= cube[ %d ];\n", 174, i, rel_q, i );
-	#define dBUG_F2L_qC		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to _cube[ %d..%d ] \n",	\
-							251,								mx0, mxF-1,		O[mx0], _O[mxF]-1 );
-	#define dBUG_F2L_qCm	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to _cube[ %d..%d]\n",	\
-							251,								m,	Hx[ m ],		_pq-_cube, _pq +_Q[m] -_cube -1);
-	#define dBUG_F2R_lead		printf("\rmv	bulk move ( %d ) bytes of leading data:\n	cube_[%d..%d] = cube[%d..%d]\n",		\
-												lead1_q,						16,					15+lead1_q,	\
-																				O[ mxF ],				O[ mx0 ]-1	);
-	#define dBUG_F2R_qC		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to cube_[ %d..%d ] \n",		\
-							251,								mx0, mxZ,		q1,	15 +_O[ mxE] -O[ mxF ] );
-	#define dBUG_F2R_qCm	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d ]\n",		\
-							251,								m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1);
-	#define dBUG_F2S_1qC		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to cube_[ 16..%d ] \n",	\
-							251,								mxF, mxZ,		15+post1_q);
-	#define dBUG_F2S_1qCm	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d ]\n",	\
-							251,								m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1);
-	#define dBUG_F2S_dis1		printf("\rmv	bulk move ( %d ) bytes of trailing data:\n	cube_[%d..%d] = cube[%d..%d]\n",	dis1_q,	\
-																			16 +post1_q,		CS_	-1,				\
-																			O[ mxE ],		CS	-1	);
-	#define dBUG_F2S_0qC		printf("\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to _cube[ %d..%d ] \n",			\
-							251,								mx0, mxF-1,		O[ mx0 ], _O[ mxF ]-1 );
-	#define dBUG_F2S_0qCm	printf("\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to _cube[ %d..%d]\n",			\
-							251,								m,	Hx[ m ],		_pq-_cube, _pq +_Q[m] -_cube -1);
-	#define dBUG_F2R_dis1		printf("\rmv	bulk move (%d) byte[s] of trailing data:\n	cube_[%d..%d] = cube[%d..%d]\n",		\
-												dis1_q,						_O[	mxE] -cube0_q,	CS_	-1,		\
-																			O[	mxE ],			CS	-1 );
+#ifdef DEBUG_RACK_L2		//	verbose audit of nominal activity
+	#define dBUG_F1_qGT		cS =sprintf( aString,	"\r%c	shift (%d) byte[s] by %-3d  	cube[%d..%d] = cube[%d..%d]\n",	\
+												175,			dis_q,		rel_q,		_O[	mxE ],	CS_	-1,		\
+																					O[	mxE ],	CS	-1	);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F1_qLT		cS =sprintf( aString,	"\r%c	shift (%d) byte[s] by %-3d  	cube[%d..%d] = cube[%d..%d]\n",	\
+												174,			dis_q,		rel_q,		_O[	mxE ],	CS_	-1,		\
+																					O[	mxE ],	CS	-1	);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F1_qC		cS =sprintf( aString,	"\r%c	re-cast (%d) byte[s] q-data for keybyte[s]	Hx[ %2d..%2d ]	to cube_[ %d..%d ] \n",			\
+												251,				post_q,							mx0, mxZ,	O[mx0], _O[mxE]-1 );			av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F1_qCx		cS =sprintf( aString,	"\r%c	re-cast (%d) byte[s] q-data for keybyte	Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d]\n",			\
+												251,				_Q[m],							m,	Hx[ m ],	pq_-cube_, pq_ +_Q[m] -cube_ -1);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2L_mv		cS =sprintf( aString,	"\rmv	bulk move ( %d ) bytes of leading data:\n	cube_[%d..%d] = cube[%d..%d]\n", 				\
+																cube1_q,						16,	CS_-1,	O[ mxF ],	 CS-1 );					av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2L_qGt		cS =sprintf( aString,	"\r%c	shift (%d) byte[s] by %-3d  	_cube[%d..%d]	= cube[%d..%d]\n",	\
+												175,			dis0_q,		rel_q,		_O[	mxE ],	_O[	mxF ] -1,		\
+																					O[	mxE ],	O[	mxF ] -1	);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2L_qLt		cS =sprintf( aString,	"\r%c	shift (%d) byte[s] by %-3d  	_cube[%d..%d]	= cube[%d..%d]\n",	\
+												174,			dis0_q,		rel_q,		_O[	mxE ],	_O[	mxF ] -1,		\
+																					O[	mxE ],	O[	mxF ] -1	);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2L_qGti		cS =sprintf( aString,	"\r%c\t\t\t	_cube[ %d +%d ]	= cube[ %d ];\n", 175, i, rel_q, i );			av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2L_qLti		cS =sprintf( aString,	"\r%c\t\t\t	_cube[ %d +%d ]	= cube[ %d ];\n", 174, i, rel_q, i );			av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2L_qC		cS =sprintf( aString,	"\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to _cube[ %d..%d ] \n",				\
+												251,								mx0, mxF-1,		O[mx0], _O[mxF]-1 );				av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2L_qCm	cS =sprintf( aString,	"\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to _cube[ %d..%d]\n",				\
+												251,								m,	Hx[ m ],		_pq-_cube, _pq +_Q[m] -_cube -1); 	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2R_lead		cS =sprintf( aString,	"\rmv	bulk move ( %d ) bytes of leading data:\n	cube_[%d..%d] = cube[%d..%d]\n",			\
+																lead1_q,						16,					15+lead1_q,		\
+																							O[ mxF ],				O[ mx0 ]-1	); 	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2R_qC		cS =sprintf( aString,	"\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to cube_[ %d..%d ] \n",				\
+												251,								mx0, mxZ,		q1,	15 +_O[ mxE] -O[ mxF ] ); 		av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2R_qCm	cS =sprintf( aString,	"\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d ]\n",				\
+												251,								m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1); 	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2S_1qC		cS =sprintf( aString,	"\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to cube_[ 16..%d ] \n",				\
+												251,								mxF, mxZ,		15+post1_q);		 				av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2S_1qCm	cS =sprintf( aString,	"\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to cube_[ %d..%d ]\n",				\
+												251,								m,	Hx[ m ],		pq_-cube_, pq_ +_Q[m] -cube_ -1); 	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2S_dis1		cS =sprintf( aString,	"\rmv	bulk move ( %d ) bytes of trailing data:\n	cube_[%d..%d] = cube[%d..%d]\n",			\
+																dis1_q,						16 +post1_q,		CS_	-1,				\
+																							O[ mxE ],		CS	-1	);	 		av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2S_0qC		cS =sprintf( aString,	"\r%c	re-cast q-data for keybyte[s] Hx[ %2d..%2d ]	to _cube[ %d..%d ] \n",				\
+												251,								mx0, mxF-1,		O[ mx0 ], _O[ mxF ]-1 );		 		av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2S_0qCm	cS =sprintf( aString,	"\r%c	re-cast q-data for keybyte Hx[ %2d ]( 0x%02X )	to _cube[ %d..%d]\n",				\
+												251,								m,	Hx[ m ],		_pq-_cube, _pq +_Q[m] -_cube -1);		 av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUG_F2R_dis1		cS =sprintf( aString,	"\rmv	bulk move (%d) byte[s] of trailing data:\n	cube_[%d..%d] = cube[%d..%d]\n",			\
+																dis1_q,						_O[	mxE] -cube0_q,	CS_	-1,			\
+																							O[	mxE ],			CS	-1 );			 av_push( avDBUG, newSVpvn( aString, cS ) );
+							
 #else
 	#define dBUG_F1_qGT
 	#define dBUG_F1_qLT
@@ -1110,7 +1179,7 @@ void _init_mx_(){
 	#define dBUG_F2S_0qCm
 	#define dBUG_F2R_dis1
 #endif
-void _rack( unsigned short caller ){	//	"rack"		is the post-operational process of rendering changes to the elements of avICE.
+void _rack( unsigned short caller ){	//	"rack" is the post-operational process of rendering changes to the elements of avICE.
 
 	ui64		head, body, tail, top, mid;
 	ui08		m, bs, hxbs, mc0xZ, mc1xZ;
@@ -1128,16 +1197,16 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 	*/
 	if(mx0==0xFF ){			printf("\n!_rack(	caller==%-4d ): nothing to rack\n", caller);	goto _end__rack;		}
 	if(cube==NULL){			printf("\n!_rack(	caller==%-4d ): *cube is NULL\n", caller);	goto _end__rack;		}
-/*
-												if(	pSv0	!=	AvARRAY( avICE )	){	printf( lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(SV**) \"svC)\" is off!\n");	pSv0=AvARRAY( avICE );	}
+#ifdef DEBUG_RACK_L1
+												if(	pSv0	!=	AvARRAY( avICE )	){	printf( lightning );	printf( "\r!	_rack(	caller==%-4d ): 	(SV**) \"svC)\" is off!\n");	pSv0=AvARRAY( avICE );	}
 	STRLEN	CS_chk;
-	SV*		svChk=*(pSv0 +iC);						if(	&*sv	!=	&*svChk			){	printf(  lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(SV*) \"sv\" is off!\n");		sv=svChk;				}
-	ui08*	cubeChk=SvPVbyte( svChk, CS_chk );		if(	&*cube	!=	&*cubeChk		){	printf(  lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(char *) \"cube\" is off! \n");	cube=cubeChk;			}
-												if(	CS		!=	CS_chk			){	printf(  lightning );	printf(  "\n!	_rack(	caller==%-4d ): 	(STRLEN) \"CS\" is off!\n");	CS=CS_chk;				}
-	char		zcChk= zIndexOf(  *( (ui64*)	cube) );		if(	zcChk	!=	zc				){	printf( lightning );	printf( "\n!	_rack(	caller==%-4d ): 	(char) \"zc\" is off!\n");		zc= zcChk;				}
+	SV*		svChk=*(pSv0 +iC);						if(	&*sv	!=	&*svChk			){	printf(  lightning );	printf( "\r!	_rack(	caller==%-4d ): 	(SV*) \"sv\" is off!\n");		sv=svChk;				}
+	ui08*	cubeChk=SvPVbyte( svChk, CS_chk );		if(	&*cube	!=	&*cubeChk		){	printf(  lightning );	printf( "\r!	_rack(	caller==%-4d ): 	(char *) \"cube\" is off! \n");	cube=cubeChk;			}
+												if(	CS		!=	CS_chk			){	printf(  lightning );	printf( "\r!	_rack(	caller==%-4d ): 	(STRLEN) \"CS\" is off!\n");	CS=CS_chk;				}
+	char		zcChk= zIndexOf(  *( (ui64*)	cube) );		if(	zcChk	!=	zc				){	printf( lightning );	printf( "\r!	_rack(	caller==%-4d ): 	(char) \"zc\" is off!\n");		zc= zcChk;				}
 	if(	O[ mx0 ] != _O[ mx0 ] ){	printf( lightning ); printf("\n!!!	O[ mx0 ( %d ) ] ( %lld )   != _O[ mx0 ]( %lld )!!!\n\n", mx0, O[mx0], _O[mx0] );
 							printf( lightning );	}
-*/	
+#endif
 	pre_q		= O[   mcE ]	-O[   mc0 ];
 	post_q		= _O[ mxE ]	-_O[ mx0 ];
 	rel_q		= _O[ mxE ]	-O[	mxE ];
@@ -1150,9 +1219,8 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 #endif
 //	switch( post_iC ){
 	if(			post_zc< 0	){	/* Cycla count drops to zero, extinguishing cube iC.						*/	printf("\r	Cycla count drops to zero, extinguishing cube iC.	[NOT IMPLEMENTED]\n\t");
-	/*	printf("0");*/
 	/*	mark element iC for deletion		*/
-		RACK_SvCUT( iC );
+		AvPOSTcut( iC );
 
 		//get entire length of  cube # iC and  add it to the negative phase of cyclum 0 in cube iC +1	Ki=cube[ 0];
 		_cube= SvPVbyte(	_sv	= *( pSv0 + iC -1	), _CS  );
@@ -1271,7 +1339,7 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 			*( (ui64*) _cube+1 ) =		E[ mxF -1	];	/* set Epsilon of lower fragment while we're at it		*/	dBUG_SvCUR(CS_, "CS_", 4)
 
 		/*	rack the new cube for now— all array splice operations are deferred for the only call to _reseqence()	*/
-			RACK_SvINS( iC, sv_ );
+			AvPOSTins( iC, sv_ );
 
 /*######	UPPER FRAGMENT [1]:	SPLICE KEYBYTE SECTION		(L-Seq)								*/
 		/*	copy the top of the pre-op cube to the upper fragment, at the pre-offset which corresponds to mxF.	*/
@@ -1357,7 +1425,7 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 
 		/*	rack the new cube for now— all array splice operations are deferred until the only call to _reseqence()	*/
 		//	++iC;
-			RACK_SvINS( iC, sv_ );
+			AvPOSTins( iC, sv_ );
 
 /*######	UPPER FRAGMENT [1]:	SPLICE KEYBYTE SECTION	(R-Seq)			*/
 		/*	prime the upper fragment's keybyte section for splicing with the pre-op cube.						*/
@@ -1451,7 +1519,7 @@ void _rack( unsigned short caller ){	//	"rack"		is the post-operational process 
 
 		/*	rack the new cube for now— all array splice operations are deferred 'til once-and-for-all call to _reseqence()	*/
 		//	++iC;
-			RACK_SvINS( iC, sv_ );
+			AvPOSTins( iC, sv_ );
 
 /*######	UPPER FRAGMENT [1]:	SPLICE KEYBYTE SECTION	(RL-Split)			*/
 		/*	crossover high part of modified cycla (as uquad mid) with displacement (as char * _cube) to yield upper fragment	*/
@@ -1523,62 +1591,88 @@ _end__rack:
 	*( (ui64*) Hx )=0;
 #ifdef DEBUG_RACK_L1
 	_print_mx( caller );
-	printf("\n	</RACK>\n");
 #endif
 	}
 
-#ifdef DEBUG_ReSEQ
-	#define dBUG$qASCE	else	if(	src< dst )				printf("\ngoing in the wrong direction for ReSEQ_ASCEND 	src( %lld ) < dst( %lld ), step #%d/%d\n", src - pSv0, dst -pSv0, isqa,	isqz );
-	#define dBUG$qDESC	else	if(	src >dst )				printf("\ngoing in the wrong direction for ReSEQ_DESCEND	src( %lld ) > dst( %lld ), step #%d/%d\n", src - pSv0, dst -pSv0, isq,	isqz );
-	#define dBUG$qIa		printf("\r+I+	avICE[ %4d ]	= SV%-4d			isqa: %d/%d	jux: %d	psv/dst: %d/%d\n",			dst-pSv0-1, 		rSeq_iR[isqa]-1,	isqa,	isqz, jux, psv-pSv0, dst-pSv0 );
-	#define dBUG$qCa	printf("\r-X-	avICE[ %4d ]	= NULL				isqa: %d/%d	jux: %d	psv/dst: %d/%d\n",			psv-pSv0, 				  		isqa,	isqz, jux, psv-pSv0, dst-pSv0 );
-	#define dBUG$qJa		printf("\r++%c	avICE[ %4d ]	=	avICE[ %4d ];		isqa: %d/%d	jux: %d	psv/dst: %d/%d\n",	174, 	dst-pSv0-1, 		src-pSv0-1,	  	isqa,	isqz, jux, psv-pSv0, dst-pSv0 );
-	#define dBUG$qTa		printf("\r++%c	avICE[ %4d ]	=	avICE[ %4d ]; [T]	isqa: %d/%d	jux: %d	psv/dst: %d/%d\n",	174, 	dst-pSv0, 		src-pSv0,  		isqa,	isqz, jux, psv-pSv0, dst-pSv0 );
+#ifdef DEBUG_ReSEQ_L1		//	paranoid integrity checks which are silent until there's a problem
+//	printf("\r	level 1 debug enabled for void _resequence(...)\n");
+	#define dBUGdsc		if(dsc<0 || dsc>isqz)		cS=sprintf( aString,		"\n!	dsc is out of bounds 0..%d (%d)\n", isqz, dsc);	\
+						if(src >dst )	{			cS=sprintf( aString,		"\n!	going in the wrong direction for ReSEQ_DESCEND	src( %lld ) > dst( %lld ), step #%d/%d;	rSeqCut[%d]: %d	rSeqSrc[%d]: %d	rSeqDst[%d]: %d\n",	\
+																													src - pSv0, dst -pSv0,	dsc, isqz,		dsc, rSeqCut[dsc],	dsc, rSeqSrc[dsc],	dsc, rSeqDst[dsc]	);	\
+									}
 
-	#define dBUG$qId		printf("\r+I+	avICE[ %4d ]	= SV%-4d			isq: %d/%d	jux: %d	psv/dst: %d/%d\n",		1+	dst-pSv0,	1+	rSeq_iR[isq],		isq,		isqz, jux, psv-pSv0, dst-pSv0);
-	#define dBUG$qCd	printf("\r-X-	avICE[ %4d ]	= NULL				isq: %d/%d	jux: %d	psv/dst: %d/%d\n",			psv-pSv0,						isq,		isqz, jux, psv-pSv0, dst-pSv0);
-	#define dBUG$qJd		printf("\r%c--	avICE[ %4d ]	=	avICE[ %4d ];		isq: %d/%d	jux: %d	psv/dst: %d/%d\n",	175,	1+	dst-pSv0,	1+	src-pSv0,  		isq,		isqz, jux, psv-pSv0, dst-pSv0);
-	#define dBUG$qTd		printf("\r%c--	avICE[ %4d ]	=	avICE[ %4d ]; [T]	isq: %d/%d	jux: %d	psv/dst: %d/%d\n",	175,		dst-pSv0, 		src-pSv0,  		isq,		isqz, jux, psv-pSv0, dst-pSv0);
-	#define dBUG_ReSEQ_SCHED_PRE	\
-		printf("\r<ReSPLICE>\n	zC:		%lld\n	post_zC:	%lld\n", zC, post_zC );			\
-		printf("\n	racking schedule (pre process):\n	#		");							\
-		int	z;					for( z=0; z<=7; ++z ){ printf("#%-7d", 			z );	}	\
-		printf("\n	rSeq_iR:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeq_iR[ 	z ] );	}	\
-		printf("\n	rSeqIns:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqIns[ 	z ] );	}	\
-		printf("\n	rSeqCut:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqCut[	z ] );	}	\
-		printf("\n	rSeqSrc:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqSrc[	z ] );	}	\
-		printf("\n	rSeqDst:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqDst[	z ] );	}	\
-		printf("\n\n");
-	#define dBUG_ReSEQ_SCHED_POST	\
-		printf("\n	racking schedule (post process):\n	#		");										\
-								for( z=0; z<=7; ++z ){ printf("#%-7d", 			z );	}				\
-		printf("\n	rSeq_iR:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeq_iR[ 	z ] );	}				\
-		printf("\n	rSeqIns:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqIns[ 	z ] );	rSeqIns[ 	z ]=0; }	\
-		printf("\n	rSeqCut:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqCut[	z ] );	rSeqCut[	z ]=0; }	\
-		printf("\n	rSeqSrc:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqSrc[	z ] );	rSeqSrc[	z ]=0; }	\
-		printf("\n	rSeqDst:\t"	);	for( z=0; z<=7; ++z ){ printf(" %-7d",	rSeqDst[	z ] );	rSeqDst[	z ]=0; }	\
-		printf("\n	</ReSPLICE>\n\n\n\n\n");
+	#define dBUGasc		if(asc<0 || asc>isqz)		cS=sprintf( aString, 	"\n!	asc is out of bounds 0..%d (%d)\n", isqz, asc);	\
+						if(src< dst )	{			cS=sprintf( aString, 	"\n!	going in the wrong direction for ReSEQ_ASCEND    	src( %lld ) < dst( %lld ), step #%d/%d;	rSeqCut[%d]: %d	rSeqSrc[%d]: %d	rSeqDst[%d]: %d\n", 	\
+																													src - pSv0, dst -pSv0,	asc, isqz,		asc, rSeqCut[asc],	asc, rSeqSrc[asc],	asc, rSeqDst[asc]	);	\
+									}
 #else
-	#define dBUG$qASCE
-	#define dBUG$qDESC
-	#define dBUG$qIa
-	#define dBUG$qCa
-	#define dBUG$qJa
-	#define dBUG$qTa
-	#define dBUG$qId
-	#define dBUG$qCd
-	#define dBUG$qJd
-	#define dBUG$qTd
+	#define dBUGdsc
+	#define dBUGasc
+#endif
+#ifdef DEBUG_ReSEQ_L2		//	verbose audit of nominal activity
+//	printf("\r	level 2 debug enabled for void _resequence(...)\n");
+	#define dBUGinitASC	cS=sprintf( aString, "\n starting in ascending mode at step #%d/%d for %lld iterations\n\n",	asc, isqz, jux);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGinitDSC	cS=sprintf( aString, "\n starting in descending mode at step #%d/%d for %lld iterations\n\n",	dsc, isqz, jux);	av_push( avDBUG, newSVpvn( aString, cS ) );
+
+	#define dBUGd2a			cS=sprintf( aString, "\n switching to ascending mode at step #%d/%d for %lld iterations	\n\n", asc, isqz, jux	);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGa2d			cS=sprintf( aString, "\n switching to descending mode at step #%d/%d for %lld iterations	\n\n", dsc, isqz, jux	);	av_push( avDBUG, newSVpvn( aString, cS ) );
+
+	#define dBUGrASCi		cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",			dst-pSv0-1, 		rSeq_iR[asc]-1,	asc,	isqz, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrASCc		cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",			pSv-pSv0, 				  		asc,	isqz, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrASCj		cS=sprintf( aString, "\r++%c	avICE[ %4d ]	=	avICE[ %4d ];		asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	174, 	dst-pSv0-1, 		src-pSv0-1,	  	asc,	isqz, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrASCx		cS=sprintf( aString, "\r++%c	avICE[ %4d ]	=	avICE[ %4d ]; [T]	asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	174, 	dst-pSv0, 		$srcA,  			asc,	isqz, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
+
+	#define dBUGrDESi		cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",		1+	dst-pSv0,	1+	rSeq_iR[dsc],		dsc,	isqz, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrDESc		cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",			pSv-pSv0,						dsc,	isqz, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrDESj		cS=sprintf( aString, "\r%c--	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	175,	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	isqz, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrDESx		cS=sprintf( aString, "\r%c--	avICE[ %4d ]	=	avICE[ %4d ]; [T]	dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	175,		dst-pSv0, 		$srcD,  			dsc,	isqz, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrDESxx		cS=sprintf( aString, "\r%c--	avICE[ %4d ]	=	avICE[ %4d ]; [Tx]	dsc: %d/%d	\n", 							175,		$dstD, 			$srcD,			dsc,	isqz						);	av_push( avDBUG, newSVpvn( aString, cS ) );
+
+	#define dBUG_ReSEQ_SCHED_PRE	\
+		cS =sprintf( aString,     "\n	racking schedule (pre process):\n	#\t\t");											\
+		int	z;									for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, "#%-7d", 		z	);	\
+		cS+=sprintf( aString +cS, "\n	rSeq_iR:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeq_iR[ 	z ]	);	\
+		cS+=sprintf( aString +cS, "\n	rSeqIns:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeqIns[ 	z ]	);	\
+		cS+=sprintf( aString +cS, "\n	rSeqCut:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeqCut[	z ]	);	\
+		cS+=sprintf( aString +cS, "\n	rSeqSrc:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeqSrc[	z ]	);	\
+		cS+=sprintf( aString +cS, "\n	rSeqDst:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeqDst[	z ]	);	\
+		cS+=sprintf( aString +cS, "\n\n");				av_push( avDBUG, newSVpvn( aString, cS ) );
+
+	#define dBUG_ReSEQ_SCHED_POST	\
+		cS =sprintf( aString,    	"\n	racking schedule (post process):\n	#\t\t");											\
+												for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, "#%-7d", 		z	);	\
+		cS+=sprintf( aString +cS, "\n	rSeq_iR:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeq_iR[ 	z ]	);	\
+		cS+=sprintf( aString +cS, "\n	rSeqIns:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeqIns[ 	z ]	);	\
+		cS+=sprintf( aString +cS, "\n	rSeqCut:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeqCut[	z ]	);	\
+		cS+=sprintf( aString +cS, "\n	rSeqSrc:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeqSrc[	z ]	);	\
+		cS+=sprintf( aString +cS, "\n	rSeqDst:\t"	);	for( z=0; z<=7; ++z ) cS+=sprintf( aString +cS, " %-7d",	rSeqDst[	z ]	);	\
+		cS+=sprintf( aString +cS, "\n\n");				av_push( avDBUG, newSVpvn( aString, cS ) );
+#else
+	#define dBUGinitASC
+	#define dBUGinitDSC
+	#define dBUGd2a
+	#define dBUGa2d
+
+	#define dBUGrASCi
+	#define dBUGrASCc
+	#define dBUGrASCj
+	#define dBUGrASCx
+	#define dBUGrDESi
+	#define dBUGrDESc
+	#define dBUGrDESj
+	#define dBUGrDESx
+	#define dBUGrDESxx
 	#define dBUG_ReSEQ_SCHED_PRE
 	#define dBUG_ReSEQ_SCHED_POST
 #endif
 void _reseqence( ui08 caller ){	//	"resequence"	is the post-operational process of rendering changes to the avICE array itself.
 	long long int jmp;
-	//printf("\n_resequence( caller==%d ):	isq=%lld	isqa=%lld	jux=%lld	cmpZ=%d\n", caller, isq, isqa, jux, cmpZ );
-	if( zC!= AvFILLp( avICE ) ){	printf( lightning );
-							printf("\n!	zC( %llu ) != AvFILLp( avICE )( %llu )\n", zC, AvFILLp( avICE ) );
+#ifdef DEBUG_ReSEQ_L1
+	if( zC!= AvFILLp( avICE ) ){	printf( lightning );		printf("\n!	zC( %llu ) != AvFILLp( avICE )( %llu )\n", zC, AvFILLp( avICE ) );
 							zC = AvFILLp( avICE );
 							}
+#endif
+	if(dsc<0){					printf( lightning );		printf("\n!	dsc( %llu )< 0\n", dsc );			return;		}
 	
 /*	"Re-splice" streamlines any number of deferred array splice operations into one, using a bistable loop with 2nd order dynamics.
 	Inputs are the (5) global arrays:
@@ -1588,13 +1682,13 @@ void _reseqence( ui08 caller ){	//	"resequence"	is the post-operational process 
 		> rSeqCut 	—the number of elements to be removed at source index.
 	*	> rSeqJux 	—not a part of the main vector.  Uses a separate iterator, "jux".  Governs ascending / descending alternation.
 
-	The first (4) arrays share a common iterator"isq", and they align as one matrix, such that "isq" represents a vector, crossing the (4).
+	The first (4) arrays share a common iterator"dsc", and they align as one matrix, such that "dsc" represents a vector, crossing the (4).
 	The fifth array is the main array of the outer loop below.  It subdivides the step matrix into ascending / descending ranges,
 	directing sequential numbers of iterations for the two nested inner loops as they swap over to each other within the main loop.
 
 	Prior to getting here, the population of the resplice matrix is event-based; the only two events are "insert" and "cut".
-	Events which occur at the same index increment the counter of a single "isq" step, and are thus aggregated; additionally,
-	"cut" events which occur on consecutive elements are also aggregated in a single "isq" step, since "cut" implies "next".
+	Events which occur at the same index increment the counter of a single "dsc" step, and are thus aggregated; additionally,
+	"cut" events which occur on consecutive elements are also aggregated in a single "dsc" step, since "cut" implies "next".
 	
 	The loop starts by determining which end to start on / direction to iterate in depending on whether the new length is greater.
 	The direction of iteration reverses each time the relative difference between source and destination index crosses zero.
@@ -1620,124 +1714,126 @@ void _reseqence( ui08 caller ){	//	"resequence"	is the post-operational process 
 
 	*/
 	/* finalize last resplice step		*/
-			rSeq_iR[	isq ]	=	iR;
-			rSeqSrc[	isq ]	=	rack_iC;			rel_iC -=	rSeqCut[ isq ];
-			rSeqDst[	isq ]	=	rack_iC 		+	rel_iC;
-							post_zC=zC	+	rel_iC +	rSeqIns[ isq ];	if( post_zC< 0 ){	AvFILLp( avICE ) =-1;	return;	}
+			rSeq_iR[	dsc ]	=	iR;
+			rSeqSrc[	dsc ]	=	rack_iC;			rel_iC -=	rSeqCut[ dsc ];
+			rSeqDst[	dsc ]	=	rack_iC 		+	rel_iC;
+							post_zC=zC		+	rel_iC +	rSeqIns[ dsc ];	if( post_zC< 0 ){	AvFILLp( avICE ) =-1;	return;	}
 
 	/* unless last step reached last index of avICE, append placeholder step */
 	if(	rack_iC<	zC ){
-++	isq;		rSeqDst[	isq ]	=	post_zC;
-			rSeqSrc[	isq ]	=	zC;
-			rSeq_iR[	isq ]	=	0;
-			rSeqIns[	isq ]	=	0;
-			rSeqCut[	isq ]	=	0;
+++	dsc;		rSeqDst[	dsc ]	=	post_zC;
+			rSeqSrc[	dsc ]	=	zC;
+			rSeq_iR[	dsc ]	=	0;
+			rSeqIns[	dsc ]	=	0;
+			rSeqCut[	dsc ]	=	0;
 			}
-	int isqz=isq;
+	int		isqz=dsc;
 	/* compute destination array size and return now if it's lteq zero, or extend if it's gt AvMAX  (AvFILLp is set last of all) */
-	if( zC< post_zC ){	av_extend(	avICE,	post_zC+1 );	pSv0=AvARRAY( avICE );	}		dBUG_ReSEQ_SCHED_PRE
+	if( zC< post_zC ){	av_extend(	avICE,	post_zC+1 );	pSv0=AvARRAY( avICE );	}
 
-	#define $insD		rSeqIns[	isq		]
-	#define $cutD		rSeqCut[	isq		]
-	#define $cutD1	rSeqCut[	isq+1	]
-	#define $srcD 	rSeqSrc[	isq		]
-	#define $srcD1	rSeqSrc[	isq+1	]
-	#define $dstD 	rSeqDst[	isq		]
-	#define $dstD1	rSeqDst[	isq+1	]
+	#define $insD		rSeqIns[	dsc		]
+	#define $cutD		rSeqCut[	dsc		]
+	#define $cutD1	rSeqCut[	dsc+1	]
+	#define $srcD 	rSeqSrc[	dsc		]
+	#define $srcD1	rSeqSrc[	dsc+1	]
+	#define $dstD 	rSeqDst[	dsc		]
+	#define $dstD1	rSeqDst[	dsc+1	]
 
-	#define $insA		rSeqIns[	isqa		]
-	#define $cutA		rSeqCut[	isqa		]
-	#define $cutA1	rSeqCut[	isqa+1	]
-	#define $srcA		rSeqSrc[	isqa		]
-	#define $srcA1	rSeqSrc[	isqa+1	]
-	#define $dstA 	rSeqDst[	isqa		]
-	#define $dstA1	rSeqDst[	isqa+1	]
+	#define $insA		rSeqIns[	asc		]
+	#define $cutA		rSeqCut[	asc		]
+	#define $cutA1	rSeqCut[	asc+1	]
+	#define $srcA		rSeqSrc[	asc		]
+	#define $srcA1	rSeqSrc[	asc+1	]
+	#define $dstA 	rSeqDst[	asc		]
+	#define $dstA1	rSeqDst[	asc+1	]
 
-		rSeqSrc[	isq+1 ]=0;	//why dis halp?
-		rSeqDst[	isq+1 ]=0;
-	isqa=isq;
-	if(								$srcD-$cutD	>=$dstD ){
-			do --isq;	while( isq >=0 &&	$srcD-$cutD	>= $dstD );		jux =  isqa -isq;	isqa=isq+1;	src = pSv0+$srcA;	dst = pSv0+$dstA;		//printf("\n starting in ascending mode at step #%d/%d for %lld iterations\n\n", isqa, isqz, jux);
-			goto _asce;
+int j=0;
+	asc=dsc;																			dBUG_ReSEQ_SCHED_PRE
+/*	ascending	*/
+	if(						$srcD-$cutD >= $dstD ){
+		do	if( dsc==0){								src=				dst=pSv0;
+													jux = asc+1;		asc=0;	dsc=-1;	dBUGinitASC	goto _asce;	}
+			else --dsc; while(	$srcD-$cutD >= $dstD );		src= pSv0+$srcD;	dst=pSv0+$dstD;
+													jux = asc -dsc;		asc=1+	dsc;		dBUGinitASC	goto _asce;
+		//	*( pSv0 +$dstD) = *( pSv0 +$srcD );											dBUGrDESxx	
 
-	}else	{		while( isqa>=0 &&	$srcA-$cutD	<= $dstA ) --isqa;	jux = isq -isqa;		isqa=isq+1;	src = pSv0 +zC;	dst = pSv0 +post_zC;	//printf("\n starting in descending mode at step #%d/%d for %lld iterations	\n\n", isq, isqz, jux);
-	/*	goto _desc;	*/
+
+	}else	{	src = pSv0 +zC;	dst = pSv0 +post_zC;
+
+			while( $srcA-$cutD	<=	$dstA )	if( asc==0){	jux = dsc+1;						dBUGinitDSC	goto _desc;	}
+										else --asc;	jux = dsc-asc;						dBUGinitDSC
 			}
 
-
-
-	juke: do	{
-	_desc:	do	{	if( isq< 0 )  	printf("\n\n!	isq( %d ) < 0!!!\n\n", 		isq		);
-					if( isq >isqz )	printf("\n\n!	isq( %d ) >isqz( %d )!!!\n\n",	isq, isqz	);
-															psv =pSv0 +$srcD;
-					if( $cutD)			do	{	SvREFCNT_dec(*--	psv );			dBUG$qCd	} while( -- $cutD);
-					
-						jmp = (src-pSv0) -$srcD;
-					if(	jmp >0 )	if( src == dst )	dst-=jmp;						dBUG$qDESC
-								else	do	{	*dst-- = *src--;					dBUG$qJd	} while( -- jmp );
-
-					if( $insD)	{								rSeq_iR[ isq ] +=$insD;
-									do	{	*dst-- = rSeq_SV[--	rSeq_iR[ isq ] ];	dBUG$qId	} while( -- $insD);
-							//								rSeq_iR[ isq ]=-1;
-							}
-					if(	dst -pSv0 != $srcD ){	*dst = *( pSv0 +$srcD);				dBUG$qTd }
-					--	dst;	src =psv -1;
-
-			--isq;	} while( --jux ); 	if( isq< 0) break;
-
-			if( isq==0){				isq=-1;						jux=1;			isqa=0;
-			}else{	isqa=isq;
-					while( isq >0 &&	$srcD-$cutD	>= $dstD ) --isq;	jux =isqa -isq;		isqa=isq+1; }	src = pSv0+$srcA;	dst = pSv0+$dstA;
-									isq=-1;
-	//			do --isq;	while( isq >0 &&	$srcD-$cutD >= $dstD );		jux =isqa -isq;		isqa=isq+1; }	src = pSv0+$srcA;	dst = pSv0+$dstA;
-
-
-			printf("\n switching to ascending mode at step #%d/%d for %lld iterations\n\n", isqa, isqz, jux);
-
-
-
-	_asce:	do	{	if( isqa< 0)	printf("\n\n!	isqa( %d ) < 0!!!\n\n", 		isqa		);
-					if( isqa >isqz)	printf("\n\n!	isqa( %d ) >isqz( %d )!!!\n\n",	isqa, isqz	);
-															psv =pSv0 +$srcA;
-					if( $cutA)			do	{	SvREFCNT_dec(*--	psv );			dBUG$qCa	} while( -- $cutA);
-							
-						jmp =	psv -src;
-					if(	jmp >0 )	if( src == dst )	dst+=jmp;						dBUG$qASCE
-								else	do	{	*dst++ = *src++;					dBUG$qJa	} while( -- jmp );
-
-					if(	dst -pSv0 != $srcA ){	*dst = *( pSv0 +$srcA );				dBUG$qTa	}
+	do		{
+/*	descending	*/
+	_desc:	do	{		jmp = (src-pSv0) -$srcD;											dBUGdsc
+					if(	jmp >0 )	if( src == dst )	dst-=jmp;
+								else	do	{	*dst-- = *src--;							dBUGrDESj	} while( -- jmp );
+					while( $insD )			{	*dst-- = rSeq_SV[	rSeq_iR[ dsc ] + --$insD ];	dBUGrDESi	}
+					if(	dst -pSv0 != $srcD)	{	*dst = *( pSv0 +$srcD);						dBUGrDESx	}
+					if(	$cutD ){	src =pSv0 +$srcD -$cutD -1;	$cutD=0; }
+					else			src =pSv0 +$srcD -1;
+			--dsc;		--dst;
+					} while( --jux );			if( dsc< 0) break;
+			asc	= dsc;
+			while( $srcD-$cutD	>= $dstD )	if( dsc==0 ){	src=				dst=pSv0;
+													jux = asc+1;		asc=0;	dsc=-1;	dBUGd2a	goto _asce;	}
+										else	--dsc;	src= pSv0+$srcD;	dst=pSv0+$dstD;
+													jux = asc -dsc;  	asc=1+	dsc;		dBUGd2a
+/*	ascending	*/
+	_asce:	do	{																	dBUGasc
+					if(	$cutA ){	jmp= ($srcA -$cutA)	-(src -pSv0);	$cutA=0;	}
+					else			jmp= $srcA			-(src -pSv0);
+					if(	jmp >0 )	if( src == dst )	dst+=jmp;
+								else	do	{	*dst++ = *src++;							dBUGrASCj	} while( -- jmp );
+					if(	dst -pSv0 != $srcA ){	*dst = *( pSv0 +$srcA );						dBUGrASCx	}
 					++	dst;	src = pSv0 +$srcA +1;
+					if(	$insA )    		do	{	*dst++ = rSeq_SV[	rSeq_iR[ asc ]++ ];			dBUGrASCi	} while( -- $insA );
+			++asc;	} while( --jux ); 		if( dsc< 0) break;
 
-					if( $insA )	{    		do	{	*dst++ = rSeq_SV[	rSeq_iR[ isqa ]++ ];	dBUG$qIa	} while( -- $insA);
-							//								rSeq_iR[ isqa ]=-1;
-							}
-			++isqa;	} while( --jux ); 	if( isq< 0) break;
-			src	=	//pSv0 +rSeqSrc[ isq+1 ];
-			dst	=	pSv0 +rSeqDst[ isq+1 ];
-			isqa=isq;
-			while( isqa >0 && $srcA-$cutA <= $dstA )  --isqa;	jux =1 +isq -isqa;
+			src	=	/*returning to descending mode, src and dst of [re]initial step #dsc will always have already been reassigned. */
+			dst	= pSv0 +rSeqDst[ dsc ];
+			asc	= dsc;
+			while( $srcA-$cutA <= $dstA )		if( asc==0 ){	jux = dsc;							dBUGa2d	goto _descx;	}
+										else --asc;	jux = dsc-asc-1;					dBUGa2d
 
-			printf("\n switching to descending mode at step #%d/%d for %lld iterations\n\n", isq, isqz, jux);
-			} while( 1 );
+/*	descending (1st step of a return descent is special case)	*/
+	_descx:				jmp = (src-pSv0) -$srcD;											dBUGdsc
+					if(	jmp >0 )				dst -= jmp;
+					while(	$insD )		{	*dst-- = rSeq_SV[	rSeq_iR[ dsc ] + --$insD ];	dBUGrDESi	}
+	/*xx danger zone!	if(	dst -pSv0 != $srcD ){	*dst = *( pSv0 +$srcD);						dBUGrDESx	} beware crash #13	xx*/
+	/*^^ this is what makes the case special ^^	*/
+					if(	dsc==0 ) break;
+					if(	$cutD ){	src =pSv0 +$srcD -$cutD -1;	$cutD=0; }
+					else			src =pSv0 +$srcD -1;
+			--dsc;		--dst;
+								
+			} while( 1 );															dBUG_ReSEQ_SCHED_POST
 
 
-//	printf("	array resequenced.	isq=%lld	isqa=%lld	jux=%lld\n\n", isq, isqa, jux);	
-	isq=isqa=jux=0;
-//	for( z=0; z<128; ++z){	rSeqSrc[z]=0;	rSeqDst[z]=0; rSeqIns[z]=0; rSeqCut[z]=0; rSeq_iR[z]=-1; 	}
+//	printf("	array resequenced.	dsc=%lld	asc=%lld	jux=%lld\n\n", dsc, asc, jux);	
+	dsc=asc=jux=0;
+	for( z=0; z<128; ++z){	rSeqSrc[z]=rSeqDst[z]=rSeqIns[z]=rSeqCut[z]=rSeq_iR[z]=0xFFFFFF; 	}
 
 	if( AvFILLp( avICE ) != post_zC ){ AvFILLp( avICE ) = post_zC;		//printf("\n	AvFILLp( avICE ) = zC( %lld )+ %lld	(%lld)\n",	zC,	rel_iC,	post_zC);
 	}	}
 
-#ifdef DEBUG_SET
-	#define dBUGop0	printf("\r=+|_	x( %5llu )	=+|_ 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t", x, iC, zC, *((ui64*)cube_+1) );		//_print_mx(21);
-	#define dBUGop1 	printf("\r!|+=	x( %5llu )	!|+= 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t", x, iC, zC, *((ui64*)cube_+1) );		//_print_mx(23);
-	#define dBUGop2	printf("\r=|+=	x( %5llu )	=|+= 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t", x, iC, zC, *((ui64*)cube_+1) );		//_print_mx(24);
-	#define dBUGop3	printf("\r=+|$	x( %5llu )	=+|$ 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t", x, iC, zC, *((ui64*)cube_+1) );		//_print_mx(11);
-	#define dBUGop4	printf("\r=+_ 	x( %5llu )	=+_  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC, u, E[u] );		//_print_mx(311);	
-	#define dBUGop5	printf("\r=+= 	x( %5llu )	=+=  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC,  u, E[u] );		//_print_mx(312);	
-	#define dBUGop6	printf("\r_+_	x( %5llu )	_+_  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC,  u, E[u] );
-	#define dBUGop7	printf("\r_+=	x( %5llu )	_+=  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC,  u, E[u] );		//_print_mx(302);	
-	#define dBUGop8	printf("\r===	x( %5llu )	===  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t", x, iC, zC,  u, E[u] );		//_print_mx(303);	
+#ifdef DEBUG_SET_L1
+	#define dBUGr	_epsilonCheck()
+#else
+	#define dBUGr	0
+#endif
+#ifdef DEBUG_SET_L2			//	verbose audit of nominal activity
+	#define dBUGop0		cS=sprintf(aString, "\r=+|_	x( %5llu )	=+|_ 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t",	x, iC, zC, *((ui64*)cube_+1)	); av_push( avOut, newSVpvn(  aString, cS ) );		//_print_mx(21);
+	#define dBUGop1 		cS=sprintf(aString, "\r!|+=	x( %5llu )	!|+= 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t",	x, iC, zC, *((ui64*)cube_+1)	); av_push( avOut, newSVpvn(  aString, cS ) );		//_print_mx(23);
+	#define dBUGop2		cS=sprintf(aString, "\r=|+=	x( %5llu )	=|+= 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t",	x, iC, zC, *((ui64*)cube_+1)	); av_push( avOut, newSVpvn(  aString, cS ) );		//_print_mx(24);
+	#define dBUGop3		cS=sprintf(aString, "\r=+|$	x( %5llu )	=+|$ 	iC/zC  %5llu/%-5llu	*((ui64*)cube_+1) == %llu \n\t",	x, iC, zC, *((ui64*)cube_+1)	); av_push( avOut, newSVpvn(  aString, cS ) );		//_print_mx(11);
+	#define dBUGop4		cS=sprintf(aString, "\r=+_ 	x( %5llu )	=+_  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC, u, E[u]			); av_push( avOut, newSVpvn(  aString, cS ) );		//_print_mx(311);	
+	#define dBUGop5		cS=sprintf(aString, "\r=+= 	x( %5llu )	=+=  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC,  u, E[u]			); av_push( avOut, newSVpvn(  aString, cS ) );		//_print_mx(312);	
+	#define dBUGop6		cS=sprintf(aString, "\r_+_	x( %5llu )	_+_  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC,  u, E[u]			); av_push( avOut, newSVpvn(  aString, cS ) );
+	#define dBUGop7		cS=sprintf(aString, "\r_+=	x( %5llu )	_+=  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC,  u, E[u]			); av_push( avOut, newSVpvn(  aString, cS ) );		//_print_mx(302);	
+	#define dBUGop8		cS=sprintf(aString, "\r===	x( %5llu )	===  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC,  u, E[u]			); av_push( avOut, newSVpvn(  aString, cS ) );		//_print_mx(303);	
+	#define dBUGnARF	cS=sprintf(aString, "\n	INTERLOC: null gap	(==|=) \n");
 #else
 	#define dBUGop0
 	#define dBUGop1 
@@ -1748,8 +1844,13 @@ void _reseqence( ui08 caller ){	//	"resequence"	is the post-operational process 
 	#define dBUGop6
 	#define dBUGop7
 	#define dBUGop8
+	#define dBUGnARF
 #endif
 bool	_set(){
+
+#if	defined( DEBUG )	
+	av_clear( avDBUG );
+#endif
 	#define MODu	F[ u ] = mod
 	#define MODv	F[ v ] = mod
 	#define NULv		F[ v ] = null;
@@ -1759,66 +1860,65 @@ bool	_set(){
 	#define	ARG0		SvIVX( svX=*	AvARRAY(	avArg)		)
 						pSv0	= AvARRAY(	avICE );
 						pSv0_	= AvARRAY(	avICE );
-	skip=a=0;					za	= AvFILLp(	avArg);	if( za ==-1){				/*	no args */		return 0;	}
-	x=ARG0;		post_zC=		zC	= AvFILLp(	avICE);	if( zC ==-1){					NEW(	0 );		return 0;	}
+	skip=a=0;					za	= AvFILLp(	avArg);	if( za ==-1){				/*	no args */		return	dBUGr;	}
+	x=ARG0;		post_zC=		zC	= AvFILLp(	avICE);	if( zC ==-1){					NEW(	0 );		return	dBUGr;	}
 	mx0=0xFF;					/*<— how we know there's nothing to rack	*/
-	jux= rel_iC= rack_iC= 	isq	= 0;	/*<— how we know there's nothing to resplice	*/
-	cmpZ=0;			iR=	isqa	=-1;
-//	rSeq_iR[0]=-1;
-//	rSeqSrc[0]=0;
-//	rSeqDst[0]=0;
+	jux= rel_iC= rack_iC= 	dsc	= 0;	/*<— how we know there's nothing to resplice	*/
+	cmpZ=0;			iR=	asc	=-1;
+	rSeq_iR[0]=-1;
+	rSeqSrc[0]=rSeqDst[0]=rSeqCut[0]=rSeqIns[0]=0;
 /* search for iC of x			*/						lb = 0;			/* search window of first search starts at cube 0 */																				//_print_mx(1);
 												iC= ( ub	= zC +1	)>>1;
 do	{									cube = SvPVbyte_nolen(	sv =*(pSv0+iC ) );
 	if(						x == *( (ui64*)	cube +1) ){ 	sv_=	sv;
 							cube_	=	cube;	CS_ = SvCUR(	sv );			_endoloc:	ENDOLOC;																									//_print_mx(10);
 		if( iC< zC ){ 						cube = SvPVbyte_nolen(	sv =*(pSv0+ ++iC) );	INTERLOC;																							//_print_mx(20);
-/*	=+|_	*/	do{	if(		A[ 0 ] >1 ){	/* =+|_	*/ --	A[ 0 ];	   ++	B[ 255 ];		++	*( (ui64*) cube_ +1);						dBUGop0
-						if(	za == a++ ){				ReICEzSV_( 255,3 );							goto	_exit;		}
+/*	=+|_	*/	do{	if(		A[ 0 ] >1 ){	/* =+|_	*/ --	A[ 0 ];	   ++	B[ 255 ];		++	*( (ui64*) cube_ +1);					dBUGop0
+						if(	za == a++ ){				ReICEzSV_( 255,3 );							goto	_none_x;		}
 					}else if(	A[ 0 ]==1 ){				A[ 0 ]=A[255];	B[ 0 ]+=B[255]+1;																												//_print_mx(22);
-/*	!|+=		*/			if(		zc_ == 0 ){/* !|+=	*/ 	RACK_SvReCUT( iC );													dBUGop1
+/*	!|+=		*/			if(		zc_ == 0 ){/* !|+=	*/ 	AvPOSTcut_retro( iC );												dBUGop1
 /*	=|+=	*/			}else{			/* =|+=	*/	d=A[255]+B[255];				*( (ui64*) cube_+1) -=(  A[255] +B[255] );
-							cube_[zc_--]=0;			SvCUR_set( sv_, O[ 255 ] );		cube_[O[255]]=0;							dBUGop2
-						}if(	za == a++ ){															goto	_exit;		}
+							cube_[zc_--]=0;			SvCUR_set( sv_, O[ 255 ] );		cube_[O[255]]=0;						dBUGop2
+						}if(	za == a++ ){															goto	_none_x;		}
 	x=ARG(a);																					goto	_next_x;
-/*	==|=	*/		}else{		printf( lightning ); printf("\n	INTERLOC: null gap	(==|=) \n");				goto	_next_x;
+/*	==|=	*/		}else{ /* rogue zero off-cycle is a null artifact which the spec cannot control */ dBUGnARF	goto	_next_x;
 						}
 	x=ARG(a);		} while(	x == *((ui64*)	cube_+1) );	ReICEzSV_( 255,4 ); 							goto	_next_x;
 		}else{
-				do	{					/*	=+|$  */			  ++	B[ 255 ];		++	*((ui64*)cube_+1);							dBUGop3
+				do	{					/*	=+|$  */			  ++	B[ 255 ];		++	*((ui64*)cube_+1);						dBUGop3
 /*	=+|$	*/			if(	za == a++ ){				ReICEzSV_( 255,1 );							goto	_reseqence; 	}
-	x=ARG(a);		} while(	x == *((ui64*)	cube_+1) );	ReICEzSV_( 255,2 ); 	ENDOcp(	*((ui64*)cube_+1));	return 0;
+	x=ARG(a);		} while(	x == *((ui64*)	cube_+1) );	ReICEzSV_( 255,2 ); 	ENDOcp(	*((ui64*)cube_+1));	return	dBUGr;
 			}
 	}else if(					x <	*( (ui64*)	cube +1) ){ iC=(( ub	= iC )+lb	)>>1;  if( iC==ub ){	INTRALOC;		goto	_intra_op; 	}
 	}else{				/*	x >	*( (ui64*)	cube +1)*/ iC=(( lb	= iC )+ub	)>>1;  if( iC==lb  ){	INTRALOC1Up;			_intra_op:
 		do{	if(				x==E[u]){	MODu;
 				if(		F[ v ]== null ){	DeICEv_KEI( u, v );  }																																		//_print_mx(310);	
-/*	=+_		*/	if(		A[ v ] >1 ){	MODv;		    --	A[ v ];	   ++	B[ u ];		   ++	E[ u ];									dBUGop4
-/*	=+=		*/	}else{	--post_zc;	NULv;	Q[u]+=Q[v];			B[ u ]+= A[v]+B[v];	E[ u ] =E[ v ];	O[v]+=Q[v];					dBUGop5
+/*	=+_		*/	if(		A[ v ] >1 ){	MODv;		    --	A[ v ];	   ++	B[ u ];		   ++	E[ u ];								dBUGop4
+/*	=+=		*/	}else{	--post_zc;	NULv;	Q[u]+=Q[v];			B[ u ]+= A[v]+B[v];	E[ u ] =E[ v ];	O[v]+=Q[v];				dBUGop5
 					}				//		^ try it a bunch before you  f with it again
 			}else{			d = E[u] -x -B[u];																																					//_print_mx(300);
-/*	_+_		*/	if(			d >1	){	NEWv;	Q[v]=0;	A[ v ] = d -1;	B[ v ]  = B[ u ];		E[ v ] =E[ u ];	O[v]=O[u]+Q[u];	O[v+1]=O[v];	dBUGop6
-						++post_zc;	MODu;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	I[ v ] = I[ u ];																						//_print_mx(301);	
-/*	_+=		*/	}else if(		d==1 ){	MODu;		    --	A[ u ];	   ++	B[ u ];													dBUGop7
-/*	===		*/	}else{		++skip;																						dBUGop8
-				}	}	/*			F []		Q []		A []			B []				E []					*/
-			if(				za ==	a++ ){														goto	_exit; 		}
+/*	_+_		*/	if(			d >1	){	NEWv;	Q[v]=0;	A[ v ] = d -1;	B[ v ]  = B[ u ];		E[ v ] =E[ u ];	O[v]=O[u]+Q[u]; 			dBUGop6
+						++post_zc;	MODu;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	O[v+1]=O[v];	I[ v ] = I[ u ];																						//_print_mx(301);	
+/*	_+=		*/	}else if(		d==1 ){	MODu;		    --	A[ u ];	   ++	B[ u ];												dBUGop7
+/*	===		*/	}else{		++skip;																					dBUGop8
+				}	}	/*			F []		Q []		A []			B []				E []			O []			I []			*/
+			if(				za ==	a++ ){														goto	_none_x; 	}
 	x=ARG(a);																							_next_x:
 			if(				x<	*( (ui64*)	cube +1) ){   								CoINTRALOC;
 			}else{					/*	cube_= cube;	(EXTRICATE effects this	) */		EXTRICATE;
 				if(			x == *( (ui64*)	cube_ +1) ){												goto	_endoloc;
-				}else if(		iC == zC	){									ENDOcp(	*((ui64*) cube_+1));	return 0;
+				}else if(		iC == zC	){									ENDOcp(	*((ui64*) cube_+1));	return	dBUGr;
 				}else{					cube = SvPVbyte_nolen(	sv = *( pSv0 + ++iC) );
 					if(		x<	*( (ui64*)	cube +1) ){ CS =SvCUR(	sv);					ReINTRALOC;		goto	_intra_op;
 					}else if(	x == *( (ui64*)	cube +1) ){ CS_=SvCUR(	sv);	cube_=cube;	sv_=sv;				goto	_endoloc;
-					}else if(	iC == zC	){									ENDOcp(	*( (ui64*) cube+1));	return 0;
+					}else if(	iC == zC	){									ENDOcp(	*( (ui64*) cube+1));	return	dBUGr;
 					}else{	break;
 			}	}	}	}	while(1);	/* dwell on iC	*/
 							lb =iC+1;	ub=zC +1;	iC= ( lb+ub )>>1;		//	printf("\r........SEARCH %d < %d < %d\n", lb, iC, ub );
 	}	}	} while( 1 );	/* search	*/
-	_exit:																		EXTRICATE;
-	_reseqence:		if( isq || rSeqIns[0] || rSeqCut[0] )	_reseqence(1);	
-	return 0;
+	_none_x:																		EXTRICATE;
+	_reseqence:		if( dsc || rSeqIns[0] || rSeqCut[0] )	_reseqence(1);	
+	return dBUGr;
 	}
 
 
