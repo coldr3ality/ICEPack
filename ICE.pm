@@ -1,42 +1,26 @@
-# Inversion Cycle Encoding (ICE) v0.4.9 
+# Inversion Cycle Encoding (ICE) v0.1.9-alpha
+#	Copyright 2026 Peter Arlen Schmidt
+#
+#	Licensed under the Apache License, Version 2.0 (the "License");
+#	you may not use this file except in compliance with the License.
+#	You may obtain a copy of the License at
+#
+#	    http://www.apache.org/licenses/LICENSE-2.0
+#
+#	Unless required by applicable law or agreed to in writing, software
+#	distributed under the License is distributed on an "AS IS" BASIS,
+#	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#	See the License for the specific language governing permissions and
+#	limitations under the License.
+
 package ICE;	 use strict; use warnings;	++$|;	#system('cls');  
 print("\nYou are here: $0\n");
 use Data::Dumper;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Inline 'C';	#		=> Config => ("BOOT", ";\n init();"); 
 my @avOut=();
-	my	$flipStatA;
-	my	$flipStatD;
-	init();
 
-#	test_rack();
-#	exit;
-#	my $A1=[ 5, 6, 7, 12, 20, 22, 23, 24, 25, 29, 31, 34, 38, 40, 42, 46, 49, 52, 55, 58, 61, 64, 68, 70, 74, 76, 80, 82, 86, 88, 90, 94, 96, 100, 102, 106, 109, 113, 116, 120, 123, 127, 130, 134, 137, 140, 144, 147, 150, 153, 157, 160, 163, 168, 172, 178, 180, 184, 191, 195, 200, 205];	
-#	my $A1=[ 0x5, 0x6,	0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 	0xFF, 0x100, 0x101,	0xFFE, 0xFFF,	0x1000,		0xFFFE, 0xFFFF, 0x10000,	0xFFFFFFE, 0xFFFFFFF, 0x10000000	];
-#	my $A1=[ 5, 6, 7, 57, 111, 113, 151, 191, 222, 255, 257, 357, 457, 561, 717, 1111, 1113, 1211, 1212 ];
-#	my $A1=[ 5, 6, 7, 57, 111, 113, 151, 191, 222, 255, 257, 357, 457, 561, 717, 1111, 1113, 1211, 1212, 1221, 1222, 2222, 4444, 8888, 12222, 14444, 16666	];
-	my $A1=[ 5, 6, 7, 57, 111, 113, 151, 191, 222, 255, 257, 357, 457, 561, 717, 1111, 1113, 1211, 1212, 1221, 1222, 2222, 4444, 8888, 12222,
-			14444, 16666, 212121, 212122, 313131, 313132, 313133, 414144,	101101101,	202202202,	303303303,
-			1111111100, 1111111101, 1111111102, , 1111111103, 1111111104, 1111111105, 1111111106, 1111111107, 1111111108, 1111111109,, 1111111110, 1111111111,
-			1113111130, 1113111131,	1211212110, 1211212111,	1211212112];
-  
-#	my $A1=[0, 1, 255, 256, 65535, 65536, 16777215, 16777216, 4294967295, 4294967296, 1099511627775, 1099511627776, 281474976710655, 281474976710656 ];
-# 	my $A1=[0, 1, 255, 256, 65535, 65536, 16777215, 16777216, 4294967295, 4294967296, 1099511627775, 1099511627776, 281474976710655, 281474976710656, 72057594037927935, 72057594037927936 ];
-# 	my $A1=[0, 1, 100, 200, 255, 256, 60000, 65535, 65536, 70000, 80000, 900000, 1000000, 16000000, 16777215, 16777216, 200200200, 300300300, 400400400, 4294967295, 4294967296, 5005005005, 6006006006, 10010010010, 10999999999, 11000000000, 11111111111, 222222222222, 1099511627775, 1099511627776, 1099999999999, 1111111111111, 14001400140014, 281400000000000, 281474976710655, 281474976710656, 2814000028140000, 72057000000000000, 72057594037927935, 72057594037927936, 72057599999999999, 880088008800880088, 990099009900990099, 1152921212121212121, 1152921313131313131, 1152921504606846975, 1152921504606846976, 1234567890987654321, 1234567899999999999];
-# 	my $A1=[0, 1, 255, 256, 65535, 65536, 16777215, 16777216, 4294967295, 4294967296, 1099511627775, 1099511627776, 281474976710655, 281474976710656, 72057594037927935, 72057594037927936, 18446744073709551615];
-#	my $A1=[10, 20, 30, 40, 50, 60, 70, 80];
-#	my $A1=[100, 200, 300, 400, 500, 600, 700, 800];
-
-#	my $A1=[123, 234, 456, 567, 678, 789, 911, 1011];
-
-#	my	$A1=[ 717, 1111, 1113, 1211, 1212, 1221, 1222, 2222, 4444, 8888, 12222, 14444, 16666, 18888, 20000, 22222, 24444, 28888, 30000, 31111, 33333	];
-#		5	6		26	27	...						32		255..257				4094..4096				65534 .. 65536			268435454..268435456
-
-
-
-#	while(	$_=<> ){	#	alloc() test
-#					$x= $ICE->alloc();		print("\r #$x<--	\n",					 @{ $ICE->toText() } );
-#					}
+init();
 
 
 sub testCase2{
@@ -88,7 +72,7 @@ sub testCase1{
 				printAvDBUG();	exit; }
 	}
 #	testCase1;
-my @replays=(
+my @precursors=(
 	[	196..197,  199..200,  204,       207,       209,       211..212,  214,  216..218,		undef,
 		220..227,  230..246,												undef,
 		248..253,															undef,
@@ -585,9 +569,9 @@ my @replays=(
 	);
 sub replay{							my $miss;
 
-	for( my $r=0; $r<$#replays; $r+=2 ){
-		my ($ranges, $args) =@replays[$r..$r+1];
-		print("\rreplaying crash #", $r>>1, "...	");		
+	for( my $r=0; $r<$#precursors; $r+=2 ){
+		my ($ranges, $args) =@precursors[$r..$r+1];
+		print("\rtesting precursor #", $r>>1, "... ");
 		my $ICE=fromRvAV( $ranges );			#	print("	pre:\n",	@{ ICE::toPerl( $ICE ) }, "\n\n\n\n\n" );
 				ICE::set(			$ICE, $args );
 
@@ -598,12 +582,6 @@ sub replay{							my $miss;
 	}	}	}
 	replay();
 #	exit;
-
-
-
-
-
-
 
 
 
@@ -652,10 +630,10 @@ sub test_set_loop_rand($$$){				# test &set and &unset by repeatedly filling, th
 			@ICE_B4=@$ICE;
 
 
-			if( $ICE->set( \@args ) ){
+			if( $ICE->set( \@args ) ){	# if the macro "DEBUG_SET_L1" is defined in ICE.c, "set()" runs a checksum, returning true on error.
 		#\	if( $ICE->screenKeys(	\@argsMissed ) or $#argsMissed!=-1 ){
 				++$fail;
-				print(	"\n\ntest $i failed.  Precursor ICE object & set() argument[s] array dump:\n[",
+				print(	"\n\ntest $i failed.  Precursor data:\n\n[\n",
 						@{	$ICE_B4->toPerl()	},	"],	[", join(', ', @args ), "],\n\n"				);
 				printAvDBUG();
 			#\	exit;
@@ -674,7 +652,7 @@ sub test_set_loop_rand($$$){				# test &set and &unset by repeatedly filling, th
 		}	}		printf("\r	completed ($i) test[s]; 	($fail) fail[s]    (%.2f)/sec ", $perSec);
 	}
 
-test_set_loop_rand( 196, 392, 5000000 );
+test_set_loop_rand( 192, 320, 5000000 );
 1;
 __DATA__
 __C__
