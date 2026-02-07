@@ -199,8 +199,6 @@ AV			*	avOut,
 			*	avICE;	long long int	iC, post_iC, zC, post_zC, rel_iC, iCs, iCd, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
 AV			*	avArg;	long long int	a, za; 					//	a list of integer value[s] to operate on.
 
-long long unsigned int	max_isq=0;
-SV			*	sv_max_isq;	//debugging stats
 SV			**	src,
 			**	dst,
 			**	srca,
@@ -466,12 +464,35 @@ SV*	av_del( SV* rvICE,	SV* svI,	SV* svN){	if( !SvROK( rvICE) ){	printf("\r!	ICE:
 
 void _init(){
 #if	defined( DEBUG )
-	printf("\ninitialize avDBUG...\n");
 	avDBUG=newAV();
+	printf("\nICE.c has been built with the following debugging options:\n");
+#endif
+#if defined(DEBUG_RACK_L1)
+	printf("	DEBUG_RACK_L1:	_rack():	nominal activity audit\n");
+#endif
+#if defined(DEBUG_RACK_L2)
+	printf("	DEBUG_RACK_L2:	_rack():	verbose nominal activity audit\n");
+#endif
+#if defined(DEBUG_ReSEQ_L1)
+	printf("	DEBUG_ReSEQ_L1:	_resequence():	nominal activity audit\n");
+#endif
+#if defined(DEBUG_ReSEQ_L2)
+	printf("	DEBUG_ReSEQ_L2:	_resequence():	verbose nominal activity audit\n");
+#endif
+#if defined(DEBUG_ReSEQ_L3)
+	printf("	DEBUG_ReSEQ_L3:	_resequence():	paranoid integrity checks which are silent until there's a problem\n");
+#endif
+#if defined(DEBUG_SET_L1)
+	printf("	DEBUG_SET_L1:	_set():	nominal activity audit\n");
+#endif
+#if defined(DEBUG_SET_L2)
+	printf("	DEBUG_SET_L2:	_set():	verbose nominal activity audit\n");
+#endif
+#if	defined( DEBUG )
+	printf("\n\n	These messages will not print to screen automatically; they are stored in (AV*) avDBUG, which can be printed by calling \"printAvDBUG()\" from perl.\n");
 #endif
 	hvICE		= gv_stashpv(	"ICE",			0);
 	avOut		= get_av(		"ICE::avOut",		GV_ADD);
-	sv_max_isq	= get_sv(		"ICE::max_isq",	GV_ADD);
 	A[	255 ]=255;
 	B[	255 ]=255;
 	O[	255 ]=16;
@@ -1596,14 +1617,14 @@ _end__rack:
 
 #ifdef DEBUG_ReSEQ_L1		//	paranoid integrity checks which are silent until there's a problem
 //	printf("\r	level 1 debug enabled for void _resequence(...)\n");
-	#define dBUGdsc		if(dsc<0 || dsc>isqz)		cS=sprintf( aString,		"\n!	dsc is out of bounds 0..%d (%d)\n", isqz, dsc);	\
+	#define dBUGdsc		if(dsc<0 || dsc>zsc)		cS=sprintf( aString,		"\n!	dsc is out of bounds 0..%d (%d)\n", zsc, dsc);	\
 						if(src >dst )	{			cS=sprintf( aString,		"\n!	going in the wrong direction for ReSEQ_DESCEND	src( %lld ) > dst( %lld ), step #%d/%d;	rSeqCut[%d]: %d	rSeqSrc[%d]: %d	rSeqDst[%d]: %d\n",	\
-																													src - pSv0, dst -pSv0,	dsc, isqz,		dsc, rSeqCut[dsc],	dsc, rSeqSrc[dsc],	dsc, rSeqDst[dsc]	);	\
+																													src - pSv0, dst -pSv0,	dsc, zsc,		dsc, rSeqCut[dsc],	dsc, rSeqSrc[dsc],	dsc, rSeqDst[dsc]	);	\
 									}
 
-	#define dBUGasc		if(asc<0 || asc>isqz)		cS=sprintf( aString, 	"\n!	asc is out of bounds 0..%d (%d)\n", isqz, asc);	\
+	#define dBUGasc		if(asc<0 || asc>zsc)		cS=sprintf( aString, 	"\n!	asc is out of bounds 0..%d (%d)\n", zsc, asc);	\
 						if(src< dst )	{			cS=sprintf( aString, 	"\n!	going in the wrong direction for ReSEQ_ASCEND    	src( %lld ) < dst( %lld ), step #%d/%d;	rSeqCut[%d]: %d	rSeqSrc[%d]: %d	rSeqDst[%d]: %d\n", 	\
-																													src - pSv0, dst -pSv0,	asc, isqz,		asc, rSeqCut[asc],	asc, rSeqSrc[asc],	asc, rSeqDst[asc]	);	\
+																													src - pSv0, dst -pSv0,	asc, zsc,		asc, rSeqCut[asc],	asc, rSeqSrc[asc],	asc, rSeqDst[asc]	);	\
 									}
 #else
 	#define dBUGdsc
@@ -1611,22 +1632,22 @@ _end__rack:
 #endif
 #ifdef DEBUG_ReSEQ_L2		//	verbose audit of nominal activity
 //	printf("\r	level 2 debug enabled for void _resequence(...)\n");
-	#define dBUGinitASC	cS=sprintf( aString, "\n starting in ascending mode at step #%d/%d for %lld iterations\n\n",	asc, isqz, jux);	av_push( avDBUG, newSVpvn( aString, cS ) );
-	#define dBUGinitDSC	cS=sprintf( aString, "\n starting in descending mode at step #%d/%d for %lld iterations\n\n",	dsc, isqz, jux);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGinitASC	cS=sprintf( aString, "\n starting in ascending mode at step #%d/%d for %lld iterations\n\n",	asc, zsc, jux);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGinitDSC	cS=sprintf( aString, "\n starting in descending mode at step #%d/%d for %lld iterations\n\n",	dsc, zsc, jux);	av_push( avDBUG, newSVpvn( aString, cS ) );
 
-	#define dBUGd2a			cS=sprintf( aString, "\n switching to ascending mode at step #%d/%d for %lld iterations	\n\n", asc, isqz, jux	);	av_push( avDBUG, newSVpvn( aString, cS ) );
-	#define dBUGa2d			cS=sprintf( aString, "\n switching to descending mode at step #%d/%d for %lld iterations	\n\n", dsc, isqz, jux	);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGd2a			cS=sprintf( aString, "\n switching to ascending mode at step #%d/%d for %lld iterations	\n\n", asc, zsc, jux	);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGa2d			cS=sprintf( aString, "\n switching to descending mode at step #%d/%d for %lld iterations	\n\n", dsc, zsc, jux	);	av_push( avDBUG, newSVpvn( aString, cS ) );
 
-	#define dBUGrASCi		cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",			dst-pSv0-1, 		rSeq_iR[asc]-1,	asc,	isqz, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
-	#define dBUGrASCc		cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",			pSv-pSv0, 				  		asc,	isqz, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
-	#define dBUGrASCj		cS=sprintf( aString, "\r++%c	avICE[ %4d ]	=	avICE[ %4d ];		asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	174, 	dst-pSv0-1, 		src-pSv0-1,	  	asc,	isqz, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
-	#define dBUGrASCx		cS=sprintf( aString, "\r++%c	avICE[ %4d ]	=	avICE[ %4d ]; [T]	asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	174, 	dst-pSv0, 		$srcA,  			asc,	isqz, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrASCi		cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",			dst-pSv0-1, 		rSeq_iR[asc]-1,	asc,	zsc, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrASCc		cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",			pSv-pSv0, 				  		asc,	zsc, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrASCj		cS=sprintf( aString, "\r++%c	avICE[ %4d ]	=	avICE[ %4d ];		asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	174, 	dst-pSv0-1, 		src-pSv0-1,	  	asc,	zsc, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrASCx		cS=sprintf( aString, "\r++%c	avICE[ %4d ]	=	avICE[ %4d ]; [T]	asc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	174, 	dst-pSv0, 		$srcA,  			asc,	zsc, jux, pSv-pSv0, dst-pSv0 );	av_push( avDBUG, newSVpvn( aString, cS ) );
 
-	#define dBUGrDESi		cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",		1+	dst-pSv0,	1+	rSeq_iR[dsc],		dsc,	isqz, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
-	#define dBUGrDESc		cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",			pSv-pSv0,						dsc,	isqz, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
-	#define dBUGrDESj		cS=sprintf( aString, "\r%c--	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	175,	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	isqz, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
-	#define dBUGrDESx		cS=sprintf( aString, "\r%c--	avICE[ %4d ]	=	avICE[ %4d ]; [T]	dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	175,		dst-pSv0, 		$srcD,  			dsc,	isqz, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
-	#define dBUGrDESxx		cS=sprintf( aString, "\r%c--	avICE[ %4d ]	=	avICE[ %4d ]; [Tx]	dsc: %d/%d	\n", 							175,		$dstD, 			$srcD,			dsc,	isqz						);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrDESi		cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",		1+	dst-pSv0,	1+	rSeq_iR[dsc],		dsc,	zsc, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrDESc		cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",			pSv-pSv0,						dsc,	zsc, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrDESj		cS=sprintf( aString, "\r%c--	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	175,	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	zsc, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrDESx		cS=sprintf( aString, "\r%c--	avICE[ %4d ]	=	avICE[ %4d ]; [T]	dsc: %d/%d	jux: %d	pSv/dst: %d/%d\n",	175,		dst-pSv0, 		$srcD,  			dsc,	zsc, jux, pSv-pSv0, dst-pSv0);	av_push( avDBUG, newSVpvn( aString, cS ) );
+	#define dBUGrDESxx		cS=sprintf( aString, "\r%c--	avICE[ %4d ]	=	avICE[ %4d ]; [Tx]	dsc: %d/%d	\n", 							175,		$dstD, 			$srcD,			dsc,	zsc						);	av_push( avDBUG, newSVpvn( aString, cS ) );
 
 	#define dBUG_ReSEQ_SCHED_PRE	\
 		cS =sprintf( aString,     "\n	racking schedule (pre process):\n	#\t\t");											\
@@ -1727,7 +1748,7 @@ void _reseqence( ui08 caller ){	//	"resequence"	is the post-operational process 
 			rSeqIns[	dsc ]	=	0;
 			rSeqCut[	dsc ]	=	0;
 			}
-	int		isqz=dsc;
+	int		zsc=dsc;
 	/* compute destination array size and return now if it's lteq zero, or extend if it's gt AvMAX  (AvFILLp is set last of all) */
 	if( zC< post_zC ){	av_extend(	avICE,	post_zC+1 );	pSv0=AvARRAY( avICE );	}
 
@@ -1881,7 +1902,7 @@ do	{									cube = SvPVbyte_nolen(	sv =*(pSv0+iC ) );
 							cube_[zc_--]=0;			SvCUR_set( sv_, O[ 255 ] );		cube_[O[255]]=0;						dBUGop2
 						}if(	za == a++ ){															goto	_none_x;		}
 	x=ARG(a);																					goto	_next_x;
-/*	==|=	*/		}else{ /* rogue zero off-cycle is a null artifact which the spec cannot control */ dBUGnARF	goto	_next_x;
+/*	==|=	*/		}else{ /* rogue null off-cycle is an artifact which the spec must allow */	dBUGnARF	goto	_next_x;
 						}
 	x=ARG(a);		} while(	x == *((ui64*)	cube_+1) );	ReICEzSV_( 255,4 ); 							goto	_next_x;
 		}else{
