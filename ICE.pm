@@ -5,7 +5,6 @@ use Data::Dumper;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Inline 'C';	#		=> Config => ("BOOT", ";\n init();"); 
 my @avOut=();
-	my	$max_isq=0;
 	my	$flipStatA;
 	my	$flipStatD;
 	init();
@@ -672,7 +671,8 @@ sub test_set_loop_rand($$$){				# test &set and &unset by repeatedly filling, th
 					}
 				next TEST;	}
 
-	}	}	}
+		}	}		printf("\r	completed ($i) test[s]; 	($fail) fail[s]    (%.2f)/sec ", $perSec);
+	}
 
 test_set_loop_rand( 196, 392, 5000000 );
 1;
@@ -722,107 +722,10 @@ const char	*	commaspace[ 48 ]={
 
 
 
+void init(){	_init_c();	_init_h();		}
 
 SV* getAvDBUG(){	SV* rv =newRV_inc( (SV*) avDBUG ); return rv; }
-
-#define DEBUG	//	cfatcatfscatcatc
-void init(){ _init(); }
 SV* printAvDBUG(){	printf("\nprintAvDBUG()\n");	PRINT_AvSvIVX( avDBUG); printf("\n");	return &PL_sv_undef; }
-/*	hindsight	lichtenstein	bartleby	  cubby	nymph	crew helm mission brink  disaster weld kudos
-	wherewithall	alabaster	green tea	shelf
-	coffee  baseball	unitarian	peace	feeling	icing	fruitcake	jingles  strike	here	heal caster oil	halibut curly hair		*/
-/*	hold true the focus	light	sand ice sky  jewel	slate	food	newcomer	toluene  darkness clear locket list 
-	*/
-/*	stRormcrow	hellbringer	rifleman	summoner	MADDOG	timberwolf		marauder	direwolf	jenner	kit fox
-	fweq
-	gargoyle		po diddy		hep cat	claptrap		rib bone		rabbleshnauzer	sneekypete	sup pup	jenzer	kaboodle
-
-	hi		pancakes	fruitloops 	parfaits	eggies		rye toast			string cheese		heavy cream	butter	elderberries
-	hola		waffles	turkey		souflette	<3			apple cinnamon	peach			shallots	butter oh
-	blueberries	cantelope	pear	cupcakes			grits		turkey	hotsauce			onions	mustard	horseradish
-	
-	snausages	pineapple	juice		avocado	swiss cheese	beer	eggnog	beef jerky	bree	ghee	peanut butter
-	flax		ghost pepper	pumpkin pie spice	matcha	moringa	himalayan	almonds <3	walnuts	pistache	pican pies
-	quinoa	olive oil	black pepper		cumin	
-gq2f dfdd
-	quartz	sapphire		ruby	diamond	 emerald pearl	obsidian	flint	granite	magnetite	jasper ice
-	diamond	amethyst	indigo	anthrocite	chrysophrase	jade		aggot	mica	
-dffeffsfd
-	brave	ook	nook	zook	MOST_HOLY_GRAIL	CHIM_CHIMN_E	elle G choir	hi me cat	
-	iOvnow	sorcear	planet bell47	coma84				joe
-
-	creative	dork		cog	jerk	juice	oopz	dawg	craven	schnell	cat	dog	duck stuff  niche	prunes	pampelmousse
-	great jorb derf	vanilla	gdansk	GORSH	why do I hunger?
-	push	zerk		na'an	goat milk		molasses		beans	cabbage	heirloom tomatoes
-	do it k	very	good	man		tree			done	slice		pie		hmm	potatoes?
-	chocolate	whip cream	sundae no	mayonaisse	fat	HODL	mincemeat	yams	pineapples
-	do exist		perch		tears		madafaka souflette	snow
-	doe			mustard		peppercorn	pecans	mango	pears	crab		macadamias	spinach cat
-
-	zuke		cucu		spaghetti squash		mozarella	ricotta	parmessian cat	grey pupon	tiger sauce
-	jamaica hellfire	pisqueya		acid rain xPs
-vffwwfs
-gfsgf gfffff d	graft	instigate	craft	manage	summon	drink	traverse	straffe	grow	stew
-	jello	pudding	tapioca	banana creme	chestnuts	brazil nuts	blue corn chips	salsa	
-	nein teimz [ten]
- 
-	so fat	:*	1f
-	mustard? yeah
-	how 'bout amaranth? cool		I shouldn't eat restrictively forever.  I couldn't handle a surprises
-	teff spelt	kamut	
- 	I am ncot hungry	not really.	no.  yeah I am always hungry, but not really.  g	w		2		r
-	I will eat when my body needs to.qserf
-	I love the idea of food
-	I feel so coolbuf							I love the coolbeef wgffffwffffw
-	I know, I think I feel obsessed with eating
-	cat catcat cat  cat  cat cat cat 	cat cat  cat cat cat cat  cat  catting
-	cat  cat cat	cat  cat cat  cat cat cat  cat cat cat  cat cat catcat cat cat cat cat cat cat catcat  cat cat cat cat cat cat cat cat cat cat 
-	cat cat  cat  	yellow cat	blue cat 
-	danish		orance cat	oopcat boopcat can cat  cat cat cat  cat cat  cat	kate
-	macaroons	figs pomegranates		caaaaaat
-	cat 	car cat 	cat 	cat	cat	cat	cat	cat	caq  t	coolcat	cat	cat	cat cat	catfish	cattle	cats, the musical
-	fecat cat cat 	cat	cat 	cat	cat 	cawwt	cat	coolcat		cat	cat	cat cat 	catbird	cat tail	acds 
-f		g
-		e			holyshit
-
-	ccdwegcc   ec fscc c vf wgc   fgg11  sccdescsde44wgwg w3wxxx  f gs88sg3sfew wgrr  54wgwgfewwqgrwwgw  wf4242ffrwwswgfeqwrwcesscvew fsrwwcrgvwefw csd	cat		1	fceacdccat  fsc
-	cats cats catsqwgs
-	>			fweg qww12wrgvrwffc32fccw  ff   	ffffefegf		88111 1sse	2  2
-exffw
-wsa206, 22fff
-qfffeqwqffqwsssfqqqfgsfsssfsfffff000 wqf99	(red balloons) f			8f_
-eswffsw f
-ffffwffffffffffewfffffffffffffffef asffwwf fewfe   ewfffewfffefffff			9
-wfsffwffwe fefeffwefqfe fe22qf catcawtfrfefefewfef fefe fefefeefe2t4
-1337zqwwse3333feewwsfegwffe44fg grfe   fewwffew fefewfefewfefefewfefew?????fe fefegr  fewfewfeww3ww4g4csfewgww2424         wvqssw fq      333 pub				ok
-			gqgqw		9qf		7wpqwwwss	qw
-	> catbuf										buff sus 	the hunger is real.
-	> catbufs	svc
-		svccat		w	catbus	catmaxx		
-	ten times overeasy cat
-\f			w 		wgrW fews ggwrhat	afasc	feqfqq fg fefwe fewf egw cs few		w00f wOOf e
-	f					fecs wweffFffw
-sdfwffeffefffffffffffq3fqeqfsqf	agwreffeeewrgefefefefefefgfwfsf
-dfewegvsssgs svasv ghost cat		    dsf 44wffffewff    sfrecewa4wwgwffsfgfferwferffffsef asvsfsfgvr davf		wwfaffle cat   	3cat	qwf
-
-qffs bOpwe wfssewgfsegfqw2sfewwwfewefw fewfewewsfsv shat cat
-qes	wachit nah	don't satww1wewqwqe
-						don't bat				helicat	quail cat
-			wge					don't get fat 	wredffsfffs
-	vwq my artwg ok dwf	fgw	cat 		111            	wrgbsewswewefq qfeiwsfw  wf222fess gwfeedfgs  f    sr ewfefeqeff ffffcgefffefffew gwrfefef few
-	q	  q ejw	cra-zMAX			snygi	    f		wab cat fs  gweff    		cat 
-	r
-	i miss my woods.		gg d f f	bOmbshell cat
-//ssgf	eff				satq catfgrqqqqr	wffef		spoof cat				ballast cat						cat clogger
-gfffefdf		p			wfsss				frozen custard
-fa		hyucks				e			w			1	d									wfe fsffesffeq
-		breathe now	yes.		 qqqef s f Fsffeff fsfffffef	wq  3331
-s fewf
-
-ffq2ffewewffwfewfswesfewfw fgffwqwf		illustrious cat
-f
-#fw
-	*/
 
 #define SvINIT( $AV, $SV )		AvINIT1(		$AV );				\
 						/*	SvREFCNT_inc(			$SV);	*/\
