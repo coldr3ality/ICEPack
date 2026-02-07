@@ -462,34 +462,31 @@ SV*	av_del( SV* rvICE,	SV* svI,	SV* svN){	if( !SvROK( rvICE) ){	printf("\r!	ICE:
 		}	}									\
 	av_clear( $av );
 
-void _init(){
+void _init_c(){
 #if	defined( DEBUG )
 	avDBUG=newAV();
-	printf("\nICE.c has been built with the following debugging options:\n");
+	printf("\n	Debug options are set.  From perl, call \"getAvDBUG()\" or \"printAvDBUG()\" to access audit data.\n");
 #endif
 #if defined(DEBUG_RACK_L1)
-	printf("	DEBUG_RACK_L1:	_rack():	nominal activity audit\n");
+	printf("\r	DEBUG_RACK_L1 is defined in ICE.c:	_rack():	auditing nominal activity\n");
 #endif
 #if defined(DEBUG_RACK_L2)
-	printf("	DEBUG_RACK_L2:	_rack():	verbose nominal activity audit\n");
+	printf("\r	DEBUG_RACK_L2 is defined in ICE.c:	_rack():	auditing nominal activity verbosely\n");
 #endif
 #if defined(DEBUG_ReSEQ_L1)
-	printf("	DEBUG_ReSEQ_L1:	_resequence():	nominal activity audit\n");
+	printf("\r	DEBUG_ReSEQ_L1 is defined in ICE.c:	_resequence():	auditing nominal activity\n");
 #endif
 #if defined(DEBUG_ReSEQ_L2)
-	printf("	DEBUG_ReSEQ_L2:	_resequence():	verbose nominal activity audit\n");
+	printf("\r	DEBUG_ReSEQ_L2 is defined in ICE.c:	_resequence():	auditing nominal activity verbosely\n");
 #endif
 #if defined(DEBUG_ReSEQ_L3)
-	printf("	DEBUG_ReSEQ_L3:	_resequence():	paranoid integrity checks which are silent until there's a problem\n");
+	printf("\r	DEBUG_ReSEQ_L3 is defined in ICE.c:	_resequence():	checking integrity silently until there's a problem\n");
 #endif
 #if defined(DEBUG_SET_L1)
-	printf("	DEBUG_SET_L1:	_set():	nominal activity audit\n");
+	printf("\r	DEBUG_SET_L1 is defined in ICE.c:	_set():	auditing nominal activity \n");
 #endif
 #if defined(DEBUG_SET_L2)
-	printf("	DEBUG_SET_L2:	_set():	verbose nominal activity audit\n");
-#endif
-#if	defined( DEBUG )
-	printf("\n\n	These messages will not print to screen automatically; they are stored in (AV*) avDBUG, which can be printed by calling \"printAvDBUG()\" from perl.\n");
+	printf("\r	DEBUG_SET_L2 is defined in ICE.c:	_set():	auditing nominal activity verbosely\n");
 #endif
 	hvICE		= gv_stashpv(	"ICE",			0);
 	avOut		= get_av(		"ICE::avOut",		GV_ADD);
