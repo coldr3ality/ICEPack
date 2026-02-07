@@ -1,7 +1,7 @@
 	#define DEBUG_ReSEQ_L2
 
 
-#ifdef DEBUG_ReSEQ_L2
+#if defined(DEBUG_ReSEQ_L2)
 	#define dBUG_SvINS(		$iC, $sv )		cS=sprintf(aString, "\r%c	in step #%d:	insertion after index %lld (%lld)	rel_iC=%d	(rSeq_SV[ %d ])\n\n",	241, dsc, $iC, $iC+1, 	rel_iC, iR );	av_push( avDBUG, newSVpvn(  aString, cS ) );
 	#define dBUG_SvCUT(		$iC, $sv )		cS=sprintf(aString, "\r%c	in step #%d:	deletion at index %lld			rel_iC=%d\n\n",					241,	dsc, $iC, 			rel_iC );		av_push( avDBUG, newSVpvn(  aString, cS ) );
 	#define dBUG_SvReCUT(	$iC, $sv )		cS=sprintf(aString, "\r%c	in step #%d:	deletion before index %lld (%lld)	rel_iC=%d\n\n",					241, dsc, $iC, $iC-1, 	rel_iC );		av_push( avDBUG, newSVpvn(  aString, cS ) );
@@ -11,38 +11,11 @@
 	#define dBUG_SvReCUT(	$iC, $sv )
 #endif
 
-
-#define	xAvPOSTins( $iC, $sv )																		\
-		if(	rack_iC	==	$iC ){						++	rSeqIns[ dsc ];								\
-		}else{	rSeq_iR[	dsc ]	=	iR;															\
-				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
-				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
-												rel_iC +=	rSeqIns[ dsc ];								\
-/* new step	*/		++	dsc;			rack_iC = $iC;			rSeqIns[ dsc ]=1;	rSeqCut[ dsc ] = 0;			\
-			}	rSeq_SV[ ++iR ]=$sv;																dBUG_SvINS( $iC, $sv )
-
-
-#define	xAvPOSTcut( $iC )		/* automatically increments iC				*/							\
-		if(	rack_iC	==	$iC ){										++	rSeqCut[ dsc ];			\
-		}else{	rSeq_iR[	dsc ]	=	iR;															\
-				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
-				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
-												rel_iC +=	rSeqIns[ dsc ];								\
-/* new step	*/		++	dsc;								rSeqIns[ dsc ]=0;	rSeqCut[ dsc ] = 1;			\
-			}																					dBUG_SvCUT( $iC, $sv )
-
-
-#define	xAvPOSTcut_retro( $iC )	/* assumes iC is incremented already			*/							\
-		if(	rack_iC	==	$iC-1 ){	rack_iC = $iC;    						++	rSeqCut[ dsc ];			\
-		}else{	rSeq_iR[	dsc ]	=	iR;															\
-				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
-				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
-												rel_iC +=	rSeqIns[ dsc ];								\
-/* new  step	*/		++	dsc;			rack_iC = $iC;			rSeqIns[ dsc ]=0;	rSeqCut[ dsc ] = 1;			\
-			}																					dBUG_SvReCUT( $iC, $sv )
-
-
-
+void _init_h(){
+#if defined(DEBUG_ReSEQ_L2)
+	printf("\r	DEBUG_ReSEQ_L2 is defined in ICE.h: auditing nominal activity of AvPOST, AvPOSTcut, and AvPOSTcut_retro\n");
+#endif
+	}
 
 #define BUF( $px, $pz )		q =$pz -$px;				/*	Find the length of q data		*/		\
 						while( q >7){				/*	Append the q data to the buffer.	*/		\
