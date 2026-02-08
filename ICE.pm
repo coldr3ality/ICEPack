@@ -42,7 +42,7 @@ sub testCase2{
 #	print("\n	batch 0:	(", join(', ', @args), ")\n\n");
 				$ICE->set( \@args );
 #	print(	@{	$ICE->toText() } );		
-	my $hit =	$ICE->screenKeys( \@args );
+	my $hit =	$ICE->exist( \@args );
 	my $miss=0;		
 	if( 0< ( $miss = scalar( @args ) ) ){	print("\r($miss) missing keys:	(", join(', ', @args ), ")	failed testCase2\n\n" );
 				printAvDBUG();	exit; }
@@ -66,7 +66,7 @@ sub testCase1{
 #	print("\n	batch 0:	(", join(', ', @args), ")\n\n");
 				$ICE->set( \@args );
 #	print(	@{	$ICE->toText() } );		
-	my $hit =	$ICE->screenKeys( \@args );
+	my $hit =	$ICE->exist( \@args );
 	my $miss=0;		
 	if( 0< ( $miss = scalar( @args ) ) ){	print("\r($miss) missing keys:	(", join(', ', @args ), ")	failed testCase1\n\n" );
 				printAvDBUG();	exit; }
@@ -567,25 +567,19 @@ my @precursors=(
 		326,								undef,
 		328,																	],	[14, 78, 88, 113, 121, 188, 255, 327]
 	);
-sub replay{							my $miss;
-
+sub crash_replay{							my $miss;
 	for( my $r=0; $r<$#precursors; $r+=2 ){
 		my ($ranges, $args) =@precursors[$r..$r+1];
-		print("\rtesting precursor #", $r>>1, "... ");
-		my $ICE=fromRvAV( $ranges );			#	print("	pre:\n",	@{ ICE::toPerl( $ICE ) }, "\n\n\n\n\n" );
+		print("\rtesting crash precursor #", $r>>1, "... ");
+		my $ICE=fromRvAV( $ranges );
 				ICE::set(			$ICE, $args );
 
-		if(		ICE::screenKeys(	$ICE, $args ) ){	print("	failed\n",	@{ ICE::toText( $ICE ) }, "\n\n\n\n\n" );
+		if(		ICE::exist(	$ICE, $args ) ){		print("	failed\n",	@{ ICE::toText( $ICE ) }, "\n\n\n\n\n" );
 				printAvDBUG();
 		}else{									print("	pass\n");
 			#	print("\n\n", @{ getAvDBUG() }, "\n\n");
 	}	}	}
-	replay();
-#	exit;
-
-
-
-sub test_set_prompt{
+sub test_prompt{
 	my ($x, @A1, @D1);
 #	my $ICE=fromRvAV( $A1 );
 	my $ICE=fromRvAV( [1, 2, 12, 21, 112, 211, 221] );	#	bless( [], 'ICE' );
@@ -601,18 +595,16 @@ sub test_set_prompt{
 		print("\nICE::set()==",	$ICE->set(	\@A1	),
 			"\n\n\n\n\n",	@{	$ICE->toText(			) } , "\n>");
 	}	}
-#test_set_prompt();
-
-sub test_set_loop_rand($$$){				# test &set and &unset by repeatedly filling, then emptying the namespace using random noise.
-	my ( $min, $max, $iterations)=@_;
-	my	($W,			$pbst,						$batch,	$pass,	$fail,	$replay,					$maxZ,	$perSec, $msec0, $msec1, $msec2, $hit, $miss, $r, $R_, $d, $ICE, $ICE_B4, $x, $i, $I, %ICE, @ICE, @ICE_B4, @ICE_AF, @args, @argsMissed, @keyBulk )=
-		($max -$min,	bless(\pack('nnn',0,0,0),'PBAR'),	0,		0,		0,		 ["nothing to see here\n"],	0		);
+sub test_rand($$$){				# test &set and &unset by repeatedly filling, then emptying the namespace using random noise.
+	my ( $min, $max, $nTests)=@_;
+	my	($W,			$pbst,						$T,	$nTx100,		$batch,	$pass,	$fail,	$replay,					$maxZ,	$perSec, $msec0, $msec1, $msec2, $hit, $miss, $r, $R_, $d, $ICE, $ICE_B4, $x, $i, $I, %ICE, @ICE, @ICE_B4, @ICE_AF, @args, @argsMissed, @keyBulk )=
+		($max -$min,	bless(\pack('nnn',0,0,0),'PBAR'),	0,	$nTests*0.01,	0,		0,		0,		 ["nothing to see here\n"],	0		);
 
 	$ICE_B4=bless( \@ICE_B4, 'ICE');
 	$msec0=$msec1=gettimeofday;
+my	$format=sprintf("\r%c.2f%cc	completed (%cd) fail[s]    (%c.2f)/sec NS: 0x%X..%X", 37, 37, 37, 37, $min, $max);
 
-#	print("\nICE::set( [$min +rand( $W )]x8 ) x$iterations\n	(brute force noise test)");
-	TEST:foreach my $i(1..$iterations){
+	TEST:foreach $T(1..$nTests){
 		$batch=0;
 		$ICE=bless( [], 'ICE' );
 		#%ICE=();
@@ -631,28 +623,46 @@ sub test_set_loop_rand($$$){				# test &set and &unset by repeatedly filling, th
 
 
 			if( $ICE->set( \@args ) ){	# if the macro "DEBUG_SET_L1" is defined in ICE.c, "set()" runs a checksum, returning true on error.
-		#\	if( $ICE->screenKeys(	\@argsMissed ) or $#argsMissed!=-1 ){
+		#\	if( $ICE->exist(	\@argsMissed ) or $#argsMissed!=-1 ){
 				++$fail;
-				print(	"\n\ntest $i failed.  Precursor data:\n\n[\n",
+				print(	"\n\ntest $T failed.  Precursor data:\n\n[\n",
 						@{	$ICE_B4->toPerl()	},	"],	[", join(', ', @args ), "],\n\n"				);
 				printAvDBUG();
 			#\	exit;
 				next TEST;
 				}
 			if( $ICE->inTotality( $min, $W) ){	++$pass;
-		#\		if( defined $replay ){	print( "\n######## TEST $i COMPLETE ########\n", @{ $ICE->toPerl() }, "\n>", join(', ', @args), "\n\n\n");	}
+		#\		if( defined $replay ){	print( "\n######## TEST $T COMPLETE ########\n", @{ $ICE->toPerl() }, "\n>", join(', ', @args), "\n\n\n");	}
 				$msec2=gettimeofday;
 				if($msec2-$msec1 >0.1){
-					$perSec =$i /( $msec2-$msec0);
-					printf("\r	completed ($i) test[s]; 	($fail) fail[s]    (%.2f)/sec ", $perSec);
+					$perSec =$T /( $msec2-$msec0);
+					printf( $format, $T/$nTx100,	37, $fail, $perSec );
 					$msec1=$msec2;
 					}
 				next TEST;	}
 
-		}	}		printf("\r	completed ($i) test[s]; 	($fail) fail[s]    (%.2f)/sec ", $perSec);
+		}	}		printf( $format, 100,		37, $fail, $perSec );	printf("\n");
 	}
 
-test_set_loop_rand( 192, 320, 5000000 );
+
+
+
+
+
+	crash_replay();
+#	test_prompt();
+
+foreach (1..5){		my	$W=8<<$_;
+	test_rand( (1<<56)	-$W,	(1<<56)	+$W,	10000 );
+	test_rand( (1<<48)	-$W,	(1<<48)	+$W,	10000 );
+	test_rand( (1<<40)	-$W,	(1<<40)	+$W,	10000 );
+	test_rand( (1<<32)	-$W,	(1<<32)	+$W,	10000 );
+	test_rand( (1<<24)	-$W,	(1<<24)	+$W,	10000 );
+	test_rand( (1<<16)	-$W,	(1<<16)	+$W,	10000 );
+	test_rand( (1<<8)	-$W,	(1<<8)	+$W,	10000 );
+	}
+;
+
 1;
 __DATA__
 __C__
@@ -834,23 +844,23 @@ SV*	insortIV(		SV* rvArg,	SV* svX		){
 		}
 	return &PL_sv_yes; 	// return true: index x already exists
 	}
-SV*	epsilonCheck(	SV* rvICE	){
+SV*	checksum(	SV* rvICE	){
 	bool	err;
 	svtype	rt0,	t0 = SvTYPE( rvICE );
-	const char	*	arg_err	= "\r!       ICE::epsilonCheck( <%s> ): arg[%d] must be an arrayref.\n\t";
+	const char	*	arg_err	= "\r!       ICE::checksum( <%s> ): arg[%d] must be an arrayref.\n\t";
 	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  svtype_names[		t0 ], 0 );	return &PL_sv_no; }
 	avICE	= (AV*) SvRV(    	rvICE );
 		rt0 = SvTYPE( avICE );
 	if(	rt0 != SVt_PVAV ){				printf( arg_err,  svtype_names_ref[	rt0 ], 0 );	return &PL_sv_no; }
-	err=_epsilonCheck();
+	err=_checksum();
 	return err? &PL_sv_yes: &PL_sv_no;
 	}
-SV*	screenKeys(	SV* rvICE,	SV* rvArg	){
+SV*	exist(	SV* rvICE,	SV* rvArg	){
 //	SV*				svOut;
 	bool	err;
 	svtype	rt0, rt1,	t0 = SvTYPE( rvICE ),
 					t1 = SvTYPE( rvArg );
-	const char	*	arg_err	= "\r!       ICE::screenKeys( <%s>, <%s> ): arg[%d] must be an arrayref.\n\t";
+	const char	*	arg_err	= "\r!       ICE::exist( <%s>, <%s> ): arg[%d] must be an arrayref.\n\t";
 	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  svtype_names[		t0 ],  	svtype_names[	t1	], 0 );  return &PL_sv_no; }
 	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err,  svtype_names[		t0 ], 	svtype_names[	t1	], 0 );  return &PL_sv_no; }
 
@@ -860,7 +870,7 @@ SV*	screenKeys(	SV* rvICE,	SV* rvArg	){
 	if( rt0 != SVt_PVAV ){				printf( arg_err,  svtype_names_ref[	rt0 ],  	svtype_names_ref[	rt1	], 1 );  return &PL_sv_no; }
 	if( rt1 != SVt_PVAV ){				printf( arg_err,  svtype_names_ref[	rt0 ],  	svtype_names_ref[	rt1	], 1 );  return &PL_sv_no; }
 
-	err=_screenKeys();
+	err=_exist();
 	return err? &PL_sv_yes: &PL_sv_no;
 	}
 SV*	screenHV(	SV* rvICE,	SV* rvArg	){
@@ -904,43 +914,6 @@ SV*	set(			SV* rvICE,	SV* rvArg	){
 
 	// if "DEBUG_SET_L1" is defined in ICE.c, _set(...) will forward the return value of _checkEpsilon(), which functions as a sort of CRC.
 	return _set()? &PL_sv_yes: &PL_sv_no;
-	}
-SV*	keys(		SV* rvICE	){
-	ui08		sp[24];
-	int			sL;
-	avICE= (AV*) SvRV( rvICE);	zC = AvFILLp( avICE);
-	avArg= newAV();
-	Ex=0;
-	ui64 i=0;
-	for( iC=0; iC<=zC;  ++iC ){	sv = *( AvARRAY( avICE) +iC );
-		cube = SvPVbyte(		sv,  CS );
-		pq =cube +16;
-		for(  Kx8= *( (ui64*) cube );  Kx8!=0;  Kx8>>=8 ){	Ki= Kx8;	deICE( Qx, Ax, Bx )
-					x =Ex +Ax;
-			for( Ex =	x +Bx;  x<Ex;  ++x){
-				sL=sprintf( sp, "0x%llx", x);
-				av_push( avArg, newSVpvn( sp, sL ) );
-				}
-			}
-	//	sL=sprintf( sp, "|");
-	//	av_push( avArg, newSVpvn( sp, sL ) );
-		}
-	rvArg =newRV_inc( (SV*) avArg);
-	return rvArg;
-	}
-SV*	ranges(		SV* rvICE	){
-	avICE= (AV*) SvRV( rvICE);	zC = AvFILLp( avICE);
-	avArg= newAV();
-	Ex=0;
-	for( iC=0; iC<=zC;  ++iC ){ sv= *( AvARRAY(	 avICE) +iC );
-		cube = SvPVbyte(	sv,  CS );
-		pq =cube +16;
-		for(  Kx8= *( (ui64*) cube );   Kx8!=0;  Kx8>>=8 ){	Ki= Kx8;	deICE( Qx, Ax, Bx )
-			av_push( avArg, newSViv( x=Ex +Ax	) );
-			av_push( avArg, newSViv( Ex=x +Bx	) );
-		}	}
-	rvArg =newRV_inc( (SV*) avArg);
-	return rvArg;
 	}
 SV*	toPerl(		SV* rvICE	){
 	const char	*	usage_err	=	"#       ICE::toPerl( <%s> ): arg[0] must be an <arrayref (ICE object) >.\n",
