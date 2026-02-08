@@ -27,7 +27,7 @@
 
 void _init_h(){
 #if defined(DEBUG_ReSEQ_L2)
-	printf("\r	DEBUG_ReSEQ_L2 is defined in ICE.h: auditing nominal activity of AvPOST, AvPOSTcut, and AvPOSTcut_retro\n");
+	printf("\r	DEBUG_ReSEQ_L2 is defined in ICE.h: auditing nominal activity of AvPOSTinc, AvPOSTcut, and AvPOSTcut_retro\n");
 #endif
 	}
 
