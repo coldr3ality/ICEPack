@@ -602,7 +602,7 @@ sub test_rand($$$){				# test &set and &unset by repeatedly filling, then emptyi
 
 	$ICE_B4=bless( \@ICE_B4, 'ICE');
 	$msec0=$msec1=gettimeofday;
-my	$format=sprintf("\r%c.2f%cc	completed (%cd) fail[s]    (%c.2f)/sec NS: 0x%X..%X", 37, 37, 37, 37, $min, $max);
+my	$format=sprintf("\r%c6.2f%cc completed (%cd) fail[s]  %c11.2f/sec NS: 0x%X..%X", 37, 37, 37, 37, $min, $max);
 
 	TEST:foreach $T(1..$nTests){
 		$batch=0;
@@ -636,12 +636,14 @@ my	$format=sprintf("\r%c.2f%cc	completed (%cd) fail[s]    (%c.2f)/sec NS: 0x%X..
 				$msec2=gettimeofday;
 				if($msec2-$msec1 >0.1){
 					$perSec =$T /( $msec2-$msec0);
-					printf( $format, $T/$nTx100,	37, $fail, $perSec );
+					printf(	$format, $T/$nTx100,	37, $fail, $perSec );
 					$msec1=$msec2;
 					}
 				next TEST;	}
 
-		}	}		printf( $format, 100,		37, $fail, $perSec );	printf("\n");
+		}	}
+	$perSec =$nTests /( gettimeofday-$msec0);
+	printf(					$format, 100,		37, $fail, $perSec );	printf("\n");
 	}
 
 
@@ -651,17 +653,16 @@ my	$format=sprintf("\r%c.2f%cc	completed (%cd) fail[s]    (%c.2f)/sec NS: 0x%X..
 
 	crash_replay();
 #	test_prompt();
+#	Each test calls _set() on a set of (8) keys randomly chosen within a successively larger namespace ranges.
+#	Each range intermediates a cyclic boundary, so each key has a 50% chance of being on either side of a bytewise overflow/carry.
+#	
 
-foreach (1..5){		my	$W=8<<$_;
-	test_rand( (1<<56)	-$W,	(1<<56)	+$W,	10000 );
-	test_rand( (1<<48)	-$W,	(1<<48)	+$W,	10000 );
-	test_rand( (1<<40)	-$W,	(1<<40)	+$W,	10000 );
-	test_rand( (1<<32)	-$W,	(1<<32)	+$W,	10000 );
-	test_rand( (1<<24)	-$W,	(1<<24)	+$W,	10000 );
-	test_rand( (1<<16)	-$W,	(1<<16)	+$W,	10000 );
-	test_rand( (1<<8)	-$W,	(1<<8)	+$W,	10000 );
-	}
-;
+foreach (0..23){		my	$W=8<<$_;
+	foreach my $twos_exp( 56, 48, 40, 32, 24, 16, 8 ){
+		my $bytestep=1<<$twos_exp;
+		test_rand( $bytestep -$W,	$bytestep +$W,	1024 )	if( $bytestep >$W && 0xFFFFFFFFFFFFFFFF-$bytestep >$W );
+	}	}
+	
 
 1;
 __DATA__
