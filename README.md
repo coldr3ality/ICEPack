@@ -1,27 +1,50 @@
 
-ICEPack is an instantiable object class for a data structure I categorically define as a Compressed Truth Vector.  The inspirational concept I was trying to achieve when I set out to develop this data structure was something which combined the access modalities of hashes and arrays without the complexity or overhead of a database, meeting or exceeding a modern standard of computational efficiency.  Elements are addressable by sparse key as in hashes, or by ordered index as in arrays.  The architecture has three abstraction layers, starting with a custom binary encoding I call Inversion Cycle RLE, which is a minimized version of RLE for alternating boolean values.  The second abstraction layer is a fairly basic binary search implementation over a sorted array of these IC-RLE segments, and the third abstraction layer is a stratified/laminar regressive quantization of the second-layer data array, grading the namespace content down into increasingly quantized reductions, storing respective modulus values in the freed up allocation space for each combined unit key, which can be atomically updated by setters as the structure changes, and efficiently summed by getters to compute the sort order of sparse keys on demand.  I want to call it dynamic enumeration.
+	OBJECTIVE
+	To implement a session ID generator that is non-deterministic, non-repeating, and operates ad-hoc
+	on all edge devices while maintaining one coherent mapping without a specialized core network.
+	There are entropy sources as usual, but instead of piping this directly into a Session ID generator,
+	use it to select the "nth" free ID in an ICEPack instance, conserving namespace locally; then,
+	implement periodic redistribution of available namespace service-wide, without degrading entropy,
+	randomly drawing large sets of nth IDs for each edge server and periodically throwing them back 
+	into the pool and drawing a new set.
+	In this way, edge servers can unilaterally assign system-wide Session IDs on an event-driven basis,
+	with no core negotiation needed, with guaranteed ID collission protection.  Not only does this free us
+	to rate the appropriate namespace depth precisely, it also frees us to implement Forward Secrecy—
+	i.e., perpetual renewal of active Session-IDs. 
 
-In a way, it allows for treating defined and undefined namespace as two dimensions of one regular series.  It enables an access modality similar to Perl's range operator (where you specify a series in terms of its starting and ending value), but now those values can be sparse keys, and they can select from either the defined or undefined sparse key namespace efficiently.  This makes mass shuffle practical.  Indeed, the intended application is mass distributed session ID randomization where collision is prevented through true namespace conservation (not merely leveraging astronomical odds) and without introducing a special need or requirement for a core network to maintain sync across edge servers.
+	OBJECT CLASS
+	ICEPack manipulates QWORD-sized truth vectors designed to be used as inside-out UUID tables.
+	These truth vectors provide a hash-like interface to a 64-bit namespace, 18 quintillion flag bits,
+	though the absolute minimum compression ratio of 3:1 is to be expected for highly entropic data.
+	This space is fragmented as a searchable array and compressed using a sort of run length encoding—
+	Inversion Cycle RLE, or just Inversion Cycle Encoding (ICE).
 
-I first developed a complete proof of concept in 2020 written in Perl.  Since then, I have taken on learning C and giving the specification and architecture the proper treatment to realize an enterprise grade implementation.
+	ENCODING
+	ICE encoding is a compressed bitvector format, where access to nearest adjacent set/unset bit
+	scales in constant O(1) time, ideal for allocation within highly entropic inside-out UUID tables.
+	Like RLE, ICE compresses repeating values as run lengths, but it stores no values explicitly—
+	alternating true-false run lengths implicitly store value as evenness/oddness, or "half-cycle phase".
+	Compression peaks with namespace density, storing tightly-packed run length pairs as single bytes.
 
+	ACCESS MODALITY
+	ICEPack implements a hash-like interface while ICEPack::E extends it with "dynamic enumeration".
+	Dynamic enumeration enables a novel access modality where keys can be selected using ranges,
+	from both the existent/allocated and nonexistent/free namespace.  This is powerful.
 
-	ICE encoding is for inside-out UUID tables.  It has O(1) access time to lowest / highest / nearest existing / nonexisting keys.
+	In both use cases, a full suite of accessor methods enable manipulation by range, mask, sorted list,
+	or object comparison, as well as basic scalar arguments.
 
-	ICEPack is a Perl/XS implementation of ICE, providing hash-like access and wire-ready compression on hyperbolic time scales.
-
-	ICEPack::REG implements a regressive exponent gradient, providing dynamic range enumeration over logarighmic time scales.
+	TIME COMPLEXITY
+	When using just the base class (without dynamic enumeration), time and size scale hyperbolically.
+	When using the extended class, a small additional overlaying structure scales semi-logarithmically.
 
 	So, to reiterate:
-		> Trivial access to lowest / highest / nearest sparse index in O(1) time— an obvious strength for dynamic ID tables
-		> Hash-like sparsity with array-like sorting effectively works like a range operator for key spaces
+		> Trivial access to lowest / highest / nearest sparse index in O(1) time
+		> Hash-like sparsity with array-like sorting effectively works like a range operator for keys
 		> Basically redefines the Perl idiom "Everything Is A Number"
 
-	ICE is a QWORD-sized compressed truth vector which uses an original variant of RLE encoding— Inversion Cycle RLE.
-	IC-RLE compresses repeating values into run lengths  (like RLE), but stores no explicit values— only implicit boolean truth.
-	Since RLE stores only the first occurrence of a repeating value, and boolean values can only be one of two, value is implicit—
-	so essentially, IC-RLE representation is an explicit series of run length pairs which implicitly store alternating true-false values.
 
+	ICE CUBES
 	To promote the integrity of the encoding across mutations, ICE compresses pairs of true-false run lengths in single entries,
 	and mediates computational complexity to access and mutate these entries with opportunistic [de]fragmentation.
 	Encoded data is stored as a series of semi-regular chunks (16 to 144 bytes in length) which are sorted into a searchable AV* array.
@@ -29,23 +52,15 @@ I first developed a complete proof of concept in 2020 written in Perl.  Since th
 		> Computational complexity plots as a roughly hyperbolic asymptote given the worst case highly entropic data.
 		> Batch processing affects significant improvement in mutation time complexity when leveraged by the application.
 		> Variety of accessor methods enable manipulation by range, mask, sorted list and scalar arguments, as well as recombination.
-		> In-memory data blocks are an easy packet payload to stream over TCP with no fragmentation and minimal layer-4 overhead.
-	
+		> In-memory data blocks are an easy packet payload to stream over TCP with no fragmentation and minimal overhead.
 
-	Any sparse array compression technique which omits nulls makes the obvious but unfortunate tradeoff of gaining space
-	while sacrificing the implicit identity of each element by its index— often the single most characteristically useful property of arrays.
-	This is where ICEPack::RELIC comes in— to implement efficient non-sparse sort order computation.
 
-	For example: let's say you wish to implement a random number generator that is non-deterministic, yet also non-repeating,
-	and you wish to use this to exzate Session IDs in a massively distributed cloud server application.  You would have your choice
-	of entropy sources as usual, but instead of piping this directly into a Session ID generator, you use it to choose the "nth" free ID
-	in an ICEPack::RELiC instance, which trivially guards against colissions; in order to make replication across a server farm more efficient,
-	you can allow servers to preexzate large random sets of IDs, periodically throwing them back into the pool and drawing a new set.
-	In this way, edge servers can still set service-wide Session ID assignments on an event-driven basis, with no core negotiation needed,
-	but IDs are still guaranteed collission-free.  Not only does this free us to rate the appropriate namespace depth precisely, but it also
-	frees us to implement Perfect Forward Secrecy— to renew the Session-ID upon each and every response.  
+	DYNAMIC ENUMERATION
+	Any sparse array compression technique which omits nulls makes the obvious unfortunate tradeoff
+	of recovering space while sacrificing the implicit identity of the element index— the most characteristic
+	property of arrays.
 
-	As a security enthusiast, I must bore you with words of caution.
-
-	While this data structure is designed to be directly amenable to wire synchronization across edge servers, this concept is not widely used.
-	
+	The solution applied here is to regressively quantize the truth vector namespace into a modulus gradient,
+	storing summative values in the conveniently freed up allocation space for each combined unit key, 
+	which can be atomically updated by setters as the structure changes, and efficiently summed by getters 
+	to compute the sort order of sparse keys on demand.
