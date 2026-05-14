@@ -26,13 +26,13 @@
 
 bool _checks(){
 	#if defined( DEBUG_TRUTH_L1 )
-		#define dBUG3ps_NOPROB( $FUNC )	cS = sprintf(aString, 	"\rok 	%s line %lld: %s encountered no error.\n",								__FILE__, __LINE__,	$FUNC			);	AvPUSHaSTRING( aString, cS );
-		#define dBUG3ps_NOARG			cS = sprintf(aString, 	"\r! 	%s line %lld: (AV*) avArg array is empty.\n",								__FILE__, __LINE__					);	AvPUSHaSTRING( aString, cS );
-		#define dBUG3ps_NOCUBE			cS = sprintf(aString, 	"\r! 	%s line %lld: (AV*) avICE array is empty.\n",									__FILE__, __LINE__					);	AvPUSHaSTRING( aString, cS );
-		#define dBUGzc(		$iC )			cS = sprintf(aString, 	"\r! 	%s line %lld: cube #%lld is empty.		\n",									__FILE__, __LINE__, $iC				);	AvPUSHaSTRING( aString, cS );
-		#define dBUG3ps_ic(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld checksum error.	\n",								__FILE__, __LINE__, $iC				);	AvPUSHaSTRING( aString, cS );
-		#define dBUG3ps_CS(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld STRLEN error.   	( computed: %llu 	stored: %llu  )\n",	__FILE__, __LINE__, $iC,	pq-cube, CS	);	AvPUSHaSTRING( aString, cS );
-		#define dBUG3ps_svC(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld SV* pointer is null.	\n",								__FILE__, __LINE__, $iC				);	AvPUSHaSTRING( aString, cS );
+		#define dBUG3ps_NOPROB( $FUNC )	cS = sprintf(aString, 	"\rok 	%s line %lld: %s encountered no error.\n",								__FILE__, __LINE__,	$FUNC			);	AvPUSHdBUG( aString, cS );
+		#define dBUG3ps_NOARG			cS = sprintf(aString, 	"\r! 	%s line %lld: (AV*) avArg array is empty.\n",								__FILE__, __LINE__					);	AvPUSHdBUG( aString, cS );
+		#define dBUG3ps_NOCUBE			cS = sprintf(aString, 	"\r! 	%s line %lld: (AV*) avICE array is empty.\n",									__FILE__, __LINE__					);	AvPUSHdBUG( aString, cS );
+		#define dBUGzc(		$iC )			cS = sprintf(aString, 	"\r! 	%s line %lld: cube #%lld is empty.		\n",									__FILE__, __LINE__, $iC				);	AvPUSHdBUG( aString, cS );
+		#define dBUG3ps_ic(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld checksum error.	\n",								__FILE__, __LINE__, $iC				);	AvPUSHdBUG( aString, cS );
+		#define dBUG3ps_CS(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld STRLEN error.   	( computed: %llu 	stored: %llu  )\n",	__FILE__, __LINE__, $iC,	pq-cube, CS	);	AvPUSHdBUG( aString, cS );
+		#define dBUG3ps_svC(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld SV* pointer is null.	\n",								__FILE__, __LINE__, $iC				);	AvPUSHdBUG( aString, cS );
 	#else
 		#define dBUG3ps_NOPROB
 		#define dBUG3ps_NOARG
@@ -62,7 +62,7 @@ bool _checks(){
 									}		if(*( (ui64*)	cube +1 ) 				!=	Ec ){    		dBUG3ps_ic( iC );	return 0; }
 											if(		pq -	cube!=	CS){								dBUG3ps_CS( iC );	return 0; }
 		}
-	dBUG3ps_NOPROB("_checks()");
+//	dBUG3ps_NOPROB("_checks()");
 	return 1; // no prob.
 	}
 bool _has(	/* avArgs */ 	){ //	count matches in avArgs.	return true = object contains all arguments.				Searches ICEPack;	iterates args. 		Best for large objects with few args.

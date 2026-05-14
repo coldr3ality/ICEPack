@@ -1,7 +1,7 @@
 #include "_AvMOD.h"
 #include	"_ICE.h"
 
-extern ui08	ixZmax, ixZmin, ix0max, ix0min;
+extern ui08	ixOmax, ixOmin, ixImax, ixImin;
 extern ui08	range[24][2];
 
 extern HV	*	hvICE,
@@ -9,8 +9,8 @@ extern HV	*	hvICE,
 			*	hvOut;
 extern AV	*	avOut,
 			*	avDBUG;	extern long long int	zd;
-extern AV	*	avICE;		extern long long int	iC, iC0, iCZ, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
-extern AV	*	avICE_;		extern long long int	zC_;
+extern AV	*	avICE;		extern long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
+extern AV	*	avICE_;		extern long long int	zCs;
 extern AV	*	avArg;		extern long long int	a, za; 					//	a list of integer value[s] to operate on.
 extern SV	*	rvOut,				/*	arrayref to AV* avOut									*/
 			*	rvArg,				/*	arrayref to AV* avArg									*/
@@ -26,11 +26,13 @@ extern ui08		*pk,		*pq,
 			/*	*pkx, */	*pqx,
 				q, q0, q1,		/*	q-field lengths, used generically	*/
 				buf[];
+extern const ui08	nube[16];		/*	null cube / new cube			*/
 extern char		aString[],	ic, zc;
 extern void		_icepack_init(),
 				_toText(),
-				_set8x();
-
+				_set8x(),
+				_printHex( 	SV* rvICE);
+extern	SV	*	toHex(		SV* rvICE);
 extern bool		_checks(),
 				_has(),
 				_clears(),

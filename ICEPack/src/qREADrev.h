@@ -1,3 +1,7 @@
+/*	This file was programmatically generated.
+		script:		gen_c_for__qREADrev.h.pl
+		last modified:	Wed May 13 09:59:34 2026	*/
+
 #define	qREADrev( $q, $a, $b, $pq0, $pq1, $cube )	/*	expand [a, b] from the q-data at *pq		*/		\
 \
 /*	part 1 of 4:	A disabled;	B disabled	(neither)	*/	\

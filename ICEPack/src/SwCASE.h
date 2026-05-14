@@ -1005,7 +1005,6 @@
 
 
 
-/*	kSpliceOpcode = ic0 |( post_c<< 3);	*/
 #define SwCASE_XSHELF_01T( hi$,	lo$T )			/* "01T" means	switch case vector 0 starts at zero,
 																switch case vector 1 starts at one,
 																and arg[0] "Tees into" arg[1], which is also the output variable.	*/	\

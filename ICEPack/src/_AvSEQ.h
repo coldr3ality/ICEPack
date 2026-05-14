@@ -9,9 +9,9 @@ extern long long int	rSeq_iR[	256	], iR,	// source index of rSeq_SV 				(for eac
 				rack_iC;			// running control point iterator
 
 #if defined(DEBUG_ReSEQ_L1)
-	#define dBUG_SvINS(		$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	insert SV#%-2lld to %lld %+lld %+lld (%lld)\t\n",	241,	dsc, iR,	$iC,		rel_iC,  rSeqIns[ dsc ],	$iC+rel_iC+rSeqIns[ dsc ]	);	AvPUSHaSTRING( aString, cS );
-	#define dBUG_SvCUT(		$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	delete SV     at %lld %+lld (%lld)\n",			241,	dsc, 	$iC,		rel_iC,				$iC+rel_iC			);	AvPUSHaSTRING( aString, cS );
-	#define dBUG_SvReCUT(	$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	delete SV before %lld %+d (%lld-1)\n",			241,	dsc, 	$iC,		rel_iC,				$iC+rel_iC			);	AvPUSHaSTRING( aString, cS );
+	#define dBUG_SvINS(		$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	insert SV#%-2lld to %lld %+lld %+lld (%lld)\t\n",	241,	dsc, iR,	$iC,		rel_iC,  rSeqIns[ dsc ],	$iC+rel_iC+rSeqIns[ dsc ]	);	AvPUSHdBUG( aString, cS );
+	#define dBUG_SvCUT(		$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	delete SV     at %lld %+lld (%lld)\n",			241,	dsc, 	$iC,		rel_iC,				$iC+rel_iC			);	AvPUSHdBUG( aString, cS );
+	#define dBUG_SvReCUT(	$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	delete SV before %lld %+d (%lld-1)\n",			241,	dsc, 	$iC,		rel_iC,				$iC+rel_iC			);	AvPUSHdBUG( aString, cS );
 #else
 	#define dBUG_SvINS(		$iC, $sv )
 	#define dBUG_SvCUT(		$iC, $sv )

@@ -1,3 +1,7 @@
+/*	This file was programmatically generated.
+		script:		gen_c_for__qCAST_t[0123].h.pl
+		last modified:	Wed May 13 10:06:54 2026	*/
+
 #define	qCAST_t3( $a, $b, $pq)	/*	cast [a, b] to the high side of *pq	w/ (3) byte[s] of overrun tolerance	*/		\
 \
 /*	part 1 of 4:	A disabled;	B disabled	(neither)	*/	\

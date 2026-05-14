@@ -16,7 +16,7 @@
 
 
 extern AV	*	avDBUG;	extern long long int	zd;
-extern AV	*	avICE;		extern long long int	iC, iC0, iCZ, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
+extern AV	*	avICE;		extern long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
 extern AV	*	avArg;		extern long long int	a, za; 					//	a list of integer value[s] to operate on.
 extern char		aString[];
 extern void		deIceV_KEI();

@@ -1,3 +1,7 @@
+/*	This file was programmatically generated.
+		script:		gen_c_for__qREAD.h.pl
+		last modified:	Wed May 13 09:59:13 2026	*/
+
 #define	qREAD_init_p( $q, $a, $b, $pq, $cube, $o1, $o2 )	/*	expand [a, b] from the q-data at *pq		*/		\
 \
 /*	part 1 of 4:	A disabled;	B disabled	(neither)	*/	\

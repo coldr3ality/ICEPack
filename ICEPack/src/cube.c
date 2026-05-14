@@ -195,8 +195,8 @@
 			*	hvOut;
 		AV	*	avOut,
 			*	avDBUG;	long long int	zd;
-		AV	*	avICE;		long long int	iC, iC0, iCZ, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
-		AV	*	avICE_;		long long int	zC_=-1;
+		AV	*	avICE;		long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
+		AV	*	avICE_;		long long int	zCs=-1;
 		AV	*	avArg;		long long int	a, za; 					//	a list of integer value[s] to operate on.
 		SV	*	rvOut,				/*	arrayref to AV* avOut									*/
 			*	rvArg,				/*	arrayref to AV* avArg									*/
@@ -263,18 +263,18 @@ ui64			Kx8, Kx8_, _Kx8,		/*	an actual array of (8) octets, but cast as an unsign
 //in general, a variable preceded by an underscore is vigilantly kept up-to-date, so to represent a value in a post-op state.
 //matrix indeces will not be negative
 /*						____	object______________________	verb_________	subject_____________________	preposition______________________	*/
-char unsigned u, v, w,			/*	matrix indeces			iterate		the modification range		in	matrix { A[], B[], E[], Q[] }	*/
-	en_1,	enZ1,	ex_z,	/*	matrix indeces			mark in/out	endogenous fragment[s]	in	matrix { A[], B[], E[], Q[] }	*/
-	ix0, ixZ,	ixN; 			/*	matrix indeces			mark in/out	the modification range		in	matrix { A[], B[], E[], Q[] }	*/
-ui08			HiQ[]={0,0,0,0};	/*	q-data offsets delimit (4) levels of multi-stage casting as write loop grades precision up approaching end of fragment run	*/
-char unsigned	q0,	q1,	q2,	q3,	/*	q-field lengths			total		the q-data length			of any given cyclum			*/
-			q,	q_,	qx,		/*	q-data length			defines 		the read size  increment		in	char *	cube / cubeZ		*/
-			oq,	oq_,	oqx,		/*	q-data offset			iterates		the read position			in	char *	cube / cubeZ / buf	*/
+char unsigned u, v, w,			/*	matrix indeces		iterate		the modification range		in	matrix { A[], B[], E[], Q[] }	*/
+/*	ix1,	ixX,	ixY,	*/	ixZ,		/*	matrix indeces		mark in		fragment boundaries		in	matrix { A[], B[], E[], Q[] }	*/
+/*	iz1,	izX,	izY,	*/	izZ,		/*	matrix indeces		mark out		fragment boundaries		in	matrix { A[], B[], E[], Q[] }	*/
+/*	^commented out because they do not need to be global.  Only the high fragment is ever seen outide of void _rack1x().					*/
 
-			oq0,	oqZ, oqN;	/*	q-data offsets 		mark in/out	the destination range		in	char *	cube			*/
+	ixI, ixO,		 			/*	matrix indeces		mark in/out	the modification range		in	matrix { A[], B[], E[], Q[] }	*/
+	ixH;	/* is always ixO+1 */	/*	matrix index			mark in		the high-passthrough range	in	matrix { A[], B[], E[], Q[] }	*/
+
+char unsigned	q,	q0,	q1;		/*	q-field lengths			total		the q-data length			of any given cyclum			*/
 char			ic, 				/*	cyclum index			iterates		the read position			in	char *	cube			*/
-			ic0,	icZ,	icN,		/*	cyclum indeces		mark in/out	the destination range		in	char *	cube			*/
-			icF,		
+	icI,	icO,					/*	cyclum indeces		mark in/out	the modification range		in	char *	cube			*/
+	icH, /* is always icO+1 */	/*	cyclum indecex		marks in		the high-passthrough range	in	char *	cube			*/
 			zc,	zcZ,			/*	cyclum index 			identifies		the zeta cyclum			of	char *	cube / cubeZ		*/
 			tena_zc,			/*	cyclum index			identifies		the tentative zeta cyclum	of	char *	cube			*/
 			vc,	vc_;			/*	cyclum count			defines		vacant capacity available	in	char *	cube / cubeZ		*/
@@ -293,7 +293,7 @@ ui64		A[	256 ],	Au,	Av,	Ac,		/* relative coord.s	which define	each negative cycl
 		E[	256 ],	Eu,	Ev,	Ec,	E_,	/* "Epsilon" values	which bound	the absolute coordinates	in	matrix { A[], B[], E[], Q[] }	*/
 		ZC[	256 ];					/* cube lengths, pre-re-fragmentation  	*/
 ui08 	I[	256 ],					/* cycla indeces	which align	pre/post op keybytes		in	char *	cube			*/
-		H[	256 ],					/* header codes	which ex_z.	q-data field space			in	char *	cube			*/
+		H[	256 ],					/* header codes	which ixZ.	q-data field space			in	char *	cube			*/
 	*	Qp[	256 ],
 		Q[	256 ], 	Qu,	Qv,	Qc,		/* q-data lengths	which define	each read increment		in	char *	cube			*/
 		Qx[	256 ],					/* q-data lengths	which define	each write increment		in	char *	cube			*/
@@ -315,32 +315,21 @@ ui08 	I[	256 ],					/* cycla indeces	which align	pre/post op keybytes		in	char *
 
 #define	zcOf( $a)	7-( 	__builtin_clzll( $a)	>>3)
 #define	ncOf( $a)	8-( 	__builtin_clzll( $a)	>>3)
+#ifdef DEBUG
+void _init_mx(){					/*	totally zero-out buffer matrix to improve clarity of debug info	*/
+	ui08	x=255;	tena_zc=-1;
 
-const char	*	fmtLLU[	24	] ={
-				NULL,	" %c%-1llu ",	" %c%-2llu ",	" %c%-3llu ",	" %c%-4llu ",	" %c%-5llu ",	" %c%-6llu ",	" %c%-7llu ",
-						" %c%-8llu ",	" %c%-9llu ",	" %c%-10llu ",	" %c%-11llu ",	" %c%-12llu ",	" %c%-13llu ",	" %c%-14llu ",
-						" %c%-15llu ",	" %c%-16llu ",	" %c%-17llu ",	" %c%-18llu ",	" %c%-19llu ",	" %c%-20llu ",	" %c%-21llu ",
-						" %c%-22llu ",	" %c%-23llu "	},
-			*	fmt02X[	24	] ={
-				NULL,	" %c%01X ",					" %c%02X ",				" %c%02X  ",			" %c%02X   ",			" %c%02X   ",			" %c%02X     ",		" %c%02X      ",
-						" %c%02X       ",				" %c%02X        ",			" %c%02X         ",		" %c%02X          ",		" %c%02X          ",		" %c%02X            ",		" %c%02X             ",
-						" %c%02X              ",			" %c%02X               ",		" %c%02X                ",	" %c%02X                 ",	" %c%02X                 ",	" %c%02X                   ",	" %c%02X                    ",
-						" %c%02X                     ",		" %c%02X                      "	},
-			*	fmtStr[	24	] ={
-				NULL,	" %-1s ",		" %-2s ",		" %-3s ",		" %-4s ",		" %-5s ",		" %-6s ",		" %-7s ",
-						" %-8s ",		" %-9s ",		" %-10s ",	" %-11s ",	" %-12s ",	" %-13s ",	" %-14s ",
-						" %-15s ",	" %-16s ",	" %-17s ",	" %-18s ",	" %-19s ",	" %-20s ",	" %-21s ",
-						" %-22s ",	" %-23s "	},
-			*	fmtChr[	24	] ={
-				NULL,	" %-1c ",		" %-2c ",		" %-3c ",		" %-4c ",		" %-5c ",		" %-6c ",		" %-7c ",
-						" %-8c ",		" %-9c ",		" %-10c ",	" %-11c ",	" %-12c ",	" %-13c ",	" %-14c ",
-						" %-15c ",	" %-16c ",	" %-17c ",	" %-18c ",	" %-19c ",	" %-20c ",	" %-21c ",
-						" %-22c ",	" %-23c "	},
-			*	fmtStrNl[	24	] ={
-				" \r\n",	" \r\n%1s ",	" \r\n%2s ",	" \r\n%3s ",	" \r\n%4s ",	" \r\n%5s ",	" \r\n%6s ",	" \r\n%7s ",
-						" \r\n%8s ",	" \r\n%9s ",	" \r\n%10s ",	" \r\n%11s ",	" \r\n%12s ",	" \r\n%13s ",	" \r\n%14s ",
-						" \r\n%15s ",	" \r\n%16s ",	" \r\n%17s ",	" \r\n%18s ",	" \r\n%19s ",	" \r\n%20s ",	" \r\n%21s ",
-						" \r\n%22s ",	" \r\n%23s "	};
+	u= v= w= ixO =0;	ixI=0xFF;
+	do{	RW[x]=0;
+		A[x]=	B[x]=	E[x]=	0;
+		H[x]=	Q[x]=	Qx[x]=
+		I[x]=		O[x]=	Ox[x]=	0;
+		} while( ++x != 255 );
+	Qx[255]=0;
+	}
+#else
+void _init_mx( ){	printf("!	_init_mx() called w/o debugging implemented by preprocessor\n");		}
+#endif
 
 void _icepack_init(){	printf("—vUry cold\n\n");
 #if	defined( DEBUG )
@@ -398,129 +387,6 @@ void _icepack_init(){	printf("—vUry cold\n\n");
 		rSeq_SV[	x ]=NULL;
 	}	}
 
-#ifdef DEBUG
-void	_print_mx( unsigned char mx_max){
-	if( mx_max >32 ){	printf("\r!_print_mx( unsigned char mx_max ): mx_max cannot exceed 32 (it is %d).\n", mx_max ); return; }
-	const char	*	label[ ]	= {"H:", "A:", "B:", "E-1:", "I:", "O:", "Ox:", "Q:", "Qx:",  "stat:", "range:"},
-					labelC	= sizeof( label ) / sizeof( label[0] ),
-				*	csUVW	="|uvw|",
-				*	csUV	="|uv|",
-				*	csUW	="|wu|",
-				*	csVW	="|vw|",
-				*	csU		="|u|",
-				*	csV		="|v|",
-				*	csW		="|w|";
-	SV		*sv;
-	ui08				x, c=1;
-	char				r=0,
-			*ptxt,	txt[	8960	]={13, 10},	// max ex_z for 32-vector display: 8,753
-					lblCell	=	1,
-					cell[	255	]={	};	// abs max cell size = 19 decade digits +2 sign characters = 21 bytes
-	STRLEN		p,	pos[	255	],
-				i,	rowLen, txtLen;
-
-	for( r = labelC-1; r >=0; --r )	{	s = strlen( label[ r ] );
-							if(	s > lblCell ) lblCell = s;	
-							}					p = lblCell;
-
-	for( x=255; x!=mx_max; ++x ){			pos	[ x ] = p;
-		s =1 + (char) ceil( log10l( (long double)	H  	[ x ]		) );				cell[ c ]= s>5? s: 5; //min cell width 5 accounting for "stat" enumerator
-		s =1 + (char) ceil( log10l( (long double)	A  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	B  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	E  	[ x ]-1	) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	I  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	O  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	Ox  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	Q  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	Qx  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		p += cell[ c ]+2;	++c;
-		}
-
-	for( rowLen = p; x< 255; ++x )	pos[x] =p;	// positioning markers beyond mx_max puts them where they'll get overwritten
-	txtLen = ( (	rowLen	+1	)	*	(	labelC	+2 )		+4	+labelC );
-	//			^		^		^		^		^		^	^plus this... why?  I really don't know
-	//			|		|		|		|		|		plus (4) add'l newlines at end of output
-	//			|		|		|		|		... number of cursor rows )
-	//			|		|		|		(number of matrix rows, plus...
-	//			|		|		multipled by number of rows
-	//			|		plus (1) newline per row
-	//			length of each row
-//	printf("\n calculated output: ( %d +1) * ( %d+2 ) +1 +%d = %llu\n", rowLen, labelC, labelC<<1, txtLen );
-	if( txtLen >sizeof( txt ) ){
-		printf("_print_mx(): (char *) txt exzation not big enough!  need %llu bytes, have %llu", txtLen, sizeof( txt ) );
-		return;
-		}
-/* whitespace backdrop		*/	for( i=0; i< rowLen;  i+=8 )		*( (ui64*)( txt +i ) ) = 0x2020202020202020;
-/*1: u,v,w 	*/
-	if( u==v)	if(	u==w )	{	sprintf( txt +pos[u], csUVW  	);	*( txt+pos[u]+5 )=0x20;
-				}else	{	sprintf( txt +pos[v], csUV 	);	*( txt+pos[v]+4 )=0x20;
-							sprintf( txt +pos[w], csW  	);	*( txt+pos[w]+3 )=0x20;
-						}	
-	else if(		u==w )	{	sprintf( txt +pos[u], csUW 	);	*( txt+pos[u]+4 )=0x20;
-							sprintf( txt +pos[v], csV  	);	*( txt+pos[v]+3 )=0x20;
-	}else{					sprintf( txt +pos[u], csU  	);	*( txt+pos[u]+3 )=0x20;
-			if(	v==w )	{	sprintf( txt +pos[v], csVW 	);	*( txt+pos[v]+4 )=0x20;
-			}else		{	sprintf( txt +pos[v], csV  	);	*( txt+pos[v]+3 )=0x20;
-							sprintf( txt +pos[w], csW  	);	*( txt+pos[w]+3 )=0x20;
-		}				}																	txt[p++]=10;
-/*2: numbers	*/
-	ptxt=txt+p;			for( i=0; i< rowLen;  i+=8 )			*( (ui64*)( ptxt+i ) ) = 0x5F5F5F5F5F5F5F5F;
-						for( x=255 ; x!=24; ++x ){ 			*(ptxt+pos[x]+sprintf( ptxt+pos[x], "#%llu", x ) )=0x5F;		}
-	p+=rowLen;
-/*3: H		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmt02X[	cell[ c ] ], 120,	H[	x ]		);	p+= cell[ c++ ]+2;	}
-/*4: A		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 45, 	A[	x ]		);	p+= cell[ c++ ]+2;	}
-/*5: B		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 43, 	B[	x ]		);	p+= cell[ c++ ]+2;	}
-/*6: E-1		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 90, 	E[	x ]-1	);	p+= cell[ c++ ]+2;	}
-/*7: I		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 35, 	I[	x ]		);	p+= cell[ c++ ]+2;	}
-/*8: O		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 46, 	O[	x ]		);	p+= cell[ c++ ]+2;	}
-/*9: Ox		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 44, 	Ox[	x ]		);	p+= cell[ c++ ]+2;	}
-/*10: Q		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 196,	Q[	x ]		);	p+= cell[ c++ ]+2;	}
-/*11: Qx		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 205,	Qx[	x ]		);	p+= cell[ c++ ]+2;	}
-/*12: stat	*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtStr[	cell[ c ] ],	RW[x]&0xF8? "...": opStat[ RW[ x ] ] );	p+= cell[ c++ ]+2;	}
-/*13: range	*/	ptxt=txt+p;		i=	sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	//p+= lblCell+3;
-/* whitespace backdrop		*/	for(	; i< rowLen;  i+=8 )			*( (ui64*)( ptxt +i ) ) = 0x2020202020202020;
-	ptxt+=4;
-										ptxt[ pos[ ix0	]	]=192;	//lower-right corner
-										ptxt[ pos[ ixZ	]+2	]=217;	//lower-left corner
-	if( en_1==enZ1 ){						ptxt[ pos[ en_1	]+1	]=186;	//double vertical bar
-				if(	ix0==ixZ
-				&&	ix0!=en_1 )			ptxt[ pos[ ix0		]+1	]=196;	//horizontal bar
-	}else		{						ptxt[ pos[ en_1	]+1	]=195;	//left-side tee
-										ptxt[ pos[ enZ1	]+1	]=180;	//right-side tee
-				if(	ix0==ixZ
-				&&	ix0!=en_1 && ix0 !=enZ1 )	ptxt[ pos[ ix0	]+1	]=196;	//horizontal bar
-				}
-	p+=rowLen;	*( (ui64*) (txt+p) )=0x000A0A0A0A0A0A0A;	p+=7;		//(7) newlines and (1) NUL
-//	else	sprintf( ptxt,	"[not marked]\n\n"	);
-//	printf("\nactual output:	%lld byte[s]\n\n", p );
-	AvPUSHaSTRING(txt, p);
-	}
-void _init_mx(){					/*	totally zero-out buffer matrix to improve clarity of debug info	*/
-	ui08	x=255;	tena_zc=-1;
-
-	u= v= w= en_1 =ixZ =0;	ix0=0xFF;
-	do{	RW[x]=0;
-		A[x]=	B[x]=	E[x]=	0;
-		H[x]=	Q[x]=	Qx[x]=
-		I[x]=		O[x]=	Ox[x]=	0;
-		} while( ++x != 255 );
-	Qx[255]=0;
-	}
-#else
-void _print_mx( unsigned char mx_max){	printf("!	_print_mx(...) called w/o debugging implemented by preprocessor\n");	}
-void _init_mx( ){						printf("!	_init_mx() called w/o debugging implemented by preprocessor\n");		}
-#endif
-
 void deIceV_KE(){	DeICEv_KE(	u, v );	}
 void deIceV_KEI(){	DeICEv_KEI(	u, v );	}
 
@@ -542,45 +408,43 @@ void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. *
 	
 	#ifdef DEBUG_ReSEQ_L2		//	verbose audit of nominal activity	
 		long long int iRz;
-		#define dBUGiniA		cS=sprintf( aString, "\n starting in ascending mode at step #%lld/%lld for %lld iterations\n\n",   	asc, zsc, dial);		AvPUSHaSTRING( aString, cS );
-		#define dBUGiniD		cS=sprintf( aString, "\n starting in descending mode at step #%lld/%lld for %lld iterations\n\n", 	dsc, zsc, dial);		AvPUSHaSTRING( aString, cS );
+		#define dBUGiniA		{	cS=sprintf( aString, "\n starting in ascending mode at step #%lld/%lld for %lld iterations\n\n",   	asc, zsc, dial);		AvPUSHdBUG( aString, cS );	}
+		#define dBUGiniD		{	cS=sprintf( aString, "\n starting in descending mode at step #%lld/%lld for %lld iterations\n\n", 	dsc, zsc, dial);		AvPUSHdBUG( aString, cS );	}
+		#define dBUGriniA		{	cS=sprintf( aString, "\n switching to ascending mode at step #%lld/%lld for %lld iterations\n\n",	asc, zsc, dial	);	AvPUSHdBUG( aString, cS );	}
+		#define dBUGriniD		{	cS=sprintf( aString, "\n switching to descending mode at step #%lld/%lld for %lld iterations\n\n",	dsc, zsc, dial	);	AvPUSHdBUG( aString, cS );	}
 
-		#define dBUGriniA		cS=sprintf( aString, "\n switching to ascending mode at step #%lld/%lld for %lld iterations\n\n",	asc, zsc, dial	);	AvPUSHaSTRING( aString, cS );
-		#define dBUGriniD		cS=sprintf( aString, "\n switching to descending mode at step #%lld/%lld for %lld iterations\n\n",	dsc, zsc, dial	);	AvPUSHaSTRING( aString, cS );
+		#define dBUGinsA  	{	cS=sprintf( aString, "\r+I+	avICE[ %4lld ]	= SV%-4lld			asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",				dst-pSv0-1, 	rSeq_iR[asc]-$insA, 	asc,	zsc, dial, src-pSv0, dst-pSv0 ); 	AvPUSHdBUG( aString, cS );	}
+		#define dBUGcutA  	{	cS=sprintf( aString, "\r-X-	avICE[ %4lld ]	= NULL				asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",				src-pSv0, 				  		asc,	zsc, dial, src-pSv0, dst-pSv0 );	AvPUSHdBUG( aString, cS );	}
+		#define dBUGjmpA  	{	cS=sprintf( aString, "\r%c%c_	avICE[ %4lld ]	=	avICE[ %4lld ];		asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	174,174, 		dst-pSv0-1, 		src-pSv0-1,	  	asc,	zsc, dial, src-pSv0, dst-pSv0 );	AvPUSHdBUG( aString, cS );	}
+		#define dBUGlocA  	{	cS=sprintf( aString, "\r|%c%c	avICE[ %4lld ]	=	avICE[ %4lld ]; [T]	asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	174,174,		dst-pSv0, 		$srcA,  			asc,	zsc, dial, src-pSv0, dst-pSv0 );	AvPUSHdBUG( aString, cS );	}
 
-		#define dBUGinsA  		if( $insA >1) printf("\n!	rSeq_ins[ asc ] >1: %d\n", $insA );	\
-								cS=sprintf( aString, "\r+I+	avICE[ %4lld ]	= SV%-4lld			asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",				dst-pSv0-1, 	rSeq_iR[asc]-$insA, 	asc,	zsc, dial, src-pSv0, dst-pSv0 ); 	AvPUSHaSTRING( aString, cS );
-		#define dBUGcutA  		cS=sprintf( aString, "\r-X-	avICE[ %4lld ]	= NULL				asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",				src-pSv0, 				  		asc,	zsc, dial, src-pSv0, dst-pSv0 );	AvPUSHaSTRING( aString, cS );
-		#define dBUGjmpA  		cS=sprintf( aString, "\r%c%c_	avICE[ %4lld ]	=	avICE[ %4lld ];		asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	174,174, 		dst-pSv0-1, 		src-pSv0-1,	  	asc,	zsc, dial, src-pSv0, dst-pSv0 );	AvPUSHaSTRING( aString, cS );
-		#define dBUGlocA  		cS=sprintf( aString, "\r|%c%c	avICE[ %4lld ]	=	avICE[ %4lld ]; [T]	asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	174,174,		dst-pSv0, 		$srcA,  			asc,	zsc, dial, src-pSv0, dst-pSv0 );	AvPUSHaSTRING( aString, cS );
+		#define dBUGinsD  	{	cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",			1+	dst-pSv0,	rSeq_iR[dsc]+1,	 	dsc,	zsc, dial, src-pSv0, dst-pSv0);  	AvPUSHdBUG( aString, cS );	}
+		#define dBUGcutD  	{	cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",				src-pSv0,							dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHdBUG( aString, cS );	}
+		#define dBUGjmpD  	{	cS=sprintf( aString, "\r_%c%c	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	175,175,	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHdBUG( aString, cS );	}
+		#define dBUGlocD  	{	cS=sprintf( aString, "\r%c%c|	avICE[ %4d ]	=	avICE[ %4d ]; [T]	dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	175,175,		dst-pSv0, 		$srcD,  			dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHdBUG( aString, cS );	}
+		#define dBUGlocDx	{	cS=sprintf( aString, "\r_%c|	avICE[ %4d ]	=	avICE[ %4d ]; [Tx]	dsc: %lld/%lld	\n", 							175,			$dstD, 			$srcD,			dsc,	zsc						);	AvPUSHdBUG( aString, cS );	}
+		#define dBUGjmpDxA	{	cS=sprintf( aString, "\r__%c	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	175, 	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHdBUG( aString, cS );	}
 
-		#define dBUGinsD  		if( $insD >1) printf("\n!	rSeq_ins[ dsc ] >1: %d\n", $insD );	\
-								cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",			1+	dst-pSv0,	rSeq_iR[dsc]+1,	 	dsc,	zsc, dial, src-pSv0, dst-pSv0);  	AvPUSHaSTRING( aString, cS );
-		#define dBUGcutD  		cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",				src-pSv0,							dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHaSTRING( aString, cS );
-		#define dBUGjmpD  		cS=sprintf( aString, "\r_%c%c	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	175,175,	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHaSTRING( aString, cS );
-		#define dBUGlocD  		cS=sprintf( aString, "\r%c%c|	avICE[ %4d ]	=	avICE[ %4d ]; [T]	dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	175,175,		dst-pSv0, 		$srcD,  			dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHaSTRING( aString, cS );
-		#define dBUGlocDx		cS=sprintf( aString, "\r_%c|	avICE[ %4d ]	=	avICE[ %4d ]; [Tx]	dsc: %lld/%lld	\n", 							175,			$dstD, 			$srcD,			dsc,	zsc						);	AvPUSHaSTRING( aString, cS );
-		#define dBUGjmpDxA		cS=sprintf( aString, "\r__%c	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	175, 	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHaSTRING( aString, cS );
-
-		#define dBUG_ReSEQ_SCHED_PRE\
-			cS =sprintf( aString,     "\n	racking schedule (pre process):\n	#\t\t");														\
-													for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, "#%-7lld", 			iRz ); 	\
+		#define dBUG_ReSEQ_SCHED_PRE	\
+		{	cS =sprintf( aString,	"\n racking schedule (pre process):\n	#\t\t");													\
+													for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, "#%-7lld", 		iRz ); 	\
 			cS+=sprintf( aString +cS, "\n	rSeq_iR:\t"	);	for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, " %-7lld",	rSeq_iR[ 	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqIns:\t"	);	for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, " %-7lld",	rSeqIns[ 	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqCut:\t"	);	for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, " %-7lld",	rSeqCut[	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqSrc:\t"	);	for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, " %-7lld",	rSeqSrc[	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqDst:\t"	);	for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, " %-7lld",	rSeqDst[	iRz ]	);	\
-			cS+=sprintf( aString +cS, "\n\n");				AvPUSHaSTRING( aString, cS );
-
+			cS+=sprintf( aString +cS, "\n\n");				AvPUSHdBUG( aString, cS );	\
+		}
 		#define dBUG_ReSEQ_SCHED_POST	\
-			cS =sprintf( aString,    	"\n	racking schedule (post process):\n	#\t\t");											\
+		{	cS =sprintf( aString,    	"\n racking schedule (post process):\n	#\t\t");													\
 													for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, "#%-7lld", 			iRz );	\
 			cS+=sprintf( aString +cS, "\n	rSeq_iR:\t"	);	for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, " %-7lld",	rSeq_iR[ 	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqIns:\t"	);	for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, " %-7lld",	rSeqIns[ 	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqCut:\t"	);	for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, " %-7lld",	rSeqCut[	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqSrc:\t"	);	for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, " %-7lld",	rSeqSrc[	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqDst:\t"	);	for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, " %-7lld",	rSeqDst[	iRz ]	);	\
-			cS+=sprintf( aString +cS, "\n\n");				AvPUSHaSTRING( aString, cS );
+			cS+=sprintf( aString +cS, "\n\n");				AvPUSHdBUG( aString, cS );	\
+		}
 	#else
 		#define dBUGiniA
 		#define dBUGiniD
@@ -601,19 +465,19 @@ void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. *
 		#define dBUG_ReSEQ_SCHED_POST
 	#endif
 	#ifdef DEBUG_ReSEQ_L3		//	paranoid integrity checks which are silent until there's a problem
-		#define dBUGdsc		if(dsc<0 || dsc>zsc)		cS=sprintf( aString,		"\n!	dsc is out of bounds 0..%lld (%lld)\n", zsc, dsc);		AvPUSHaSTRING( aString, cS );\
+		#define dBUGdscDIR	if(dsc<0 || dsc>zsc)	{	cS=sprintf( aString,		"\n!	dsc is out of bounds 0..%lld (%lld)\n", zsc, dsc);		AvPUSHdBUG( aString, cS );	}	\
 							if(src >dst )	{		cS=sprintf( aString,		"\n!	going in the wrong direction for ReSEQ_DESCEND	src( %lld ) > dst( %lld ), step #%d/%d;	rSeqCut[%lld]: %d	rSeqSrc[%lld]: %d	rSeqDst[%lld]: %d\n",	\
-																													src - pSv0, dst -pSv0,	dsc, zsc,		dsc, rSeqCut[dsc],	dsc, rSeqSrc[dsc],	dsc, rSeqDst[dsc]	);	AvPUSHaSTRING( aString, cS );	\
+																													src - pSv0, dst -pSv0,	dsc, zsc,		dsc, rSeqCut[dsc],	dsc, rSeqSrc[dsc],	dsc, rSeqDst[dsc]	);	AvPUSHdBUG( aString, cS );	\
 										}
-		#define dBUGasc		if(asc<0 || asc>zsc)		cS=sprintf( aString, 	"\n!	asc is out of bounds 0..%lld (%lld)\n", zsc, asc);		AvPUSHaSTRING( aString, cS );\
+		#define dBUGascDIR	if(asc<0 || asc>zsc){	cS=sprintf( aString, 	"\n!	asc is out of bounds 0..%lld (%lld)\n", zsc, asc);	AvPUSHdBUG( aString, cS );	}	\
 							if(src< dst )	{		cS=sprintf( aString, 	"\n!	going in the wrong direction for ReSEQ_ASCEND    	src( %lld ) < dst( %lld ), step #%d/%d;	rSeqCut[%lld]: %d	rSeqSrc[%lld]: %d	rSeqDst[%lld]: %d\n", 	\
-																													src - pSv0, dst -pSv0,	asc, zsc,		asc, rSeqCut[asc],	asc, rSeqSrc[asc],	asc, rSeqDst[asc]	);	AvPUSHaSTRING( aString, cS );	\
+																													src - pSv0, dst -pSv0,	asc, zsc,		asc, rSeqCut[asc],	asc, rSeqSrc[asc],	asc, rSeqDst[asc]	);	AvPUSHdBUG( aString, cS );	\
 										}
-		if( zC!= AvFILLp( avICE ) ){	zC = AvFILLp( avICE );	cS=sprintf( aString, 	"\n!	zC( %llu ) was out-of-sync with AvFILLp( avICE )( %llu )\n", zC, AvFILLp( avICE ) );	AvPUSHaSTRING( aString, cS );			}
-		if(dsc<0){										cS=sprintf( aString, 	"\n!	dsc( %llu )< 0\n", dsc );													AvPUSHaSTRING( aString, cS );	return;	}
+		if( zC!= AvFILLp( avICE ) ){	zC = AvFILLp( avICE );	cS=sprintf( aString, 	"\n!	zC( %llu ) was out-of-sync with AvFILLp( avICE )( %llu )\n", zC, AvFILLp( avICE ) );	AvPUSHdBUG( aString, cS );			}
+		if(dsc<0){										cS=sprintf( aString, 	"\n!	dsc( %llu )< 0\n", dsc );													AvPUSHdBUG( aString, cS );	return;	}
 	#else
-		#define dBUGdsc
-		#define dBUGasc
+		#define dBUGdscDIR
+		#define dBUGascDIR
 	#endif
 	
 /*	TODO:	Reformulate zero-cross detection logic to occur earlier on the event-driven basis of the AvPOSTxxx macros,
@@ -713,17 +577,17 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 	asc=dsc;																				dBUG_ReSEQ_SCHED_PRE	
 	if(				$srcutD>=$dstD){				
 		do	{/*	ascending start	*/	if( dsc ) --dsc;	else	{	src=				dst=pSv0;
-														dial = asc+1;		asc=0;	dsc=-1;	dBUGiniA;	goto _asce;
+														dial = asc+1;		asc=0;	dsc=-1;	dBUGiniA;	goto _asce;	printf( lightning );
 													}
 			} while(	$srcutD>=$dstD );						src= pSv0+$srcD;	dst=pSv0+$dstD;
-														dial = asc -dsc;	asc=1+	dsc;		dBUGiniA;	goto _asce;
+														dial = asc -dsc;	asc=1+	dsc;		dBUGiniA;	goto _asce;	printf( lightning );
 
 	}else	{/*	descending start	*/						src = pSv0 +zC;	dst = pSv0 +post_zC;
-			while(	$srcutA< $dstA )	 if( asc ) --asc; else	{	dial = dsc+1;						dBUGiniD;	goto _desc;
+			while(	$srcutA< $dstA )	 if( asc ) --asc; else	{	dial = dsc+1;						dBUGiniD;	goto _desc;	printf( lightning );
 			}										}	dial = dsc-asc;						dBUGiniD;
 
 	do		{											/*	transverse loop			*/			
-	_desc:	do	{		jmp = (src-pSv0) -$srcD;				/*	descending expansion loop	*/	dBUGdsc;
+	_desc:	do	{		jmp = (src-pSv0) -$srcD;				/*	descending expansion loop	*/	dBUGdscDIR;
 					if(	jmp >0 )	if( src == dst )	dst-=jmp;	/*	descending expansion		*/
 								else	do	{	*dst-- = *src--;								dBUGjmpD;	} while( -- jmp );
 					while( $insD)			{	*dst-- = rSeq_SV[	rSeq_iR[ dsc ]--]; --$insD; 		dBUGinsD;	}
@@ -742,7 +606,7 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 				{	src=				dst=pSv0;			dial = asc+1;		asc=0;	dsc=-1;	dBUGriniA;	goto _asce;
 				}	src= pSv0+$srcD;	dst=pSv0+$dstD;		dial = asc -dsc;	asc=1+	dsc;		dBUGriniA;
 
-	_asce:	do	{										/*	ascending compaction loop	*/	dBUGasc;
+	_asce:	do	{										/*	ascending compaction loop	*/	dBUGascDIR;
 					if(	$cutA ){	jmp=( $srcutA )	-(src -pSv0);	$cutA=0;	}
 					else			jmp= $srcA		-(src -pSv0);
 
@@ -759,7 +623,7 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 			while(	$srcutA <= $dstA ) if( asc ) --asc; 	else	{	dial = dsc;						dBUGriniD;	goto _descx;
 													}	dial = dsc-asc-1;					dBUGriniD;
 
-	_descx:				jmp = (src-pSv0) -$srcD;			/*	transversal to _desc	*/			dBUGdsc;
+	_descx:				jmp = (src-pSv0) -$srcD;			/*	transversal to _desc	*/			dBUGdscDIR;
 					if(	jmp >0 )				dst -= jmp;
 						while( $insD)		{	*dst-- = rSeq_SV[	rSeq_iR[ dsc ]--]; --$insD; 		dBUGinsD;	}
 			/*		if(	dst -pSv0 != $srcD ){	*dst = *( pSv0 +$srcD);							dBUGlocD;	}	*/
@@ -776,15 +640,15 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 	}
 void	_set8x(){
 	#ifdef DEBUG_SET_L1			//	audit nominal activity
-		#define dBUGop0		cS=sprintf(aString, "\r=+|_	x( %5llu )	=+|_ 	iC/zC  %5llu/%-5llu	*((ui64*)cubeZ+1) == %llu \n\t",	x, iC, zC, *((ui64*)cubeZ+1)	); AvPUSHaSTRING( aString, cS );		//_print_mx(21);
-		#define dBUGop1 		cS=sprintf(aString, "\r!|+=	x( %5llu )	!|+= 	iC/zC  %5llu/%-5llu	*((ui64*)cubeZ+1) == %llu \n\t",	x, iC, zC, *((ui64*)cubeZ+1)	); AvPUSHaSTRING( aString, cS );		//_print_mx(23);
-		#define dBUGop2		cS=sprintf(aString, "\r=|+=	x( %5llu )	=|+= 	iC/zC  %5llu/%-5llu	*((ui64*)cubeZ+1) == %llu \n\t",	x, iC, zC, *((ui64*)cubeZ+1)	); AvPUSHaSTRING( aString, cS );		//_print_mx(24);
-		#define dBUGop3		cS=sprintf(aString, "\r=+|$	x( %5llu )	=+|$ 	iC/zC  %5llu/%-5llu	*((ui64*)cubeZ+1) == %llu \n\t",	x, iC, zC, *((ui64*)cubeZ+1)	); AvPUSHaSTRING( aString, cS );		//_print_mx(11);
-		#define dBUGop4		cS=sprintf(aString, "\r=+_ 	x( %5llu )	=+_  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC, u, E[u]			); AvPUSHaSTRING( aString, cS );		//_print_mx(311);	
-		#define dBUGop5		cS=sprintf(aString, "\r=+= 	x( %5llu )	=+=  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC,  u, E[u]			); AvPUSHaSTRING( aString, cS );		//_print_mx(312);	
-		#define dBUGop6		cS=sprintf(aString, "\r_+_	x( %5llu )	_+_  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC,  u, E[u]			); AvPUSHaSTRING( aString, cS );
-		#define dBUGop7		cS=sprintf(aString, "\r_+=	x( %5llu )	_+=  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC,  u, E[u]			); AvPUSHaSTRING( aString, cS );		//_print_mx(302);	
-		#define dBUGop8		cS=sprintf(aString, "\r===	x( %5llu )	===  	iC/zC  %5llu/%-5llu	E[%d]( %llu )\n\t",				x, iC, zC,  u, E[u]			); AvPUSHaSTRING( aString, cS );		//_print_mx(303);	
+		#define dBUGop0		cS=sprintf(aString, "\r=+|_	x( %llX )	=+|_ 	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop1 		cS=sprintf(aString, "\r!|+=	x( %llX )	!|+= 	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop2		cS=sprintf(aString, "\r=|+=	x( %llX )	=|+= 	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop3		cS=sprintf(aString, "\r=+|$	x( %llX )	=+|$ 	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop4		cS=sprintf(aString, "\r=+_ 	x( %llX )	=+_  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop5		cS=sprintf(aString, "\r=+= 	x( %llX )	=+=  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop6		cS=sprintf(aString, "\r_+_	x( %llX )	_+_  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop7		cS=sprintf(aString, "\r_+=	x( %llX )	_+=  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop8		cS=sprintf(aString, "\r===	x( %llX )	===  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
 		#define dBUGinit_mx	_init_mx();
 	#else
 		#define dBUGop0
@@ -799,12 +663,12 @@ void	_set8x(){
 		#define dBUGinit_mx
 	#endif
 	#ifdef DEBUG_SET_L2			//	audit nominal activity verbosely
-		#define dBUG_ReICEzSV_($v )				cS=sprintf(aString, "\nReICEzSV_( %d )\n", $v ); AvPUSHaSTRING( aString, cS );
+		#define dBUG_ReICEzSV_($v )				cS=sprintf(aString, "\nReICEzSV_( %d )\n", $v ); AvPUSHdBUG( aString, cS );
 	#else
 		#define dBUG_ReICEzSV_($v )
 	#endif
 	#ifdef DEBUG_SET_L3			//	check integrity
-		#define dBUGnARF	cS=sprintf(aString, "\n	INTERLOC: null gap	(==|=) \n");	AvPUSHaSTRING( aString, cS );
+		#define dBUGnARF	cS=sprintf(aString, "\n	INTERLOC: null gap	(==|=) \n");	AvPUSHdBUG( aString, cS );
 		#define dBUG_SvCUR($CS, $VARNAME )			if( $CS<16){ printf("\n!	%s< 16 ( %d )	%s line %lld\n",$VARNAME, $CS,  __FILE__, __LINE__ );	exit(-1);	}
 	#else
 		#define dBUGnARF
@@ -821,25 +685,25 @@ void	_set8x(){
 	skip=a=0;					za	= AvFILLp(	avArg);	if( za ==-1){				/*	no args */		return;	}
 	x = ARG0;	/*post_zC=*/	zC	= AvFILLp(	avICE);	if( zC ==-1){					NEW(	0 );		return;	}
 	#define	INIT_WRITE_ACCESS	\
-	ix0=0xFF;							/*<— how we know there's nothing to rack	*/\
+	ixI=0xFF;							/*<— how we know there's nothing to rack	*/\
 	rSeqCut[0]= rSeqIns[0]=			\
 	dial= rel_iC= rack_iC= 	dsc	= 0;	\
 	rSeq_iR[0]=		iR=	asc	= -1;
-	INIT_WRITE_ACCESS;
+	INIT_WRITE_ACCESS;				if( za >=255 ){	printf("!	_set(): too many arguments (buffer rotation not yet implemented)\n");	return;	}
 	
 /* search for iC of x		*/	lb =0;	ub =zC +1;	iC= ub>>1;
 do	{									cube = SvPVbyte_nolen(	sv =*(pSv0+iC ) );
 	if(						x == *( (ui64*)	cube +1) ){
-							cubeZ	=	cube;	CSZ = SvCUR(	svZ= sv );		_anteloc:	ANTELOC;										//_print_mx(10);
-		if( iC< zC	){						cube = SvPVbyte_nolen(	sv =*(pSv0+ ++iC) );	INTERLOC;										//_print_mx(20);
+							cubeZ	=	cube;	CSZ = SvCUR(	svZ= sv );	_anteloc:	ANTELOC;									//_print_mx(tena_zc, ix1, izZ );
+		if( iC< zC	){						cube = SvPVbyte_nolen(	sv =*(pSv0+ ++iC) );	INTERLOC;										//_print_mx(tena_zc, ix1, izZ);
 			/*						RW []	Q []		A []			B []				E []			O []			I []	*/
 /*	=+|_	*/	do	{ if(		A[ 0 ] >1 ){		 	--	A[ 0 ];	   ++	B[ 255 ];												dBUGop0
 							++	*( (ui64*)	cubeZ +1);				if( za == a ){		ReICEzSV_(255);	goto	_none_x;		}
-					}else if(	A[ 0 ]==1 ){				A[ 0 ]=A[255];	B[ 0 ]+=B[255]+1;													//_print_mx(22);
+					}else if(	A[ 0 ]==1 ){				A[ 0 ]=A[255];	B[ 0 ]+=B[255]+1;													//_print_mx(tena_zc, ix1, izZ);
 /*	!|+=		*/			if(	zcZ == 0 ){		 									AvCUT_B4( iC );						dBUGop1
 /*	=|+=	*/			}else{	*( (ui64*) cubeZ+1) -=  	A[ 255 ]	+	B[ 255 ];
 			//				cubeZ[zcZ--]=0;			SvCUR_set( svZ, CSZ-Q[ 255 ] );	/*	cubeZ[O[255]]=0;	*/	
-							cubeZ[zcZ--]=0;			SvCUR_set( svZ, O[ 255 ] );		cubeZ[O[255]]=0;				dBUGop2
+							cubeZ[zcZ--]=0;			SvCUR_set( svZ, O[ 255 ] );		cubeZ[O[255]]=0;						dBUGop2
 							}																	goto	_next_a;
 /*	==|=	*/		}else{ /* rogue null off-cycle is an artifact which the spec must allow */	dBUGnARF		goto	_next_a;   	}
 	x = ARG( ++a );   	} while(	x == *( (ui64*)	cubeZ+1) );								ReICEzSV_(255);	goto	_next_x;
@@ -851,13 +715,13 @@ do	{									cube = SvPVbyte_nolen(	sv =*(pSv0+iC ) );
 
 	}else if(					x <	*( (ui64*)	cube +1) ){ iC=(( ub	= iC )+lb	)>>1;  if( iC==ub ){	INTRALOC;		goto	_intra_op; 	}
 	}else{				/*	x >	*( (ui64*)	cube +1)*/ iC=(( lb	= iC )+ub	)>>1;  if( iC==lb  ){	INTRALOC1Up;			_intra_op:
-		do{	if(				x==E[u]){	uMOD;					if(	RW[ v ]== null ){	DeICEv_KEI( u, v );  }								//_print_mx(310);	
+		do{	if(				x==E[u]){	uMOD;					if(	RW[ v ]== null ){	DeICEv_KEI( u, v );  }								//_print_mx(tena_zc, ix1, izZ);	
 /*	=+_		*/	if(		A[ v ] >1 ){	vMOD;		    --	A[ v ];	   ++	B[ u ];		   ++	E[ u ];								dBUGop4
 /*	=+=		*/	}else{	--tena_zc;  	vNUL;						B[ u ]+= A[v]+B[v];	E[ u ] =E[ v ];	O[v]+=Q[v];				dBUGop5//	printf("\nop5 (=+=): u, v, w= %d, %d, %d	I[u]=%d	I[v]=%d	I[w]=%d\n\n", u, v, v+1, I[u], I[v], I[v+1] );
 					}	/*	!	!	!	!	!	!	!	!	!	!	!	!	!	!	!	!	!	!	!	^^^brand new	*/
-			}else{			d = E[u] -x -B[u];																						//_print_mx(300);
+			}else{			d = E[u] -x -B[u];																						//_print_mx(tena_zc, ix1, izZ);
 /*	_+_		*/	if(			d >1	){	vNEW;	Q[v]=0;	A[ v ] = d -1;	B[ v ] = B[ u ];		E[ v ] =E[ u ];/*O[v]=O[u]+Q[u];*/			dBUGop6
-						++tena_zc;	uMOD;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	O[v+1]=O[v];	I[ v ] = I[ u ];				//_print_mx(301);	
+						++tena_zc;	uMOD;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	O[v+1]=O[v];	I[ v ] = I[ u ];				//_print_mx(tena_zc, ix1, izZ);	
 /*	_+=		*/	}else if(		d==1 ){	uMOD;		    --	A[ u ];	   ++	B[ u ];												dBUGop7
 /*	===		*/	}else{	++skip;	/*	RW []	Q []		A []			B []				E []			O []			I []	*/		dBUGop8
 				}	}
@@ -952,12 +816,12 @@ void _set9up(){
 /* search for iC of x		*/	lb =0;	ub =zC +1;	iC= ub>>1;
 do	{									cube = SvPVbyte_nolen(	sv =*(pSv0+iC ) );
 	if(						x == *( (ui64*)	cube +1) ){
-							cubeZ	=	cube;	CSZ = SvCUR(	svZ= sv );			ANTELOC;										//_print_mx(10);
-		if( iC< zC	){						cube = SvPVbyte_nolen(	sv =*(pSv0+ ++iC) );	INTERLOC;										//_print_mx(20);
+							cubeZ	=	cube;	CSZ = SvCUR(	svZ= sv );			ANTELOC;										//_print_mx(tena_zc, ix1, izZ);
+		if( iC< zC	){						cube = SvPVbyte_nolen(	sv =*(pSv0+ ++iC) );	INTERLOC;										//_print_mx(tena_zc, ix1, izZ);
 			/*						RW []	Q []		A []			B []				E []			O []			I []	*/
 /*	=+|_	*/	do	{ if(		A[ 0 ] >1 ){			   --	A[ 0 ];	   ++	B[ 255 ];												dBUGop0
 							++	*( (ui64*) cubeZ +1);				if( za == a ){		ReICEzSV_(255);	goto	_none_x;		}
-					}else if(	A[ 0 ]==1 ){				A[ 0 ]=A[255];	B[ 0 ]+=B[255]+1;													//_print_mx(22);
+					}else if(	A[ 0 ]==1 ){				A[ 0 ]=A[255];	B[ 0 ]+=B[255]+1;													//_print_mx(tena_zc, ix1, izZ);
 /*	!|+=		*/			if(	zcZ == 0 ){											AvCUT_B4( iC );												dBUGop1
 /*	=|+=	*/			}else{	*( (ui64*)	cubeZ+1) -=	A[ 255 ]	+	B[ 255 ];
 							cubeZ[zcZ--]=0;			SvCUR_set( svZ, O[ 255 ] );		cubeZ[O[255]]=0;						dBUGop2
@@ -973,13 +837,13 @@ do	{									cube = SvPVbyte_nolen(	sv =*(pSv0+iC ) );
 
 	}else if(					x <	*( (ui64*)	cube +1) ){ iC=(( ub	= iC )+lb	)>>1;  if( iC==ub ){	INTRALOC;		goto	_intra_op; 	}
 	}else{				/*	x >	*( (ui64*)	cube +1)*/ iC=(( lb	= iC )+ub	)>>1;  if( iC==lb  ){	INTRALOC1Up;			_intra_op:
-			do{	if(			x==E[u]){	uMOD;					if(	RW[ v ]== null ){	DeICEv_KEI( u, v );  }								//_print_mx(310);	
+			do{	if(			x==E[u]){	uMOD;					if(	RW[ v ]== null ){	DeICEv_KEI( u, v );  }								//_print_mx(tena_zc, ix1, izZ);	
 /*	=+_		*/		if(		A[v] >1){	vMOD;		    --	A[ v ];	   ++	B[ u ];		   ++	E[ u ];								dBUGop4
 /*	=+=		*/		}else{--tena_zc; 	vNUL;	Q[u]+=Q[v];			B[ u ]+= A[v]+B[v];	E[ u ] =E[ v ];	O[v]+=Q[v];	dBUGop5
 						}			//		^ try it a bunch before you  f with it again
-				}else{		d = E[u] -x -B[u];																						//_print_mx(300);
+				}else{		d = E[u] -x -B[u];																						//_print_mx(tena_zc, ix1, izZ);
 /*	_+_		*/		if(		d >1	){	vNEW;	Q[v]=0;	A[ v ] = d -1;	B[ v ]  = B[ u ];		E[ v ] =E[ u ];	O[v]=O[u]+Q[u];			dBUGop6
-						++tena_zc;	uMOD;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	O[v+1]=O[v];	I[ v ] = I[ u ];				//_print_mx(301);	
+						++tena_zc;	uMOD;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	O[v+1]=O[v];	I[ v ] = I[ u ];				//_print_mx(tena_zc, ix1, izZ);	
 /*	_+=		*/		}else if(	d==1 ){	uMOD;		    --	A[ u ];	   ++	B[ u ];												dBUGop7
 /*	===		*/		}else{++skip;	/*	RW []	Q []		A []			B []				E []			O []			I []	*/		dBUGop8
 					}	}
