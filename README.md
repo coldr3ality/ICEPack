@@ -38,23 +38,12 @@
 	When using just the base class (without dynamic enumeration), time and size scale hyperbolically.
 	When using the extended class, a small additional overlaying structure scales semi-logarithmically.
 
-	So, to reiterate:
-		> Trivial access to lowest / highest / nearest sparse index in O(1) time
-		> Hash-like sparsity with array-like sorting effectively works like a range operator for keys
-		> Basically redefines the Perl idiom "Everything Is A Number"
-
-
 	ICE CUBES
-	To promote the integrity of the encoding across mutations, ICE compresses pairs of true-false run lengths in single entries,
-	and mediates computational complexity to access and mutate these entries with opportunistic [de]fragmentation.
-	Encoded data is stored as a series of semi-regular chunks (16 to 144 bytes in length) which are sorted into a searchable AV* array.
+	To promote the integrity of the encoding across mutations, ICE compresses pairs of true-false runs
+	and mediates computational complexity to access and mutate these entries with fragmentation.
+	Encoded data is balanced over a series of variable segments (16 to 144 bytes in length) which 
+	are sorted into a searchable AV* array.
 	
-		> Computational complexity plots as a roughly hyperbolic asymptote given the worst case highly entropic data.
-		> Batch processing affects significant improvement in mutation time complexity when leveraged by the application.
-		> Variety of accessor methods enable manipulation by range, mask, sorted list and scalar arguments, as well as recombination.
-		> In-memory data blocks are an easy packet payload to stream over TCP with no fragmentation and minimal overhead.
-
-
 	DYNAMIC ENUMERATION
 	Any sparse array compression technique which omits nulls makes the obvious unfortunate tradeoff
 	of recovering space while sacrificing the implicit identity of the element index— the most characteristic
@@ -64,3 +53,8 @@
 	storing summative values in the conveniently freed up allocation space for each combined unit key, 
 	which can be atomically updated by setters as the structure changes, and efficiently summed by getters 
 	to compute the sort order of sparse keys on demand.
+
+	So, to reiterate:
+		> Trivial access to lowest / highest / nearest sparse index in O(1) time
+		> Hash-like sparsity with array-like sorting effectively works like a range operator for keys
+		> Basically redefines the Perl idiom "Everything Is A Number"
