@@ -46,12 +46,12 @@
 	
 	DYNAMIC ENUMERATION
 	Any sparse array compression technique which omits nulls makes the obvious unfortunate tradeoff
-	of recovering space while sacrificing the implicit identity of the element index— the most characteristic
-	property of arrays.
+	of recovering space while sacrificing the implicit identity of the element index— 
+	the most characteristic property of arrays.
 
-	The solution applied here is to regressively quantize the truth vector namespace into a modulus gradient,
-	storing summative values in the conveniently freed up allocation space for each combined unit key, 
-	which can be atomically updated by setters as the structure changes, and efficiently summed by getters 
+	The solution applied here is to regressively quantize the truth vector as a modulus gradient,
+	storing summative modulus values in the freed up allocation space for each quantized unit key, 
+	which are atomically updated by setters during mutation, and efficiently summed by getters 
 	to compute the sort order of sparse keys on demand.
 
 	So, to reiterate:
