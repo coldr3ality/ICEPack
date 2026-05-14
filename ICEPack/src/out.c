@@ -266,10 +266,13 @@ SV* toHex(		SV*	rvICE		){	printf("\ntoHex\n");
 					type = SvTYPE(	avICE );					if(	type != SVt_PVAV )					{ printf( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names_ref[ 	type ]: "UNKNOWN" );			return rvOut; 	}
 	nC=( zC= AvFILLp(	avICE ) ) +1;								if(	nC==0 )							return rvOut;
 
-	if( MZ==-1 ){	Newx(	Mzc, nC,	char );	Newx(	Mpq, nC, ui08* );	Newx(	Mpk, nC, ui08* );
-	}else	{	Renew(	Mzc, nC,	char );	Renew(	Mpq, nC, ui08* );	Renew(	Mpk, nC, ui08* );
-			}
-	if( Mzc==NULL|| Mpq==NULL||Mpk==NULL)	{ printf( malloc_err, __FUNCTION__, __FILE__, __LINE__ );	return rvOut;	}
+	if( MZ< nC ){
+		if( MZ==-1 ){	Newx(	Mzc, nC,	char );	Newx(	Mpq, nC, ui08* );	Newx(	Mpk, nC, ui08* );
+		}else	{	Renew(	Mzc, nC,	char );	Renew(	Mpq, nC, ui08* );	Renew(	Mpk, nC, ui08* );
+				}
+		if( Mzc==NULL|| Mpq==NULL||Mpk==NULL)	{ printf( malloc_err, __FUNCTION__, __FILE__, __LINE__ );	return rvOut;	}
+		MZ=nC;
+		}
 
 
 	pSv0	= AvARRAY(	avICE );								if( pSv0==NULL)	{ printf( cube_err[0], __FUNCTION__, 	svtype_names_ref[ 	type ], 0		);				return rvOut; }

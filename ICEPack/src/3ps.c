@@ -1,4 +1,3 @@
-/*	third-person-singular present-tense verb methods do not modify the operand, but some modify the argument[s].	*/
 /*	Copyright 2026 Peter Arlen Schmidt
 
 	Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +12,7 @@
 	See the License for the specific language governing permissions and
 	limitations under the License.
 */
+/*	3ps.c: third-person-singular present-tense methods which do not modify the operand, but rather, may modify the argument[s].	*/
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>

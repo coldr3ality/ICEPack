@@ -9,7 +9,7 @@
 //	#define DEBUG_RACK_L1
 //	#define DEBUG_RACK_L2
 //	#define DEBUG_RACK_L3
-//	#define DEBUG_RACK_L4	// mining for 1F4 triggers
+	#define DEBUG_RACK_L4	// mining for 1F4 triggers
 //	#define DEBUG_ReSEQ_L1
 //	#define DEBUG_ReSEQ_L2
 //	#define DEBUG_ReSEQ_L3

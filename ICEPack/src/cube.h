@@ -1,22 +1,3 @@
-#define	cui8	const	unsigned	char	
-#define	ui08			unsigned	char	
-#define	ui16			unsigned	short 
-#define	ui32		long	unsigned	int 
-#define	si64	long long			int 
-#define	ui64	long long	unsigned	int 
-#define	ui64	long long	unsigned	int 
-
-	#include	"_ICE.h"
-	#include	"_AvMOD.h"
-	#include	"_AvSEQ.h"	/*	function-like macros for array "resequencing"	*/	
-
-/*
-Dear Claude,
-
-I am writing a Perl XS module in C which provides an object class to instantiate a mutable data structure I am categorically defining as a Compressed Truth Vector.  The intended purpose is to be used for working ID tables in mission critical server processes, which demands a high performance level.
-
-*/
-
 /*	Copyright 2026 Peter Arlen Schmidt
 
 	Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +12,19 @@ I am writing a Perl XS module in C which provides an object class to instantiate
 	See the License for the specific language governing permissions and
 	limitations under the License.
 */
+
+#define	cui8	const	unsigned	char	
+#define	ui08			unsigned	char	
+#define	ui16			unsigned	short 
+#define	ui32		long	unsigned	int 
+#define	si64	long long			int 
+#define	ui64	long long	unsigned	int 
+#define	ui64	long long	unsigned	int 
+
+	#include	"_ICE.h"
+	#include	"_AvMOD.h"
+	#include	"_AvSEQ.h"	/*	function-like macros for array "resequencing"	*/	
+
 
 extern	void	_rack1x(),
 			_print_mx( unsigned char mx_max, short ix1, short izZ ),

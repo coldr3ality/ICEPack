@@ -1,3 +1,4 @@
+// These macros have been adapted from Perl 5.32's sv.c, I believe, and all credit goes where it is due.
 
 #define AvINIT1( $av)			if( !AvALLOC( $av ) || AvMAX( $av )<=0 ) 	av_extend( $av, 0);							\
 							AvFILLp( $av)=0;
