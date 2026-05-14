@@ -5,8 +5,6 @@ In a way, it allows for treating defined and undefined namespace as two dimensio
 
 I first developed a complete proof of concept in 2020 written in Perl.  Since then, I have taken on learning C and giving the specification and architecture the proper treatment to realize an enterprise grade implementation.
 
-In my estimation, the current status of development is a well-earned v0.2.5, where I have the first abstraction layer very well optimized, and the low level code of the second abstraction layer fully implemented and tested.  Only one of three public setters within the second abstraction layer is implemented, and the third abstraction layer is still entirely not implemented.
-
 
 	ICE encoding is efficient for inside-out UUID tables.  It has O(1) access time to lowest / highest / nearest existing / nonexisting keys.
 
