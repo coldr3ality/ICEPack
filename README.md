@@ -6,7 +6,7 @@ In a way, it allows for treating defined and undefined namespace as two dimensio
 I first developed a complete proof of concept in 2020 written in Perl.  Since then, I have taken on learning C and giving the specification and architecture the proper treatment to realize an enterprise grade implementation.
 
 
-	ICE encoding is efficient for inside-out UUID tables.  It has O(1) access time to lowest / highest / nearest existing / nonexisting keys.
+	ICE encoding is for inside-out UUID tables.  It has O(1) access time to lowest / highest / nearest existing / nonexisting keys.
 
 	ICEPack is a Perl/XS implementation of ICE, providing hash-like access and wire-ready compression on hyperbolic time scales.
 
