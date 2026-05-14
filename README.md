@@ -1,4 +1,3 @@
-
 	OBJECTIVE
 	To implement a session ID generator that is non-deterministic, non-repeating, and operates ad-hoc
 	on all edge devices while maintaining one coherent mapping without a specialized core network.
