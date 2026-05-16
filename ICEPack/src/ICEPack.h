@@ -30,7 +30,7 @@ extern const ui08	nube[16];		/*	null cube / new cube			*/
 extern char		aString[],	ic, zc;
 extern void		_icepack_init(),
 				_toText(),
-				_set8x(),
+				_set240(),
 				_printHex( 	SV* rvICE);
 extern	SV	*	toHex(		SV* rvICE);
 extern bool		_checks(),

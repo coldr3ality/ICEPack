@@ -11,9 +11,6 @@
 #define	ARG( $a )	SvIVX( *(	pSvA0 + $a )	)
 #define	ARG0		SvIVX( *	pSvA0		)
 
-#define	zcOf( $a)	7-( 	__builtin_clzll( $a)	>>3)
-#define	ncOf( $a)	8-( 	__builtin_clzll( $a)	>>3)
-
 
 extern AV	*	avDBUG;	extern long long int	zd;
 extern AV	*	avICE;		extern long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.

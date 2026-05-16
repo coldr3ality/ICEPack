@@ -11,9 +11,6 @@
 #define	ARG( $a )	SvIVX( *(	pSvA0 + $a )	)
 #define	ARG0		SvIVX( *	pSvA0		)
 
-#define	zcOf( $a)	7-( 	__builtin_clzll( $a)	>>3)
-#define	ncOf( $a)	8-( 	__builtin_clzll( $a)	>>3)
-
 
 extern AV	*	avOut,
 			*	avDBUG,

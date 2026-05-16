@@ -1,0 +1,566 @@
+/*	Copyright 2026 Peter Arlen Schmidt
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+	    http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <math.h>
+
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+#include "dBUG.h"
+#include	"access.h"
+//	camelCase				JavaScript, Java
+//	snake_case				Python, Ruby, C/C++ standard libraries
+//	SCREAMING_SNAKE_CASE	Constants in C, Java, JavaScript
+//	kebab-case				URLs, some JavaScript frameworks
+//	PascalCase				C#, Java (for class names)
+//	flatcase					HTML elements and attributes
+
+/*	THE (3) LEVELS Of DEBUG:
+	L1:	audit nominal activity
+	L2:	audit nominal activity (more verbosely)
+	L3:	silently check integrity, reporting only errors
+	*/
+
+/*	ICEPack::RELiC—	Regressive Exponent Laminar Index Counter (RELiC) over Inversion Cycle Encoding (ICE)
+	this jam is real																				*/
+
+/*	OBJECTIVE
+	To implement a session ID generator that is non-deterministic, non-repeating, and operates ad-hoc
+	on all edge devices while maintaining one coherent mapping without a specialized core network.
+	There are entropy sources as usual, but instead of piping this directly into a Session ID generator,
+	use it to select the "nth" free ID in an ICEPack instance, conserving namespace locally; then,
+	implement periodic redistribution of available namespace service-wide, without degrading entropy,
+	randomly drawing large sets of nth IDs for each edge server and periodically throwing them back 
+	into the pool and drawing a new set.
+	In this way, edge servers can unilaterally assign system-wide Session IDs on an event-driven basis,
+	with no core negotiation needed, with guaranteed ID collission protection.  Not only does this free us
+	to rate the appropriate namespace depth precisely, it also frees us to implement Forward Secrecy—
+	i.e., perpetual renewal of active Session-IDs. 
+
+	OBJECT CLASS
+	ICEPack manipulates QWORD-sized truth vectors designed to be used as inside-out UUID tables.
+	These truth vectors provide a hash-like interface to a 64-bit namespace, 18 quintillion flag bits,
+	though the absolute minimum compression ratio of 3:1 is to be expected for highly entropic data.
+	This space is fragmented as a searchable array and compressed using a sort of run length encoding—
+	Inversion Cycle RLE, or just Inversion Cycle Encoding (ICE).
+
+	ENCODING
+	ICE encoding is a compressed bitvector format, where access to nearest adjacent set/unset bit
+	scales in constant O(1) time, ideal for allocation within highly entropic inside-out UUID tables.
+	Like RLE, ICE compresses repeating values as run lengths, but it stores no values explicitly—
+	alternating true-false run lengths implicitly store value as evenness/oddness, or "half-cycle phase".
+	Compression peaks with namespace density, storing tightly-packed run length pairs as single bytes.
+
+	ACCESS MODALITY
+	ICEPack implements a hash-like interface while ICEPack::E extends it with "dynamic enumeration".
+	Dynamic enumeration enables a novel access modality where keys can be selected using ranges,
+	from both the existent/allocated and nonexistent/free namespace.  This is powerful.
+
+	In both use cases, a full suite of accessor methods enable manipulation by range, mask, sorted list,
+	or object comparison, as well as basic scalar arguments.
+
+	TIME COMPLEXITY
+	When using just the base class (without dynamic enumeration), time and size scale hyperbolically.
+	When using the extended class, a small additional overlaying structure scales semi-logarithmically.
+
+	ICE CUBES
+	To promote the integrity of the encoding across mutations, ICE compresses pairs of true-false runs
+	and mediates computational complexity to access and mutate these entries with fragmentation.
+	Encoded data is balanced over a series of variable segments (16 to 144 bytes in length) which 
+	are sorted into a searchable AV* array.
+	
+	DYNAMIC ENUMERATION
+	Any sparse array compression technique which omits nulls makes the obvious unfortunate tradeoff
+	of recovering space while sacrificing the implicit identity of the element index— 
+	the most characteristic property of arrays.
+
+	The solution applied here is to regressively quantize the truth vector as a modulus gradient,
+	storing summative modulus values in the freed up allocation space for each quantized unit key, 
+	which are atomically updated by setters during mutation, and efficiently summed by getters 
+	to compute the sort order of sparse keys on demand.
+
+	So, to reiterate:
+		> Trivial access to lowest / highest / nearest sparse index in O(1) time
+		> Hash-like sparsity with array-like sorting effectively works like a range operator for keys
+		> Basically redefines the Perl idiom "Everything Is A Number"
+
+	*/
+
+/*	ARCHITECTURE
+
+	ICE encodes a pair of unsigned quads in a variable width format that occupies from 1 to 17 bytes in length (q).
+
+	When there is ample free space following the target field, we can write these values using simplex assignments,
+	but when we get within (3) bytes of the field boundary, there is a risk of accidentally clobbering several bytes past the end in this way.
+	Depending on q, we may have to break the operation up into (2) or (3) assignments, using right-bitshift and casts.
+
+	The dichotomy of a RELiC object is a 2D AV* array of SV* "cubes", where:
+
+	>	Each SV* "cube" is labeled by an "Epsilon" value which represents the upper limit for the range of sorted keys contained within.
+	>	Each SV* "cube" can vary in length from (16..144) bytes, containing up to (8) flag inversion boundary pairs known as "cycla".
+	>	Each "cyclum" can vary in length from (1..17) byte[s], using a single "keybyte" to define a pair of ULLs (A, B) as variable fields.
+		>	If either A or B is less-than 8, its value is stored in the keybyte and its variable field is omitted;
+		>	If both A and B are less-than 8, their values are both stored in the keybyte for maximum compression at full NS saturation.
+
+	>	Cycla chain together to form a vector path which stores the exzations of the NS as alternating ranges of un/defined keys.
+
+	That last point is arguably the most significant, because IC-RLE encoding used in this way exhibits hyperbolic time complexity—
+	the nearest approach to the asymptote occurs at around 60% capacity, after which point time drops back down to the initial value.
+	This behavior is due to parametric representation, where memory is consumed more by sparsity than logical content.
+	ICE encoding is leveraged to maximize compression in the saturation state by compressing the smallest (A, B) pairs into a single byte.
+	At this granular level, this is the most probable case when data is highly entropic and saturation reaches an equilibrium state.
+
+	*/
+
+/*	NOTES
+	We have a library of switch statements to cast exact byte lengths of data into confined spaces.
+	It is not always necessary to use such precision— most of the time, there is ample space ahead, but in order to prevent overrun,
+	casting must be handled intelligently in certain cases (particulary for variable-field-length: 5, within (3) bytes of the high boundary).
+	These switches write to variable-length fields in the fewest statements possible given the allowable tolerance / boundary clearance.
+	They are generated by the perl scripts in the "srcgen" directory, namely:
+
+		> gen_c_for__lluiCASTa.pl
+		> gen_c_for__lluiCASTab.pl
+		> gen_c_for__lluiCASTabc.pl		*unused
+		> gen_c_for__lluiCASTabcd.pl		*unused
+		> gen_c_for__lluiCASThab.pl
+		> gen_c_for__SwCASE_AB2ICEq_t[0123].h.pl	*the numbers 0, 1, 2, and 3 are tolerance ratings for allowable bytes of overrun.
+		> gen_c_for__SwCASE_ICEq2AB.h.pl
+		> gen_c_for__SwCASE_ICEq2ABrev.h.pl
+
+	E.g.:
+	In order to copy an unsigned LLU into a field fit for the significant bytes only, it will require one of the following combinations of casts:
+	
+		> a single assignment cast as a char, short, long, or long long			(1, 2, 4, or 8 bytes)
+		> two assignments cast as:	(short) x;	(char) x>>16;				(3 bytes)
+								(long) x;	(char) x>>32;				(5 bytes)
+								(long) x;	(short) x>>32;				(6 bytes)
+		> three assignments cast as:	(long) x;	(short) x>>32;	(char) x>>48;	(7 bytes)
+
+
+	THREE PHASES OF NAMESPACE DEPLETION
+	Expansion:	while the namespace is mostly free,	entropic inclusions tend to fragment cycla,	complexifying the graph.
+	Saturation: 	while the namespace is about 60/40,	entropic inclusions hold static pressure;		complexity plateaus.
+	Compaction: 	while the namespace is mostly used,	entropic inclusions tend to consolidate cycla,	simplifying the graph.
+
+	*/
+
+
+#define	CUBE_(	$iC )   									SvPVbyte( *( AvARRAY( avICE) +$iC ), CSZ	)
+#define	CUBE(	$iC )   									SvPVbyte( *( AvARRAY( avICE) +$iC ), CS	)
+#define	CUBEvc(	$iC )(  		__builtin_clzll( *( (ui64*) (	cube =	SvPVbyte( *( AvARRAY( avICE) +$iC ), CS	) ) +1 ) )	>>3)
+
+
+		HV	*	hvICE,
+			*	hvArg,
+			*	hvOut;
+		AV	*	avOut,
+			*	avDBUG;	long long int	zd;
+		AV	*	avICE;		long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
+		AV	*	avICE_;		long long int	zCs=-1;
+		AV	*	avArg;		long long int	a, za; 					//	a list of integer value[s] to operate on.
+		SV	*	rvOut,				/*	arrayref to AV* avOut									*/
+			*	rvArg,				/*	arrayref to AV* avArg									*/
+			*	rvICE,				/*	arrayref to AV* avICE									*/
+			*	rvICE_;				/*	arrayref to AV* avICE_									*/
+
+SV			**	src,
+			**	dst,
+			**	pSv0,
+			
+			*	svA,					/*	general purpose scratch SV								*/
+			*	svLbf,				/*	lower cube fragment									*/
+			*	svZ,	 				/*	SV containing right-hand cube data	(upper fragment)		*/
+			*	sv,					/*	SV containing pre-commit cube data	(original pre-op cube)	*/
+			*	sv0;					/*	SV containing left-hand cube data		(lower fragment)		*/
+ui08			*	cube	=NULL,		/*	unsigned char * cube data (of index iC )					*/
+			*	cubeZ	=NULL,		/*	unsigned char * cube data (of index iC -1)					*/
+			*	qube;
+char			*	lightning = "\n!! !  !   !    !     !      !       !        !         !          !           !            !             !              !               !                !\n",
+				aString[8448],
+			*	ps;
+bool				L=0,
+				R=1;
+STRLEN			cS, CS, CSZ;
+ui08				*pk,		*pq,
+			/*	*pkz, */	*pqz,
+				*pk_,	*pq_,	
+			/*	*pkx, */	*pqx,
+				buf[	8 	+8	+8*16	+1	+15 ];	/*	buffers the output of ICE() and its variants
+/*	CUBE STRUCT:	^	^	^		^	^ overflow padding (to survive an overshot "long long" cast)
+					|	|	|		NULL byte
+					|	|	up to 128 bytes of variable "q-data"
+					|	"Epsilon" is the cube's search key.  It signifies the upper boundary of encoded keys within the cube.
+					keybyte area stores up to (8) keybytes, which define variable "q-data" geometry for up to (8) inversion run cycla.
+					*/
+
+/*	standard global constant cube initialization templates 	*/
+/*			"cube_i0" is used to initialize a cube which should start with element #0 set.						*/
+const ui08	cube_i0[	16]={	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x08,		/* cyclum #0:	x==0			*/
+							0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	1		};	/* Epsilon:	1				*/
+
+/*			"nube" is used to initialize an empty cube, or as a global null value to set pointers to directly.			*/
+const ui08	nube[	16]={	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,		/* no content					*/
+							0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00	};	/* Epsilon:	0				*/
+
+/*			"cubE" is a global constant object used to failsafe RELiC accessors against potential overrun by iCE() and its variants.
+			It contains a single null point at the max int, bounding the 64-bit namespace.					*/
+const ui08	cubE[	24]={	0xB8,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,		/* cyclum #7:	x==null			*/
+							0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,		/* Epsilon:	2^64-1 (max uint)	*/
+							0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF	};	/* A: 		2^64-1 (max uint)	*/
+
+
+ui64			i, ub, lb, n, N, o, s;		/*	global scratch variables used in private contexts									*/
+ui64			x, y, z,				/*	common arguments														*/
+			skip, hit, miss,			/*	the number of misses or collissions counted as a method processes arguments  		*/
+			hu, bu, hm, lm; 	 	/*	high-unit, base-unit, high-mask, low-mask:
+									used to quantize keys for each unitary digit of numeric base (BASEBITS).		 		*/
+ui08			f,					/*	A-B encoding flags, just the first (2) bits of the keybyte isolated						*/
+			ab,					/*	A-B encoding parameters, the last (6) bits of the keybyte isolated; a pair of octal values	*/
+			lost_ic;				/*	a number of cycla consolidated into a single cyclum due to having null B-value			*/
+ui64			Kx8, Kx8_, _Kx8,		/*	an actual array of (8) octets, but cast as an unsigned quad, simply to use bitwise ops	*/
+			Qx7;
+
+//in general, a variable preceded by an underscore is vigilantly kept up-to-date, so to represent a value in a post-op state.
+//matrix indeces will not be negative
+/*						____	object______________________	verb_________	subject_____________________	preposition______________________	*/
+char unsigned u, v, w,			/*	matrix indeces		iterate		the modification range		in	matrix { A[], B[], E[], Q[] }	*/
+/*	ix1,	ixX,	ixY,	*/	ixZ,		/*	matrix indeces		mark in		fragment boundaries		in	matrix { A[], B[], E[], Q[] }	*/
+/*	iz1,	izX,	izY,	*/	izZ,		/*	matrix indeces		mark out		fragment boundaries		in	matrix { A[], B[], E[], Q[] }	*/
+/*	^commented out because they do not need to be global.  Only the high fragment is ever seen outide of void _sv_commit().					*/
+
+	ixI, ixO,		 			/*	matrix indeces		mark in/out	the modification range		in	matrix { A[], B[], E[], Q[] }	*/
+	ixH;	/* is always ixO+1 */	/*	matrix index			mark in		the high-passthrough range	in	matrix { A[], B[], E[], Q[] }	*/
+
+char unsigned	q,	q0,	q1;		/*	q-field lengths			total		the q-data length			of any given cyclum			*/
+char			ic, 				/*	cyclum index			iterates		the read position			in	char *	cube			*/
+	icI,	icO,					/*	cyclum indeces		mark in/out	the modification range		in	char *	cube			*/
+	icH, /* is always icO+1 */	/*	cyclum indecex		marks in		the high-passthrough range	in	char *	cube			*/
+			zc,	zcZ,			/*	cyclum index 			identifies		the zeta cyclum			of	char *	cube / cubeZ		*/
+			tena_zc,			/*	cyclum index			identifies		the tentative zeta cyclum	of	char *	cube			*/
+			vc,	vc_;			/*	cyclum count			defines		vacant capacity available	in	char *	cube / cubeZ		*/
+AV			*avOut;
+SV			*svOp;
+svtype		svt;
+long long int	displacement, d, D;
+
+char *	opStat[]={"null", "ok", "mod", "new" };
+enum	opStat{	null, ok, mod, new }
+/*		THE MATRIX					*/
+		RW[	256 ];					/* read/write status enumerator			*/
+
+ui64		A[	256 ],	Au,	Av,	Ac,		/* relative coord.s	which define	each negative cyclum phase	in	matrix { A[], B[], E[], Q[] }	*/
+		B[	256 ],	Bu,	Bv,	Bc,		/* relative coord.s	which define	each positive cyclum phase	in	matrix { A[], B[], E[], Q[] }	*/
+		E[	256 ],	Eu,	Ev,	Ec,	E_,	/* "Epsilon" values	which bound	the absolute coordinates	in	matrix { A[], B[], E[], Q[] }	*/
+		ZC[	256 ];					/* cube lengths, pre-re-fragmentation  	*/
+ui08 	I[	256 ],					/* cycla indeces	which align	pre/post op keybytes		in	char *	cube			*/
+		H[	256 ],					/* header codes	which ixZ.	q-data field space			in	char *	cube			*/
+	*	Qp[	256 ],
+		Q[	256 ], 	Qu,	Qv,	Qc,		/* q-data lengths	which define	each read increment		in	char *	cube			*/
+		Qx[	256 ],					/* q-data lengths	which define	each write increment		in	char *	cube			*/
+		O[	256 ],					/* q-data offsets	which mark	each read position			in	char *	cube			*/
+		Ox[	256 ];					/* q-data offsets	which mark	each write position			in	char *	cube			*/
+	
+// array resequencing buffer matrix
+	SV		*	rSeq_SV[	256 ]; 	// temporary holding of SV* cubes pending insertion into AV* avICE
+	long long int	rSeq_iR[	256	], iR,	// source index of rSeq_SV 				(for each control point)
+				rSeqIns[	256	],	// the number of trailing SVs to insert		(for each control point)
+				rSeqCut[	256	],	// the number of leading SVs to remove 	(for each control point)
+				rSeqSrc[	256	],	// source index						(for each control point)
+				rSeqDst[	256	],	// destination index						(for each control point)
+				rel_zC, 	dsc,  asc, zsc, dial, jmp,
+				rack_iC	=0;		// running control point iterator
+
+#define	ARG( $a )	SvIVX( svA=*(	AvARRAY(	avArg)+ $a	) )
+#define	ARG0		SvIVX( svA=*	AvARRAY(	avArg)		)
+
+#define	zOf( 	$a)		7-( 	__builtin_clzll(			 $a		) >>3)
+#define	zcOf(	$cube)	7-( 	__builtin_clzll( *( (ui64*)	$cube)	) >>3)
+#define	ncOf(	$cube)	8-( 	__builtin_clzll( *( (ui64*)	$cube)	) >>3)
+
+#ifdef DEBUG
+	void _init_mx(){					/*	totally zero-out buffer matrix to improve clarity of debug info	*/
+		ui08	x=255;	tena_zc=-1;
+
+		u= v= w= ixO =0;	ixI=0xFF;
+		do{	RW[x]=0;
+			A[x]=	B[x]=	E[x]=	0;
+			H[x]=	Q[x]=	Qx[x]=
+			I[x]=		O[x]=	Ox[x]=	0;
+			} while( ++x != 255 );
+		Qx[255]=0;
+		}
+#else
+	void _init_mx( ){	printf("!	_init_mx() called w/o debugging implemented by preprocessor\n");		}
+#endif
+
+void _icepack_init(){	printf("—vUry cold\n\n");
+#if	defined( DEBUG )
+	avDBUG=newAV();
+	printf("\n	Debug options are set.  From perl, call \"getAvDBUG()\" or \"printAvDBUG()\" to access audit data.\n", __FILE__);
+#endif
+#if defined(DEBUG_RACK_L1)
+	printf("\r	DEBUG_RACK_L1 is defined in %s:	auditing nominal activity within _sv_commit()\n", __FILE__);
+#endif
+#if defined(DEBUG_RACK_L2)
+	printf("\r	DEBUG_RACK_L2 is defined in %s:	auditing verbose activity within _sv_commit()\n", __FILE__);
+#endif
+#if defined(DEBUG_RACK_L3)
+	printf("\r	DEBUG_RACK_L3 is defined in %s:	checking integrity within _sv_commit()\n", __FILE__);
+#endif
+#if defined(DEBUG_SET_L3)
+	printf("\r	DEBUG_SET_L3 is defined in %s:	checking integrity within ICE::set(...)\n", __FILE__);
+#endif
+#if defined(DEBUG_ReSEQ_L1)
+	printf("\r	DEBUG_ReSEQ_L1 is defined in %s:	auditing nominal activity within _av_commit(), AvPOST, AvCUT, and AvCUT_B4\n", __FILE__);
+#endif
+#if defined(DEBUG_ReSEQ_L2)
+	printf("\r	DEBUG_ReSEQ_L2 is defined in %s:	auditing verbose activity within _av_commit() \n", __FILE__);
+#endif
+#if defined(DEBUG_ReSEQ_L3)
+	printf("\r	DEBUG_ReSEQ_L3 is defined in %s:	checking integrity within _av_commit()\n", __FILE__);
+#endif
+#if defined(DEBUG_SET_L1)
+	printf("\r	DEBUG_SET_L1 is defined in %s:	auditing nominal activity within _set240() and _set9up()\n", __FILE__);
+#endif
+#if defined(DEBUG_SET_L2)
+	printf("\r	DEBUG_SET_L2 is defined in %s:	auditing verbose activity within _set240() and _set9up()\n", __FILE__);
+#endif
+#if defined(DEBUG_SET_L3)
+	printf("\r	DEBUG_SET_L3 is defined in %s:	checking integrity within _set240() and _set9up()\n", __FILE__);
+#endif
+
+	hvICE		= gv_stashpv(	"ICEPack",			0);
+	avOut		= get_av(		"ICEPack::avOut",		GV_ADD);
+	A[	255 ]=255;
+	B[	255 ]=255;
+	O[	255 ]=16;
+	Ox[	255 ]= 0;
+	Q[	255 ]= 0;
+	*( (ui64*) H )	= 0;
+	u=v=w=255;
+	int x;
+	for( x=0; x<128; ++x){
+		RW[x]=null;
+		rSeq_iR[	x ]=-1;
+		rSeqIns[	x ]=0;
+		rSeqCut[	x ]=0;
+		rSeqSrc[ 	x ]=0;
+		rSeqDst[	x ]=0;
+		rSeq_SV[	x ]=NULL;
+	}	}
+
+void deIceV_KE(){	DeICEv_KE(	u, v );	}
+void deIceV_KEI(){	DeICEv_KEI(	u, v );	}
+
+
+void	_set240(){
+	#ifdef DEBUG_SET_L1			//	audit nominal activity
+		#define dBUGop0		cS=sprintf(aString, "\r=+|_	x( %llX )	=+|_ 	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop1 		cS=sprintf(aString, "\r!|+=	x( %llX )	!|+= 	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop2		cS=sprintf(aString, "\r=|+=	x( %llX )	=|+= 	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop3		cS=sprintf(aString, "\r=+|$	x( %llX )	=+|$ 	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop4		cS=sprintf(aString, "\r=+_ 	x( %llX )	=+_  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop5		cS=sprintf(aString, "\r=+= 	x( %llX )	=+=  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop6		cS=sprintf(aString, "\r_+_	x( %llX )	_+_  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop7		cS=sprintf(aString, "\r_+=	x( %llX )	_+=  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGop8		cS=sprintf(aString, "\r===	x( %llX )	===  	iC/zC  %5llu/%-5llu	E[%d]( %llX )\n\t",	x, iC, zC,  u, E[u]	); AvPUSHdBUG( aString, cS );
+		#define dBUGinit_mx	_init_mx();
+	#else
+		#define dBUGop0
+		#define dBUGop1 
+		#define dBUGop2
+		#define dBUGop3
+		#define dBUGop4
+		#define dBUGop5
+		#define dBUGop6
+		#define dBUGop7
+		#define dBUGop8
+		#define dBUGinit_mx
+	#endif
+	#ifdef DEBUG_SET_L2			//	audit nominal activity verbosely
+		#define dBUG_ReICEzSV_($v )				cS=sprintf(aString, "\nReICEzSV_( %d )\n", $v ); AvPUSHdBUG( aString, cS );
+	#else
+		#define dBUG_ReICEzSV_($v )
+	#endif
+	#ifdef DEBUG_SET_L3			//	check integrity
+		#define dBUGnARF	cS=sprintf(aString, "\n	INTERLOC: null gap	(==|=) \n");	AvPUSHdBUG( aString, cS );
+		#define dBUG_SvCUR($CS, $VARNAME )			if( $CS<16){ printf("\n!	%s< 16 ( %d )	%s line %lld\n",$VARNAME, $CS,  __FILE__, __LINE__ );	exit(-1);	}
+	#else
+		#define dBUGnARF
+		#define dBUG_SvCUR($CS, $VARNAME )
+	#endif
+
+	#define uMOD	RW[ u ] = mod
+	#define vMOD	RW[ v ] = mod
+	#define vNUL		RW[ v ] = null;
+	#define uNEW 	RW[ u ] = new
+	#define vNEW 	RW[ v ] = new
+
+	SV ** pSv;			pSv0	= AvARRAY(	avICE );								dBUGavCLR	dBUGinit_mx
+ui64	x = ARG0;	hit=a=0;		za	= AvFILLp(	avArg);				if( za ==-1){	/*	no args */		return;	}
+					zzC=(	zC	= AvFILLp(	avICE )	)-1;			if( zC ==-1){		NEW(	0 );		return;	}
+ui64							nC	= zC+1;	/*<— value to reset upper boundary (ub) to		*/
+	#define	INIT_WRITE_ACCESS	\
+	ixI=0xFF;								/*<— how we know there's nothing to commit	*/\
+	rSeqCut[0]= rSeqIns[0]=			\
+	dial= rel_iC= rack_iC= 	dsc	= 0;	\
+	rSeq_iR[0]=		iR=	asc	= -1;
+	INIT_WRITE_ACCESS;				if( za >=247 ){	printf("!	_set(): too many arguments (buffer rotation not yet implemented)\n");	return;	}
+
+ui64	/*	shall we begin?	*/	lb=0, ub=nC;	cube = SvPVbyte_nolen(	*pSv0 );
+if( 	/*	x past cube 0		*/	x >= *( (ui64*)	cube +1)){						iC= ub>>1;
+  do	{/*	search for iC of x	*/				cube = SvPVbyte_nolen(	sv =*(pSv0 +	iC ) );
+	if(						x == *( (ui64*)	cube +1) ){			zcZ = zcOf( cube );	
+							cubeZ	=	cube;	CSZ = SvCUR(	svZ= sv );	_anteloc:	ANTELOC;				//_print_mx(tena_zc, ix1, izZ );
+		if( iC< zC	){	sv=*( ++	iC	+pSv0 );	cube = SvPVbyte_nolen(	sv);			_interloc:	INTERLOC;										//_print_mx(tena_zc, ix1, izZ);
+			/*						RW []	Q []		A []			B []				E []			O []			I []	*/
+/*	=+|_	*/	do	{ if(		A[ 0 ] >1 ){		 	--	A[ 0 ];	   ++	B[ 255 ];												dBUGop0
+							++	*( (ui64*)	cubeZ +1);				if( za == a ){		ReICEzSV_(255);	goto	_none_x;		}
+					}else if(	A[ 0 ]==1 ){				A[ 0 ]=A[255];	B[ 0 ]+=B[255]+1;													//_print_mx(tena_zc, ix1, izZ);
+/*	!|+=		*/			if(	zcZ == 0 ){		 									AvCUT_B4( iC );						dBUGop1
+/*	=|+=	*/			}else{	*( (ui64*) cubeZ+1) -=  	A[ 255 ]	+	B[ 255 ];
+			//				cubeZ[zcZ--]=0;			SvCUR_set( svZ, CSZ-Q[ 255 ] );	/*	cubeZ[O[255]]=0;	*/	
+							cubeZ[zcZ--]=0;			SvCUR_set( svZ, O[ 255 ] );		cubeZ[O[255]]=0;						dBUGop2
+							}																	goto	_next_a;
+/*	==|=	*/		}else{ /* rogue null off-cycle is an artifact which the spec must allow */	dBUGnARF		goto	_next_a;   	}
+	x = ARG( ++a );   	} while(	x == *( (ui64*)	cubeZ+1) );								ReICEzSV_(255);	goto	_next_x;
+		}else{	do	{		 ++	*( (ui64*)	cubeZ+1);			  ++	B[ 255 ];												dBUGop3
+/*	=+|$	*/													if( za == a ){		ReICEzSV_(255);	goto	_av_commit; 	}
+	x = ARG( ++a );	} while(	x == *( (ui64*)	cubeZ+1) );								ReICEzSV_(255);
+							E_=	*( (ui64*)	cubeZ +1);												goto	_epiloc;
+			}
+
+	}else if(					x <	*( (ui64*)	cube +1) ){ iC=(( ub	= iC )+lb	)>>1;  if( iC==ub ){	INTRALOC;		goto	_loca; 	}
+	}else{				/*	x >	*( (ui64*)	cube +1)*/ iC=(( lb	= iC )+ub	)>>1;  if( iC==lb  ){	INTRALOC1Up;			_loca:
+		MxINIT; 			tena_zc = 		zc=zcOf(	cube );
+		u=0; v=1;				DeICE0u_K(	0, 	1	);		E[ 0 ] = 	*( (ui64*) cubeZ+1)	+A[ 0 ] +B[ 0 ];
+		while( x >E[ u ] ){		DeICEv_I(	u,	v	);		E[ v ] =	E[ u ]			+A[ v ] +B[ v ];  u=v++; }
+		I[ u] =icI =ic;			
+/*		OPERATIVE MATRIX COLUMNS:	RW []	Q []		A []			B []				E []			O []			I []	*/		
+		do{	if(				x==E[u]){	uMOD;					if(	RW[ v ]== null ){	DeICEv_KEI( u, v );  }								//_print_mx(tena_zc, ix1, izZ);	
+/*	=+_		*/	if(		A[ v ] >1 ){	vMOD;		    --	A[ v ];	   ++	B[ u ];		   ++	E[ u ];								dBUGop4
+/*	=+=		*/	}else{	--tena_zc;  	vNUL;						B[ u ]+= A[v]+B[v];	E[ u ] =E[ v ];	O[v]+=Q[v];				dBUGop5//	printf("\nop5 (=+=): u, v, w= %d, %d, %d	I[u]=%d	I[v]=%d	I[w]=%d\n\n", u, v, v+1, I[u], I[v], I[v+1] );
+					}
+			}else{			d = E[u] -x -B[u];																						//_print_mx(tena_zc, ix1, izZ);
+/*	_+_		*/	if(			d >1	){	vNEW;	Q[v]=0;	A[ v ] = d -1;	B[ v ] = B[ u ];		E[ v ] =E[ u ];/*O[v]=O[u]+Q[u];*/			dBUGop6
+						++tena_zc;	uMOD;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	O[v+1]=O[v];	I[ v ] = I[ u ];				//_print_mx(tena_zc, ix1, izZ);	
+/*	_+=		*/	}else if(		d==1 ){	uMOD;		    --	A[ u ];	   ++	B[ u ];												dBUGop7
+/*	===		*/	}else{	++hit;	/*	RW []	Q []		A []			B []				E []			O []			I []	*/		dBUGop8
+				}	}
+
+	_next_a:	if( za != a ){		x = ARG( ++a );
+	_next_x:	    if(				x <	*( (ui64*)	cube +1) ){   								CoINTRaLOC;
+			    }else{			/*	*	*	*	*	*	*	*	*	*	*	*	*/	SvCOMMIT;
+				if(			iC< zzC){		cube = SvPVbyte_nolen(	sv = *( ++iC +pSv0 ) );
+						if(	x >	*( (ui64*)	cube +1	) )	/* break loca; resume search	*/					break;
+				}else	if(	iC != zC){		cube = SvPVbyte_nolen(	sv = *( ++iC +pSv0 ) );
+						if(	x >	*( (ui64*)	cube +1) ){	/* past end (2 cubes up)		*/	E_=*((ui64*)cube+1); goto	_epiloc;		}
+				}else	{							/* past end (1 cube up)		*/	E_=*((ui64*)cubeZ+1);		_epiloc:
+							if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();			EPILOC( E_ );		return;
+						}
+				if(			x != *( (ui64*)	cubeZ+1)){
+						if(	x != *( (ui64*)	cube+1)){	CS = SvCUR(	sv );					ReINTRALOC;		goto	_loca;
+						}else{	cubeZ =	cube;	CSZ=SvCUR(	svZ = sv ); zcZ = zcOf(	cube );			goto	_anteloc;		}
+				}else	{														ANTELOC;		goto	_interloc;
+			    }	}		}														else				goto	_none_x;
+/*	loca	*/	} while( 1 );		lb =iC+1;	ub=nC;		iC= ( lb+ub )>>1;
+	}	}	} while( 1 );		/* search	*/
+    }else										{	CS=SvCUR( sv=*pSv0 );		iC=0;	MxINIT;
+/* special case to start in cube 0 eliminates a branch */	CSZ=16;	zcZ=0;	cubeZ = nube;		u=0; v=1;			goto	_loca;
+											}
+	_none_x:																		SvCOMMIT;
+	_av_commit:				if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();
+	}
+
+
+
+
+
+
+
+
+
+
+
+#ifdef ENABLE_EXPERIMENTAL
+void	_toHash(){					hvOut = newHV();
+	ui64			x, Ac, Bc, Ec=0,	i=0;
+	char			ic, zc,
+				key[ 8 ];
+	ui08			Qc,	bs;
+			*	cube,
+			*	pq;
+	SV		**	sviC0  =	AvARRAY(  	avICE ),
+			**	src,
+			*	sv;
+	STRLEN		CS, s;
+
+	long long int	iC, zC  =	AvFILLp(  	avICE );
+
+	for(		iC=0; iC<= zC;  ++iC ){								sv = *( sviC0 +iC );
+										cube = SvPVbyte(	sv,  CS );
+		pq=								cube +16;
+						zc = zcOf(		cube );
+		for(	ic=0;  ic<=	zc; ++ic ){	 deICE(	cube[ ic ], Qc, Ac, Bc );
+					x =Ec +Ac;
+			for( Ec =	x +Bc;  x< Ec;  ++x ){	bs = 	__builtin_clzll( x)	&0xFFFFFFFFFFFFFF00;
+				*( (ui64*) key )= x;	//<< bs;
+		
+			src = hv_store( hvOut,	key,    	8, &PL_sv_undef, 0 );
+				printf("\r...	_toHash(): cube %lld.%lld	hv_store( hvOut, \"%lld\", %d, &PL_sv_undef, 0)  returns SV** addr %llX\n", iC, ic, *( (ui64*) key), s, &**src);	
+
+		}	}	}
+
+	}
+void	_filterHV(){
+//	hvArg is set already
+	N=hv_iterinit( hvArg );
+	ui64			Ac, Bc, Ec=0,	i=0;
+	char			ic, zc,
+				key[ 8 ];
+	ui08			Qc,
+			*	cube,
+			*	pq;
+	SV		**	sviC0  =	AvARRAY(  	avICE ),
+			*	sv;
+	STRLEN		CS, s;
+
+	long long int	iC, zC  =	AvFILLp(  	avICE );
+	printf("\r_filterHV(): avICE has %d+1 element[s]\n	hvArg has (%d) key[s]\n\n", zC, N);
+
+	for(		iC=0; iC<= zC;  ++iC ){						sv = *( sviC0 +iC );
+									cube = SvPVbyte(	sv,  CS );
+		pq=							cube +16;
+					zc = zcOf(		cube );
+		for(	ic=0;  ic<=zc; ++ic ){	deICE(	cube[ ic ], Qc, Ac, Bc );
+						*( (ui64*)  	key ) =Ec +Ac;
+			for(	Ec	=	*( (ui64*)  	key ) +Bc;
+						*( (ui64*)  	key )< Ec;
+					++	*( (ui64*)  	key ) ){	//s =ncOf( *( (ui64*)  key ) );
+				sv= hv_delete( hvArg,	key,		8, 0 );
+				if( &*sv ) --N;
+
+				printf("\r...	_filterHV(): cube %lld.%lld	hv_delete( hvArg, \"%lld\", %d, 0)  returns SV addr %llX	\n", iC, ic, *( (ui64*) key), s, &*sv );	
+		}	}	}
+	printf("\r...	_filterHV() %d key[s] remain\n", N );
+	}
+
+
+#endif
+
+/*	dooooo	f*/

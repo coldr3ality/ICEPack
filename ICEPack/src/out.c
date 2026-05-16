@@ -22,9 +22,9 @@
 #include "XSUB.h"
 #include "dBUG.h"
 #include "out.h"
-#include "qHEXLEN_inc_p.h"
-//	#include "qSTEPrev_dec_p.h"
-#include "qSTEP_inc_p.h"
+#include "SwCASE_ICEqHEXL_inc_p.h"
+//	#include "SwCASE_ICEq2XErev_dec_p.h"
+#include "SwCASE_ICEq2XE_inc_p.h"
 #define __ToTEXT_ROW_ALLOC	224
 const char	* const	cube_err[] =	{	"#	ICEPack::%s: array index #%lld is NULL.\n",											//0
 									"#	ICEPack::%s: SV* at array index #%lld is NULL.\n",									//1
@@ -164,7 +164,7 @@ void _toText(){
 								if( SvTYPE( sviC )!=3	){ pvS =sprintf( aString, "\r[%llu]: SVTYPE != SVt_RV\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 		cube=SvPVbyte( sviC,  CS );	if( cube==NULL		){ pvS =sprintf( aString, "\r[%llu]: SvPVbyte(...)==NULL\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 		pq	= cube +16;
-		zc= zcOf( *( (ui64*) cube ) );
+		zc= zcOf( cube );
 		
 		sprintf( ptrOddRow,		fsLineID,	iC	);
 
@@ -245,7 +245,7 @@ unsigned char		**	Mpk,
 				**	Mpq;
 char				*	Mzc, MZ=-1;
 
-SV* toHex(		SV*	rvICE		){	printf("\ntoHex\n");
+SV* toHex(		SV*	rvICE		){
 	AV			*	avICE,
 				*	avOut;
 	SV			*	rvOut,
@@ -273,14 +273,12 @@ SV* toHex(		SV*	rvICE		){	printf("\ntoHex\n");
 		if( Mzc==NULL|| Mpq==NULL||Mpk==NULL)	{ printf( malloc_err, __FUNCTION__, __FILE__, __LINE__ );	return rvOut;	}
 		MZ=nC;
 		}
-
-
 	pSv0	= AvARRAY(	avICE );								if( pSv0==NULL)	{ printf( cube_err[0], __FUNCTION__, 	svtype_names_ref[ 	type ], 0		);				return rvOut; }
 									SvC	=*	pSv0;			if(SvC==NULL)		{ printf( cube_err[1], __FUNCTION__, 	svtype_names_ref[ 	type ], 0		);	Mzc[0]=-1;	goto _continue; }
 															if(!SvOK( SvC ) )	{ printf( cube_err[2], __FUNCTION__, 	svtype_names_ref[ 	type ], 0, &*SvC );	Mzc[0]=-1;	goto _continue; }
 															if(!SvPOK( SvC ) )	{ printf( cube_err[3], __FUNCTION__, 	svtype_names_ref[ 	type ], 0, &*SvC );	Mzc[0]=-1;	goto _continue; }
 	Mpk[	0 ] = SvPVbyte( 			SvC, CS );				if(CS<16 )		{ printf( cube_err[4], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	Mzc[0]=-1;	goto _continue; }
-	Mzc[	0 ] = zcOf( *( (ui64*) Mpk[0] ) );						if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	}
+	Mzc[	0 ] = zcOf( Mpk[0] );								if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	}
 	Mpq[	0 ] = Mpk[ 0 ]+16;									/*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*/	_continue:
 
 
@@ -288,12 +286,12 @@ SV* toHex(		SV*	rvICE		){	printf("\ntoHex\n");
 															if(!SvOK( SvC ) )	{ printf( cube_err[2], __FUNCTION__, 	svtype_names_ref[ 	type ], iC, &*SvC );	Mzc[iC]=-1;		continue; }
 															if(!SvPOK( SvC ) )	{ printf( cube_err[3], __FUNCTION__, 	svtype_names_ref[ 	type ], iC, &*SvC );	Mzc[iC]=-1;		continue; }
 		Mpk[ iC] = SvPVbyte(		SvC, CS );					if(CS<16 )		{ printf( cube_err[4], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
-		Mzc[ iC]= zcOf( *( (ui64*) Mpk[ iC ] ) );						if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
+		Mzc[ iC]= zcOf( Mpk[ iC ] );								if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
 		Mpq[ iC]= Mpk[ iC ]+16;
 		}
 	Xc=Ec=0;
 	for(		ic=0;	ic< 8; ++ic ){
-		for(	iC=0;	iC <= zC;	++iC ){	if( ic<= Mzc[ iC ])			{	switch( Mpk[ iC ][ ic ] ){ qSTEP_inc_p(	Mpq[ iC ], Xc, Ec );	}
+		for(	iC=0;	iC <= zC;	++iC ){	if( ic<= Mzc[ iC ])			{	switch( Mpk[ iC ][ ic ] ){ SwCASE_ICEq2XE_inc_p(	Mpq[ iC ], Xc, Ec );	}
 /*hex*/		s = (Xc+1==Ec)?	20-	(__builtin_clzll( Xc ) >>2)
 						:	41-(	(__builtin_clzll( Xc ) >>2)+(__builtin_clzll( Ec-1 ) >>2) );
 /*dec*/	//	s = (Xc+1==Ec)?	2 +(char) ceil( log10l( (long double)	Xc	) )
@@ -306,8 +304,7 @@ SV* toHex(		SV*	rvICE		){	printf("\ntoHex\n");
 		if(	Mzc[ iC ] ==-1 ){				L=	sprintf(	pr, "# cube #%llu error\n", iC );		av_push( avOut, newSVpvn(  row, L ) );
 		}else{
 	//		Ec = *( (ui64*) Mpk[ iC ] );
-	//		Mpq[ iC ]	= Mpk[ iC ] +16;	for( ic=Mzc[ iC ]; ic>=0; --ic ){	switch( Mpk[ iC ][ ic ] ){ qSTEPrev_dec_p(	Mpq[ iC ], Xc, Ec );	}
-			Mpq[ iC ]	= Mpk[ iC ] +16;	for( ic=0; ic<= Mzc[ iC ]; ++ic )	{	switch( Mpk[ iC ][ ic ] ){ qSTEP_inc_p(	Mpq[ iC ], Xc, Ec );	}
+			Mpq[ iC ]	= Mpk[ iC ] +16;	for( ic=0; ic<= Mzc[ iC ]; ++ic )	{	switch( Mpk[ iC ][ ic ] ){ SwCASE_ICEq2XE_inc_p(	Mpq[ iC ], Xc, Ec );	}
 
 				if(	Xc+1 == Ec )	pr +=(	L=	sprintf(	pr,	"0x%llX,",		Xc		) );
 				else				pr +=(	L=	sprintf(	pr,	"0x%llX..0x%llX,",	Xc,	Ec-1	) );
@@ -347,7 +344,7 @@ void _printHex(	AV*	avICE		){
 															if(!SvOK( SvC ) )	{ printf( cube_err[2], __FUNCTION__, 	svtype_names_ref[ 	type ], 0, &*SvC );	Mzc[0]=-1;	goto _continue; }
 															if(!SvPOK( SvC ) )	{ printf( cube_err[3], __FUNCTION__, 	svtype_names_ref[ 	type ], 0, &*SvC );	Mzc[0]=-1;	goto _continue; }
 	Mpk[	0 ] = SvPVbyte( 			SvC, CS );				if(CS<16 )		{ printf( cube_err[4], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	Mzc[0]=-1;	goto _continue; }
-	Mzc[	0 ] = zcOf( *( (ui64*) Mpk[0] ) );						if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	}
+	Mzc[	0 ] = zcOf( Mpk[0] );								if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	}
 	Mpq[	0 ] = Mpk[ 0 ]+16;									/*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*/	_continue:
 
 
@@ -355,12 +352,12 @@ void _printHex(	AV*	avICE		){
 															if(!SvOK( SvC ) )	{ printf( cube_err[2], __FUNCTION__, 	svtype_names_ref[ 	type ], iC, &*SvC );	Mzc[iC]=-1;		continue; }
 															if(!SvPOK( SvC ) )	{ printf( cube_err[3], __FUNCTION__, 	svtype_names_ref[ 	type ], iC, &*SvC );	Mzc[iC]=-1;		continue; }
 		Mpk[ iC] = SvPVbyte(		SvC, CS );					if(CS<16 )		{ printf( cube_err[4], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
-		Mzc[ iC]= zcOf( *( (ui64*) Mpk[ iC ] ) );						if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
+		Mzc[ iC]= zcOf( Mpk[ iC ] );								if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
 		Mpq[ iC]= Mpk[ iC ]+16;
 		}
 	Xc=Ec=0;
 	for(		ic=0;	ic< 8; ++ic ){
-		for(	iC=0;	iC <= zC;	++iC ){	if( ic<= Mzc[ iC ])			{	switch( Mpk[ iC ][ ic ] ){ qSTEP_inc_p(	Mpq[ iC ], Xc, Ec );	}
+		for(	iC=0;	iC <= zC;	++iC ){	if( ic<= Mzc[ iC ])			{	switch( Mpk[ iC ][ ic ] ){ SwCASE_ICEq2XE_inc_p(	Mpq[ iC ], Xc, Ec );	}
 /*hex*/		s = (Xc+1==Ec)?	20-	(__builtin_clzll( Xc ) >>2)
 						:	41-(	(__builtin_clzll( Xc ) >>2)+(__builtin_clzll( Ec-1 ) >>2) );
 /*dec*/	//	s = (Xc+1==Ec)?	2 +(char) ceil( log10l( (long double)	Xc	) )
@@ -373,8 +370,7 @@ void _printHex(	AV*	avICE		){
 		if(	Mzc[ iC ] ==-1 ){				L=	sprintf(	pr, "# cube #%llu error\n", iC );		av_push( avOut, newSVpvn(  row, L ) );
 		}else{
 	//		Ec = *( (ui64*) Mpk[ iC ] );
-	//		Mpq[ iC ]	= Mpk[ iC ] +16;	for( ic=Mzc[ iC ]; ic>=0; --ic ){	switch( Mpk[ iC ][ ic ] ){ qSTEPrev_dec_p(	Mpq[ iC ], Xc, Ec );	}
-			Mpq[ iC ]	= Mpk[ iC ] +16;	for( ic=0; ic<= Mzc[ iC ]; ++ic )	{	switch( Mpk[ iC ][ ic ] ){ qSTEP_inc_p(	Mpq[ iC ], Xc, Ec );	}
+			Mpq[ iC ]	= Mpk[ iC ] +16;	for( ic=0; ic<= Mzc[ iC ]; ++ic )	{	switch( Mpk[ iC ][ ic ] ){ SwCASE_ICEq2XE_inc_p(	Mpq[ iC ], Xc, Ec );	}
 
 				if(	Xc+1 == Ec )	pr +=(	L=	sprintf(	pr,	"0x%llX,",		Xc		) );
 				else				pr +=(	L=	sprintf(	pr,	"0x%llX..0x%llX,",	Xc,	Ec-1	) );

@@ -47,8 +47,8 @@ bool _checks(){
 	long long	int	iC,	zC = AvFILLp(	avICE );								if( zC==-1 ){					dBUG3ps_NOCUBE; return 1; } // no prob.
 
 	SV		**	pSvC0 = AvARRAY(	avICE ),					*svC=*pSvC0;		if( svC==NULL){	dBUG3ps_svC(0);	return 0; }
-	ui08									*	cube = SvPVbyte(	svC,	CS);
-	char				ic,	zc = zcOf(	*( (ui64*)	cube ) );	deICE0(			Qc, Ac, Bc );	Ec = Ac +Bc;
+	ui08							*	cube = SvPVbyte(	svC,	CS);
+	char				ic,	zc = zcOf(	cube );	deICE0(			Qc, Ac, Bc );	Ec = Ac +Bc;
 		for(	ic = 1;	ic<=	zc;	++ic )	{				deICE(cube[ ic ],	Qc, Ac, Bc );	Ec+=Ac +Bc;
 									}		if(*( (ui64*)	cube +1 ) 				!=	Ec ){    		dBUG3ps_ic( iC );	return 0; }
 											if(		pq -	cube!=	CS){								dBUG3ps_CS( iC );	return 0; }
@@ -56,8 +56,8 @@ bool _checks(){
 
 
 	for(		iC=1;	iC<=	zC;	++iC ){							svC=*( pSvC0 +iC ); 	if( svC==NULL){	dBUG3ps_svC(0);	return 0; }
-											cube = SvPVbyte(	svC, CS );
-						zc = zcOf(	*( (ui64*)	cube ) );	deICE0(			Qc, Ac, Bc );	Ec+=Ac +Bc;
+									cube = SvPVbyte(	svC, CS );
+						zc = zcOf(	cube );	deICE0(			Qc, Ac, Bc );	Ec+=Ac +Bc;
 		for(	ic = 1;	ic<=	zc;	++ic )	{				deICE(cube[ ic ],	Qc, Ac, Bc );	Ec+=Ac +Bc;
 									}		if(*( (ui64*)	cube +1 ) 				!=	Ec ){    		dBUG3ps_ic( iC );	return 0; }
 											if(		pq -	cube!=	CS){								dBUG3ps_CS( iC );	return 0; }
@@ -73,13 +73,13 @@ bool _has(	/* avArgs */ 	){ //	count matches in avArgs.	return true = object con
 	#define	CoINTRaLOCj		while( x >Ec ){		icOK(	iC );		deICE(cube[++ic],	Qc, Ac, Bc );  	Ec+=	Ac+Bc;	}
 
 
-	#define	INTRALOCj						zc=zcOf(	*( (ui64*)	cube ) );	ic=0;						\
+	#define	INTRALOCj						zc = zcOf(	cube );	ic=0;						\
 		cubeZ= SvPVbyte_nolen( *( pSvC0 +iC-1) );	zcOK(	iC );	deICE0(			Qc, Ac, Bc );  	Ec = Ac +Bc+	*( (ui64*)	cubeZ+1 );	\
 							while( x >Ec ){		icOK(	iC );	deICE(cube[++ic],	Qc, Ac, Bc );  	Ec+= Ac+Bc;	}
 
 
 	#define	INTRALOCj1Up	if( zC  ==	iC )		goto	_none_x;							Ec =			*( (ui64*) cube +1	);	\
-		cube = SvPVbyte_nolen( *(++	iC +pSvC0 ) );	zc = zcOf( *( (ui64*) cube ) );	ic=0;			\
+		cube = SvPVbyte_nolen( *(++	iC +pSvC0 ) );	zc = zcOf(	cube );	ic=0;			\
 											zcOK(	iC );	deICE0(			Qc, Ac, Bc );  	Ec += Ac+Bc;  						\
 							while( x >Ec ){		icOK(	iC );	deICE(cube[++ic],	Qc, Ac, Bc );  	Ec += Ac+Bc;	}
 
@@ -99,7 +99,7 @@ bool _has(	/* avArgs */ 	){ //	count matches in avArgs.	return true = object con
 
 /* handle all arguments located in cube (0) as special cases */
 									cube = SvPVbyte_nolen(	*pSvC0 );			x = ARG( 0 );
-	if(					x <  *( (ui64*)	cube +1) ){	zc = zcOf(	*( (ui64*)	cube ) );
+	if(					x <  *( (ui64*)	cube +1) ){	zc = zcOf(	cube );
 								zcOK( 0 );	deICE0(			Qc, Ac, Bc );  	Ec=	Ac +Bc;
 		do	{	while(	x >	Ec ){	icOK( 0 );		deICE( cube[++ic],	Qc, Ac, Bc );  	Ec+=Ac +Bc;	}
 	/* hit?	*/	if(		x !=	Ec
@@ -146,7 +146,7 @@ bool _clears(	/* avArgs */	){ //	cut matches from avArgs.	return true = object i
 /* ######	FIND THE FIRST MATCH TO MARK-IN ARRAY SHIFT RANGE	######	*/
 /* handle all arguments located in cube (0) as special cases */
 									cube = SvPVbyte_nolen(	svC );				x = ARG( 0 );
-	if(					x <  *( (ui64*)	cube +1) ){	zc = zcOf(	*( (ui64*)	cube ) );
+	if(					x <  *( (ui64*)	cube +1) ){	zc = zcOf(	cube );
 								zcC0OK(0);	deICE0(			Qc, Ac, Bc );  	Ec=	Ac +Bc;
 		do	{	while (	x >	Ec ){	icOK(0);		deICE(cube[++ic],	Qc, Ac, Bc );  	Ec+=Ac +Bc;	}
 	/* hit?	*/	if(		x !=	Ec
@@ -176,7 +176,7 @@ _Search:			lb =iC+1;	ub =zC +1;				iC=( lb+ub )>>1;
 /* ######	ALL SUBSEQUENT MATCHES MARK-OUT AN ARRAY SHIFT RANGE	######			*/
 /* handle all arguments located in cube (0) as special cases */
 /*									cube = SvPVbyte_nolen(	*pSvC0 );			x =*pSvA0;
-	if(					x <  *( (ui64*)	cube +1) ){	zc = zcOf(	*( (ui64*)	cube ) );
+	if(					x <  *( (ui64*)	cube +1) ){	zc = zcOf(	cube );
 								zcOK( 0 );	deICE0(			Qc, Ac, Bc );  	Ec=	Ac +Bc;	*/
 		do	{	while (	x >	Ec ){	icOK( 0 );		deICE( cube[++ic],	Qc, Ac, Bc );  	Ec+=Ac +Bc;	}
 	/* hit?	*/	if(		x !=	Ec
@@ -237,16 +237,16 @@ bool	_fits(	/* avArgs */ 	){ //	count matches in avArgs.	return true = argument 
 	SV		**	pSvA0= AvARRAY(	avArg ),				*svA=*pSvA0;
 
 	ui64			Ac, Bc, Ec, x;
-	ui08		*	pq,				   *	cube = SvPVbyte(	svC,	CS),	Qc;
+	ui08		*	pq,		   *	cube = SvPVbyte(	svC,	CS),	Qc;
 
-	char		ic,		zc =zcOf(*( (ui64*)	cube ) );	deICE0(			Qc, x,  Bc );			for(	Ec=x+Bc;  x< Ec;  ++x ){			FIND_X_OR_MISS( 0 );		}
+	char		ic,		zc =zcOf(	cube );			deICE0(			Qc, x,  Bc );			for(	Ec=x+Bc;  x< Ec;  ++x ){			FIND_X_OR_MISS( 0 );		}
 	for(		ic=1; ic<=	zc;	++ic )	{			deICE( cube[ ic ],	Qc, Ac, Bc ); x=Ec+Ac;	for(	Ec=x+Bc;  x< Ec;  ++x ){			FIND_X_OR_MISS( 0 );		}
 								} 												if(	Ec	!=*( (ui64*)	cube +1 )	){  	dBUG3ps_ic( iC );	return 0; }
 																				if(	CS	!= pq 	-	cube	){	dBUG3ps_CS( iC );	return 0; }
 
 	for(		iC=1;iC<=	zC;	++iC ){						svC=*( pSvC0 +iC );			if( svC==NULL){					dBUG3ps_svC( iC );	return 0; }
-									cube = SvPVbyte(	svC, CS );
-					zc =zcOf(*( (ui64*)	cube ) );	deICE0(			Qc, Ac, Bc ); x=Ec+Ac;	for(	Ec=x+Bc;  x< Ec;  ++x ){			FIND_X_OR_MISS( iC );		}
+							cube = SvPVbyte(	svC, CS );
+					zc =zcOf(	cube );	deICE0(			Qc, Ac, Bc ); x=Ec+Ac;	for(	Ec=x+Bc;  x< Ec;  ++x ){			FIND_X_OR_MISS( iC );		}
 		for(	ic=1; ic<=	zc;	++ic )	{			deICE( cube[ ic ],	Qc, Ac, Bc ); x=Ec+Ac;	for(	Ec=x+Bc;  x< Ec;  ++x ){			FIND_X_OR_MISS( iC );		}
 								} 												if(	Ec	!=*( (ui64*)	cube +1 )	){  	dBUG3ps_ic( iC );	return 0; }
 																				if(	CS	!= pq 	-	cube	){	dBUG3ps_CS( iC );	return 0; }
@@ -274,26 +274,26 @@ bool _strikes(	/* avArgs */	){ //	cut matches from avArgs.	return true = argumen
 	SV		**	src,
 			**	dst,
 			**	lim,
-			**	pSvC0= AvARRAY( avICE ),			*	svC = *pSvC0;					if( svC==NULL){					dBUG3ps_svC(0);							return 0;		}
-	SV		**	pSvA0= AvARRAY( avArg ),			*	svA = *( pSvA0 +a );
-									cube = SvPVbyte(	svC, CS);
-	char		ic,		zc = zcOf(*( (ui64*)	cube ) );	deICE0(			Qc, x, Bc );				for(	Ec=x+Bc;  x< Ec;  ++x ){			PULL_X_OR_CONTINUE( 0, dst );	hit=1;iC=0;	goto	_next_x;	}
+			**	pSvC0= AvARRAY( avICE ),		*	svC = *pSvC0;						if( svC==NULL){					dBUG3ps_svC(0);							return 0;		}
+	SV		**	pSvA0= AvARRAY( avArg ),		*	svA = *( pSvA0 +a );
+								cube = SvPVbyte(	svC, CS);
+	char		ic,		zc = zcOf(	cube );		deICE0(			Qc, x, Bc );				for(	Ec=x+Bc;  x< Ec;  ++x ){			PULL_X_OR_CONTINUE( 0, dst );	hit=1;iC=0;	goto	_next_x;	}
 		for(	ic=1; ic<=	zc;	++ic )	{			deICE( cube[ ic ],	Qc, Ac, Bc );  x=Ec+Ac;		for(	Ec=x+Bc;  x< Ec;  ++x ){			PULL_X_OR_CONTINUE( 0, dst );	hit=1;iC=0;	goto	_next_x;	}
 								} 													if(	Ec	!=*( (ui64*)	cube +1 )	){  	dBUG3ps_ic( 0 );							return 0;		}
 																					if(	CS	!= pq 	-	cube	){	dBUG3ps_CS( 0 );							return 0;		}
 
-	for(		iC=1;iC<=	zC;	++iC ){						svC = *(pSvC0 +iC );				if( svC==NULL){					dBUG3ps_svC( iC );							return 0;		}
-									cube = SvPVbyte(	svC, CS );
-			ic=0;	zc = zcOf(*( (ui64*)	cube ) );	deICE0(			Qc, Ac, Bc );  x=Ec+Ac;		for(	Ec=x+Bc;  x< Ec;  ++x ){			PULL_X_OR_CONTINUE( iC, dst );	hit=1;		goto	_next_x;	}
+	for(		iC=1;iC<=	zC;	++iC ){					svC = *(pSvC0 +iC );					if( svC==NULL){					dBUG3ps_svC( iC );							return 0;		}
+								cube = SvPVbyte(	svC, CS );
+			ic=0;	zc = zcOf(	cube );		deICE0(			Qc, Ac, Bc );  x=Ec+Ac;		for(	Ec=x+Bc;  x< Ec;  ++x ){			PULL_X_OR_CONTINUE( iC, dst );	hit=1;		goto	_next_x;	}
 		for(	ic=1; ic<=	zc;	++ic )	{			deICE( cube[ ic ],	Qc, Ac, Bc );  x=Ec+Ac;		for(	Ec=x+Bc;  x< Ec;  ++x ){			PULL_X_OR_CONTINUE( iC, dst );	hit=1;		goto	_next_x;	}
 								} 													if(	Ec	!=*( (ui64*)	cube +1 )	){  	dBUG3ps_ic( 0 );							return 0;		}
 																					if(	CS	!= pq 	-	cube	){	dBUG3ps_CS( 0 );							return 0;		}
 		}
 	return 0;	/*	after iterating ICE object, a first matching argument was never found. */
 
-	for(		;	iC<=	zC;	++iC ){						svC = *( pSvC0 +iC );				if( svC==NULL){					dBUG3ps_svC( iC );							return 0;		}
-									cube = SvPVbyte(	svC, CS );	pq=cube+16;
-					zc = zcOf(*( (ui64*)	cube ) );				
+	for(		;	iC<=	zC;	++iC ){					svC = *( pSvC0 +iC );					if( svC==NULL){					dBUG3ps_svC( iC );							return 0;		}
+								cube = SvPVbyte(	svC, CS );	pq=cube+16;
+					zc = zcOf(	cube );				
 		for(	ic=0; ic<=	zc;	++ic )	{			deICE(cube[ ic ],	Qc, Ac, Bc );  x = Ec+Ac;		for(	Ec=x+Bc;  x< Ec;  ++x )	{		PULL_X_OR_CONTINUE( iC, lim );
 
 																					/* array shift to collapse void */		if(hit< lim-dst)	{	src =dst +hit;

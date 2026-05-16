@@ -1,89 +1,90 @@
-	#include	"qREAD.h"
-	#include	"qREADrev.h"
-	#include	"qREAD_inc_o.h"
-	#include	"qREAD_init_o.h"
-	#include	"qREAD_inc_p.h"
-	#include	"qREAD_init_p.h"
+	#include	"SwCASE_ICEq2AB.h"
+	#include	"SwCASE_ICEq2ABrev.h"
+	#include	"SwCASE_ICEq2AB_inc_o.h"
+	#include	"SwCASE_ICEq2AB_init_o.h"
+	#include	"SwCASE_ICEq2AB_inc_p.h"
+	#include	"SwCASE_ICEq2AB_init_p.h"
 	#include	"lluiCAST.h"
-//	#include	"qCAST_t0.h"
-//	#include	"qCAST_t1.h"
-//	#include	"qCAST_t2.h"
-//	#include	"qCAST_t3.h"
-	#include	"qCAST_t0inc.h"
-//	#include	"qCAST_t1inc.h"
-//	#include	"qCAST_t2inc.h"
-	#include	"qCAST_t3inc.h"
+//	#include	"SwCASE_AB2ICEq_t0.h"
+//	#include	"SwCASE_AB2ICEq_t1.h"
+//	#include	"SwCASE_AB2ICEq_t2.h"
+//	#include	"SwCASE_AB2ICEq_t3.h"
+	#include	"SwCASE_AB2ICEq_t0inc.h"
+//	#include	"SwCASE_AB2ICEq_t1inc.h"
+//	#include	"SwCASE_AB2ICEq_t2inc.h"
+	#include	"SwCASE_AB2ICEq_t3inc.h"
 
-#define	zcOf( $a)	7-( 	__builtin_clzll( $a)	>>3)
+#define	zcOf(	$cube)	7-( 	__builtin_clzll( *( (ui64*)	$cube)	) >>3)
+#define	zOf( 	$a)		7-( 	__builtin_clzll(			 $a		) >>3)
 
 #define	ReICEuO(		$u, $v)			dBUG_ReICE("uO", $u );								Ox[$u] = O[$u];	\
 	if( A[$u]< 8){	if( B[$u]< 8 ){	H[$u] =/*	0x00 |*/	(			B[$u]    << 3 ) |			A[$u];		Ox[$v] = O[$u];	Q[$u]=0;			}	\
-				else		{	H[$u] =  	0x80 |( (	q=zcOf(		B[$u] ) )<< 3 ) |			A[$u];		Ox[$v] = O[$u] +(	Q[$u]=1 +q		);	}	\
-	}else{		if( B[$u]< 8 ){	H[$u] =  	0x40 |(				B[$u]    << 3 ) | ( q=zcOf( 	A[$u] ) );		Ox[$v] = O[$u] +(	Q[$u]=1 +q		);	}	\
-				else		{	H[$u] =  	0xC0 |( (	q1=zcOf(		B[$u] ) )<< 3 ) | ( q0=zcOf(	A[$u] ) );		Ox[$v] = O[$u] +(	Q[$u]=2 +q0 +q1	);	}	\
+				else		{	H[$u] =  	0x80 |( (	q=zOf(		B[$u] ) )<< 3 ) |			A[$u];		Ox[$v] = O[$u] +(	Q[$u]=1 +q		);	}	\
+	}else{		if( B[$u]< 8 ){	H[$u] =  	0x40 |(				B[$u]    << 3 ) | ( q=zOf(  	A[$u] ) );		Ox[$v] = O[$u] +(	Q[$u]=1 +q		);	}	\
+				else		{	H[$u] =  	0xC0 |( (	q1=zOf(		B[$u] ) )<< 3 ) | ( q0=zOf(	A[$u] ) );		Ox[$v] = O[$u] +(	Q[$u]=2 +q0 +q1	);	}	\
 		}
 
 #define	ReICEuOx(		$u, $v )			dBUG_ReICE("uOx", $u );	\
 	if( A[$u]< 8){	if( B[$u]< 8 ){	H[$u] =/*	0x00 |*/	(			B[$u]    << 3 ) |			A[$u];		Ox[$v] = Ox[$u];	Q[$u]=0;			}	\
-				else		{	H[$u] =  	0x80 |( (	q=zcOf(		B[$u] ) )<< 3 ) |			A[$u];		Ox[$v] = Ox[$u] +(	Q[$u]=1 +q		);	}	\
-	}else{		if( B[$u]< 8 ){	H[$u] =  	0x40 |(				B[$u]    << 3 ) | ( q=zcOf( 	A[$u] ) );		Ox[$v] = Ox[$u] +(	Q[$u]=1 +q		);	}	\
-				else		{	H[$u] =  	0xC0 |( (	q1=zcOf(		B[$u] ) )<< 3 ) | ( q0=zcOf(	A[$u] ) );		Ox[$v] = Ox[$u] +(	Q[$u]=2 +q0 +q1	);	}	\
+				else		{	H[$u] =  	0x80 |( (	q=zOf(		B[$u] ) )<< 3 ) |			A[$u];		Ox[$v] = Ox[$u] +(	Q[$u]=1 +q		);	}	\
+	}else{		if( B[$u]< 8 ){	H[$u] =  	0x40 |(				B[$u]    << 3 ) | ( q=zOf(  	A[$u] ) );		Ox[$v] = Ox[$u] +(	Q[$u]=1 +q		);	}	\
+				else		{	H[$u] =  	0xC0 |( (	q1=zOf( 		B[$u] ) )<< 3 ) | ( q0=zOf( 	A[$u] ) );		Ox[$v] = Ox[$u] +(	Q[$u]=2 +q0 +q1	);	}	\
 		}
 
 
 #define	ReICEzSV_(			$v )		dBUG_ReICEzSV_($v )	\
 	if( A[$v]< 8){	if( B[$v]< 8 ){	cubeZ[zcZ]=/*	0x00 |*/	(			B[$v]    << 3 ) |			A[$v];		CSZ-=Q[$v];					Q[$v]=0;			}	\
-				else		{	cubeZ[zcZ]=	0x80 |( (	q=zcOf(		B[$v] ) )<< 3 ) |			A[$v];		cS=CSZ-Q[$v];	Qc=Q[$v];	Q[$v]=1 +q;		CSZ=cS+Q[$v];	if(Qc< Q[$v] ) cubeZ= SvGROW( svZ, CSZ+1	);	pqz=cubeZ+cS;	switch( q ){ lluiCASTa(	B[$v],			pqz ); }	}	\
-	}else{		if( B[$v]< 8 ){	cubeZ[zcZ]=  	0x40 |(				B[$v]    << 3 ) | ( q=zcOf( 	A[$v] ) );		cS=CSZ-Q[$v];	Qc=Q[$v];	Q[$v]=1 +q;		CSZ=cS+Q[$v];	if(Qc< Q[$v] ) cubeZ= SvGROW( svZ, CSZ+1	);	pqz=cubeZ+cS;	switch( q ){ lluiCASTa(			A[$v],	pqz ); }	}	\
-				else		{	cubeZ[zcZ]=  	0xC0 |(	q=( (	q1=zcOf(	B[$v] ) )<< 3 ) | ( q0=zcOf(	A[$v] ) ) );	cS=CSZ-Q[$v];	Qc=Q[$v];	Q[$v]=2 +q0 +q1;	CSZ=cS+Q[$v];	if(Qc< Q[$v] ) cubeZ= SvGROW( svZ, CSZ+1	);	pqz=cubeZ+cS;	switch( q ){ lluiCASTab(	B[$v],	A[$v], 	pqz ); }	}	\
+				else		{	cubeZ[zcZ]=	0x80 |( (	q=zOf( 		B[$v] ) )<< 3 ) |			A[$v];		cS=CSZ-Q[$v];	Qc=Q[$v];	Q[$v]=1 +q;		CSZ=cS+Q[$v];	if(Qc< Q[$v] ) cubeZ= SvGROW( svZ, CSZ+1	);	pqz=cubeZ+cS;	switch( q ){ lluiCASTa(	B[$v],			pqz ); }	}	\
+	}else{		if( B[$v]< 8 ){	cubeZ[zcZ]=  	0x40 |(				B[$v]    << 3 ) | ( q=zOf(  	A[$v] ) );		cS=CSZ-Q[$v];	Qc=Q[$v];	Q[$v]=1 +q;		CSZ=cS+Q[$v];	if(Qc< Q[$v] ) cubeZ= SvGROW( svZ, CSZ+1	);	pqz=cubeZ+cS;	switch( q ){ lluiCASTa(			A[$v],	pqz ); }	}	\
+				else		{	cubeZ[zcZ]=  	0xC0 |(	q=( (	q1=zOf( 	B[$v] ) )<< 3 ) | ( q0=zOf( 	A[$v] ) ) );	cS=CSZ-Q[$v];	Qc=Q[$v];	Q[$v]=2 +q0 +q1;	CSZ=cS+Q[$v];	if(Qc< Q[$v] ) cubeZ= SvGROW( svZ, CSZ+1	);	pqz=cubeZ+cS;	switch( q ){ lluiCASTab(	B[$v],	A[$v], 	pqz ); }	}	\
 		}		dBUG_SvCUR(CSZ, "CSZ" );	\
 	SvCUR_set( svZ,	CSZ );	cubeZ[CSZ]=0;
 
 
 #define	reICE( $a, $b, $pk, $pq)			\
 	if( $a< 8){	if( $b< 8	){	*$pk++	= /*	0x00 |*/	(			$b    << 3 ) |			$a;															}	\
-				else		{	*$pk++	=  	0x80 |( (	q=zcOf(		$b ) )<< 3 ) |			$a;		switch( q ){ lluiCASTa(	$b,		$pq ); }	$pq +=1 +q;		}	\
-	}else{		if( $b< 8	){	*$pk++	=  	0x40 |(				$b    << 3 ) | ( q=zcOf( 	$a ) );	switch( q ){ lluiCASTa(		$a,	$pq ); }	$pq +=1 +q;		}	\
-				else		{	*$pk++	=  	0xC0 |(	q=( (	q1=zcOf(	$b ) )<< 3 ) | ( q0=zcOf(	$a ) ) );	switch( q ){ lluiCASTab(	$b,	$a,	$pq ); }	$pq +=2 +q0 +q1;	}	\
+				else		{	*$pk++	=  	0x80 |( (	q=zOf( 		$b ) )<< 3 ) |			$a;		switch( q ){ lluiCASTa(	$b,		$pq ); }	$pq +=1 +q;		}	\
+	}else{		if( $b< 8	){	*$pk++	=  	0x40 |(				$b    << 3 ) | ( q=zOf(  	$a ) );	switch( q ){ lluiCASTa(		$a,	$pq ); }	$pq +=1 +q;		}	\
+				else		{	*$pk++	=  	0xC0 |(	q=( (	q1=zOf( 	$b ) )<< 3 ) | ( q0=zOf( 	$a ) ) );	switch( q ){ lluiCASTab(	$b,	$a,	$pq ); }	$pq +=2 +q0 +q1;	}	\
 		}
 #define	reICEx( $a, $b, $pk, $pq)			\
 	if( $a< 8){	if( $b< 8	){	*$pk	= /*	0x00 |*/	(			$b    << 3 ) |			$a;															}	\
-				else		{	*$pk	=  	0x80 |( (	q=zcOf(		$b ) )<< 3 ) |			$a;		switch( q ){ lluiCASTa(	$b,		$pq ); }					}	\
-	}else{		if( $b< 8	){	*$pk	=  	0x40 |(				$b    << 3 ) | ( q=zcOf( 	$a ) );	switch( q ){ lluiCASTa(		$a,	$pq ); }					}	\
-				else		{	*$pk	=  	0xC0 |(	q=( (	q1=zcOf(	$b ) )<< 3 ) | ( q0=zcOf(	$a ) ) );	switch( q ){ lluiCASTab(	$b,	$a,	$pq ); }					}	\
+				else		{	*$pk	=  	0x80 |( (	q=zOf( 		$b ) )<< 3 ) |			$a;		switch( q ){ lluiCASTa(	$b,		$pq ); }					}	\
+	}else{		if( $b< 8	){	*$pk	=  	0x40 |(				$b    << 3 ) | ( q=zOf(  	$a ) );	switch( q ){ lluiCASTa(		$a,	$pq ); }					}	\
+				else		{	*$pk	=  	0xC0 |(	q=( (	q1=zOf( 	$b ) )<< 3 ) | ( q0=zOf( 	$a ) ) );	switch( q ){ lluiCASTab(	$b,	$a,	$pq ); }					}	\
 		}
 #define	reICE0(  $a, $b, $pk, $pq) $pq =$pk +16;							\
 	if( $a< 8){	if( $b< 8	){	*$pk	= /*	0x00 |*/	(			$b    << 3 ) |			$a;															}	\
-				else		{	*$pk	=  	0x80 |( (	q=zcOf(		$b ) )<< 3 ) |			$a;		switch( q ){ lluiCASTa(	$b,		$pq ); }	$pq +=1 +q;		}	\
-	}else{		if( $b< 8	){	*$pk	=  	0x40 |(				$b    << 3 ) | ( q=zcOf( 	$a ) );	switch( q ){ lluiCASTa(		$a,	$pq ); }	$pq +=1 +q;		}	\
-				else		{	*$pk	=  	0xC0 |(	q=( (	q1=zcOf(	$b ) )<< 3 ) | ( q0=zcOf(	$a ) ) );	switch( q ){ lluiCASTab(	$b,	$a,	$pq ); }	$pq +=2 +q0 +q1;	}	\
+				else		{	*$pk	=  	0x80 |( (	q=zOf( 		$b ) )<< 3 ) |			$a;		switch( q ){ lluiCASTa(	$b,		$pq ); }	$pq +=1 +q;		}	\
+	}else{		if( $b< 8	){	*$pk	=  	0x40 |(				$b    << 3 ) | ( q=zOf(  	$a ) );	switch( q ){ lluiCASTa(		$a,	$pq ); }	$pq +=1 +q;		}	\
+				else		{	*$pk	=  	0xC0 |(	q=( (	q1=zOf( 	$b ) )<< 3 ) | ( q0=zOf( 	$a ) ) );	switch( q ){ lluiCASTab(	$b,	$a,	$pq ); }	$pq +=2 +q0 +q1;	}	\
 		}
 
 
 #define _DeICE0u(	$cube, $CS, $u, $v )									pq=$cube+16;	O[ $u ] =16;	\
-	switch( $cube[ 0 ]	){	qREAD_init_o(			Q[ $u ],	A[ $u ],	B[ $u ],	pq,	$cube,	O[ $u ],	O[ $v ] ); }	
+	switch( $cube[ 0 ]	){	SwCASE_ICEq2AB_init_o( Q[ $u ],	A[ $u ],	B[ $u ],	pq,	$cube,	O[ $u ],	O[ $v ] ); }	
 
 #define _DeICEv(	$cube, $CS, $u, $v )	w = $v+1; 						pq=	$cube +	O[ $v ];		\
-	switch( $cube[ ic ]	){	qREAD_inc_o(			Q[ $v ],	A[ $v ],	B[ $v ],	pq,	$cube,	O[ $v ],	O[w]	); }
+	switch( $cube[ ic ]	){	SwCASE_ICEq2AB_inc_o(Q[ $v ],	A[ $v ],	B[ $v ],	pq,	$cube,	O[ $v ],	O[w]	); }
 
 #define _DeICEzu(	$cube, $CS, $u	)									pqz= $cube +	$CS;		\
-	switch( H[ $u ]		){	qREADrev(			Q[ $u ],	A[ $u ],	B[ $u ],	pqz,	$cube,	NULL/*,	NULL */	); }	O[ $u ]=$CS -Q[ $u ];
+	switch( H[ $u ]		){	SwCASE_ICEq2ABrev(	Q[ $u ],	A[ $u ],	B[ $u ],	pqz,	$cube,	NULL/*,	NULL */	); }	O[ $u ]=$CS -Q[ $u ];
 
 
 
 #define	_DeICE0v( $cube,	$CS,	$u, $v )	w = $v+1;					pq=$cube+16;	O[ $v ] =16;		\
-	switch( $cube[ 0 ]	){	qREAD_init_o(			Q[ $v ],	A[ $v ],	B[ $v ],	pq,	$cube,	O[ $v ],	O[ w ]	);	}
+	switch( $cube[ 0 ]	){	SwCASE_ICEq2AB_init_o( Q[ $v ],	A[ $v ],	B[ $v ],	pq,	$cube,	O[ $v ],	O[ w ]	);	}
 
 #define	_DeICEu(	$cube,	$CS,	$u, $v )								pq=$cube  +	O[ $u ];				\
-	switch( $cube[ ic ]	){	qREAD_inc_o(			Q[ $u ],	A[ $u ],	B[ $u ],	pq,	$cube,	O[ $u ],	O[ $v ]	);	}
+	switch( $cube[ ic ]	){	SwCASE_ICEq2AB_inc_o( Q[ $u ],	A[ $u ],	B[ $u ],	pq,	$cube,	O[ $u ],	O[ $v ]	);	}
 
 
 
 #define	_deICE0(	$cube,	$CS,	$H,		$pq,	$Q,		$A,		$B )		$pq = $cube +16;	\
-	switch(	$H		){	qREAD_init_p(			$Q,  	$A,  	$B,		$pq,	$cube,	NULL,	NULL	 );	}
+	switch(	$H		){	SwCASE_ICEq2AB_init_p( $Q,  	$A,  	$B,		$pq,	$cube,	NULL,	NULL	 );	}
 
 #define	_deICE(	$cube,	$CS,	$H,		$pq,	$Q,		$A,		$B )		\
-	switch(	$H		){	qREAD_inc_p(			$Q,  	$A,  	$B,		$pq,	$cube,	NULL,	NULL	 );	}
+	switch(	$H		){	SwCASE_ICEq2AB_inc_p( $Q,  	$A,  	$B,		$pq,	$cube,	NULL,	NULL	 );	}
 
 #define	deICE0(								$Q,		$A,		$B )		\
 		_deICE0(	cube,	CS,  	cube[0],	pq,	$Q,		$A,		$B )
@@ -124,13 +125,14 @@
 	#define DeICE0v_KE(	$u,	$v	) /* *( (ui64*) (H+$v) )=*( (ui64*) cube ); */ ic=0;	DeICE0v(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];
 //	#define DeICE0v_KEI(	$u,	$v	) /* *( (ui64*) (H+$v) )=*( (ui64*) cube ); */ ic=0;	DeICE0v(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
 //	#define DeICEzu_K(	$u,	$v	) H[$u] = cube[	ic=zc ];					DeICEzu(		$u		);				
-	#define DeICEzu_KE(	$u,	$v	) H[$u] = cube[	ic=zc ];					DeICEzu(		$u		);				E[$v] =A[$v] +B[$v] +E[$u];
+	#define DeICEzu_KE(	$u		) H[$u] = cube[	ic=zc ];					DeICEzu(		$u		);				E[$u] =*( (ui64*) cube+1);
+
 //	#define DeICEzu_KEI(	$u,	$v	) H[$u] = cube[	ic=zc ];					DeICEzu(		$u		);				E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =zc; 	//this is not consistent with the incremental statement "[ $v ] =I[ $u ]+1"; zx_KEI variants are impracticable!
 
 //	#define DeICEv_KE_(	$u,	$v	) H[$v] = cubeZ[	++ic ];					DeICEv_(	 	$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
 //	#define DeICEv_KEI_(	$u,	$v	) H[$v] = cubeZ[	++ic ];					DeICEv_(	 	$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
 //	#define DeICEzu_K_(	$u,	$v	) H[$u]=cubeZ[	zcZ	];					DeICEzu_(	$u		);				
-//	#define DeICEzu_KE_(	$u,	$v	) H[$u]=cubeZ[	zcZ	];					DeICEzu_(	$u		);				E[$v] =A[$v] +B[$v] +E[$u
+	#define DeICEzu_KE_(	$u		) H[$u]=cubeZ[	zcZ	];					DeICEzu_(	$u		);				E[$u] =*( (ui64*) cubeZ+1 );
 //	#define DeICEzu_KEI_(	$u,	$v	) H[$u]=cubeZ[	zcZ	];					DeICEzu_(	$u		);				E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
 
 
