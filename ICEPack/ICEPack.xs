@@ -169,7 +169,7 @@ SV*	fills(			SV*	rvICE,	SV* svMIN, SV* svRUN	){		// matches object to given run 
 
 	if( AvFILLp( avICE)==0 ){
 		cube = SvPVbyte( C0, CS );
-		zc=zcOf( *( (ui64*) cube ) );
+		zc=zcOf( cube );
 
 		if( zc==0 )	{_deICE0( cube, CS, cube[0],	pq, Qc, Ac, Bc );	if( Ac==min && Bc==run ) 	return newSViv( Bc );
 		}			}
@@ -345,14 +345,9 @@ SV*	set(			SV* rvICE,	SV* rvArg	){
 	if( rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
 	if( rt1 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
 
-//	const int		zC		= AvFILLp(	avICE );
-//	const SV**	pSv0	= AvARRAY(	avICE );
-//	if(	zC!=-1 && *pSv0 !=NULL && SvIVX( *pSv0 ) > AvFILLp( avArg ) )
-			_set8x();
-//	else 	_set9up();
+	_set240();
 
-
-	return newSViv( za +1 -skip );
+	return newSViv( za +1 -hit );
 	}
 SV*	av2ICE(		SV* rvArg	){
 	SV	*	svA,
