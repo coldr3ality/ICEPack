@@ -190,6 +190,21 @@ SV*	toText(		SV* rvICE	){
 	if( AvFILLp( avICE ) !=-1) _toText();
 	return rvOut;
 	}
+SV*	toTextX(		SV* rvICE	){
+	const char	*	arg_err	= "\r!       ICEPack::toTextX( <%s> ): arg[0] must be an arrayref <ICEPack>.\n\t";
+					avOut = newAV();
+					rvOut = newRV_inc( (SV*) avOut );
+	svtype			svt = SvTYPE( rvICE );
+	STRLEN			L;
+
+	if( ! SvROK( rvICE) ){	L =sprintf( aString, arg_err,	svt< svtype_cnt? svtype_names[svt ]: "UNKNOWN" );		av_push( avOut, newSVpvn( aString, L ) );	return rvOut; }
+	avICE	= (AV*) SvRV(	rvICE	);	/*	dereference argument									*/
+
+	svt= SvTYPE(avICE);				/*	check type of supposed perl object at dereferenced address	*/
+	if( svt != SVt_PVAV ){	L =sprintf( aString, arg_err,	svt< svtype_cnt? svtype_names_ref[svt ]: "UNKNOWN" );	av_push( avOut, newSVpvn( aString, L ) );	return rvOut; }
+	if( AvFILLp( avICE ) !=-1) _toTextX();
+	return rvOut;
+	}
 SV*	upsortQ(		SV* rvArg,	SV* svQx	){
 	const char	*	arg0_err	= "\r!       ICEPack::upsortQ( <%s>, <%s> ): arg[0] must be an arrayref.\n\t",
 				*	arg1_err	= "\r!       ICEPack::upsortQ( <%s>, <%s> ): arg[1] must be a packed quad.\n\t";
@@ -248,14 +263,14 @@ SV*	insortIV(		SV* rvArg,	SV* svX		){
 		}
 	return &PL_sv_yes; 	// return true: given integer is already present in sorted array
 	}
-SV*	checks(		SV* rvICE	){
+SV*	addsUp(		SV* rvICE	){
 	svtype	rt0,	t0 = SvTYPE( rvICE );
 	const char	*	arg_err	= "\r!       ICEPack::checks( <%s> ): arg[%d] must be an arrayref <ICEPack>.\n\t";
 	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
 	avICE	= (AV*) SvRV(    	rvICE );
 		rt0 = SvTYPE( avICE );
 	if(	rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
-	bool err=_checks();
+	bool err=_addsUp();
 	return err? &PL_sv_yes: &PL_sv_no;
 	}
 SV*	has(			SV* rvICE,	SV* rvArg	){ //	count matches in avArgs.	best for large objects with few args.	return true = total inclusivity.
@@ -346,6 +361,25 @@ SV*	set(			SV* rvICE,	SV* rvArg	){
 	if( rt1 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
 
 	_set240();
+
+	return newSViv( za +1 -hit );
+	}
+SV*	unset(		SV* rvICE,	SV* rvArg	){
+
+	svtype	rt0, rt1,	t0 = SvTYPE( rvICE ),
+					t1 = SvTYPE( rvArg );
+	const char	*	arg_err	= "\r!       ICEPack::unset( <%s>, <%s> ): arg[%d] must be an arrayref.\n\t";
+
+	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
+	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
+
+	avICE	= (AV*) SvRV(    	rvICE );	rt0 = SvTYPE( avICE );
+	avArg	= (AV*) SvRV(    	rvArg );	rt1 = SvTYPE( avArg );
+
+	if( rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
+	if( rt1 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
+
+	_unset();
 
 	return newSViv( za +1 -hit );
 	}
@@ -507,6 +541,10 @@ toText (rvICE)
 	SV *	rvICE
 
 SV *
+toTextX (rvICE)
+	SV *	rvICE
+
+SV *
 toHex (rvICE)
 	SV *	rvICE
 
@@ -517,7 +555,6 @@ snapshot(rvICE)
 SV *
 getSnapshot()
 	SV* rvArg
-
 
 SV*
 copy(rvICE)
@@ -565,7 +602,7 @@ insortIV (rvArg, svX)
 	SV *	svX
 
 SV *
-checks (rvICE)
+addsUp (rvICE)
 	SV *	rvICE
 
 SV *
@@ -590,6 +627,11 @@ strikes (rvICE, rvArg)
 
 SV *
 set (rvICE, rvArg)
+	SV *	rvICE
+	SV *	rvArg
+
+SV *
+unset (rvICE, rvArg)
 	SV *	rvICE
 	SV *	rvArg
 
