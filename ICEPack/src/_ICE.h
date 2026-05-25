@@ -1,18 +1,18 @@
-	#include	"SwCASE_ICEq2AB.h"
-	#include	"SwCASE_ICEq2ABrev.h"
-	#include	"SwCASE_ICEq2AB_inc_o.h"
-	#include	"SwCASE_ICEq2AB_init_o.h"
-	#include	"SwCASE_ICEq2AB_inc_p.h"
-	#include	"SwCASE_ICEq2AB_init_p.h"
+
+	#include	"SwCASE_IC2AB_init16.h"
+	#include	"SwCASE_IC2AB_vec.h"
+	#include	"SwCASE_IC2AB_inc.h"
+	#include	"SwCASE_IC2AB_R2L.h"
+	#include	"SwCASE_IC2AB_R2L_dec.h"
+	#include	"SwCASE_IC2A1B_init16.h"
+//	#include	"SwCASE_IC2A1B_vecx_incQ.h"
+//	#include	"SwCASE_IC2Ape1B_incxQ.h"
+
 	#include	"lluiCAST.h"
-//	#include	"SwCASE_AB2ICEq_t0.h"
-//	#include	"SwCASE_AB2ICEq_t1.h"
-//	#include	"SwCASE_AB2ICEq_t2.h"
-//	#include	"SwCASE_AB2ICEq_t3.h"
-	#include	"SwCASE_AB2ICEq_t0inc.h"
-//	#include	"SwCASE_AB2ICEq_t1inc.h"
-//	#include	"SwCASE_AB2ICEq_t2inc.h"
-	#include	"SwCASE_AB2ICEq_t3inc.h"
+	#include	"SwCASE_AB2IC_t0_inc.h"
+//	#include	"SwCASE_AB2IC_t1_inc.h"
+//	#include	"SwCASE_AB2IC_t2_inc.h"
+	#include	"SwCASE_AB2IC_t3_inc.h"
 
 #define	zcOf(	$cube)	7-( 	__builtin_clzll( *( (ui64*)	$cube)	) >>3)
 #define	zOf( 	$a)		7-( 	__builtin_clzll(			 $a		) >>3)
@@ -32,7 +32,7 @@
 		}
 
 
-#define	ReICEzSV_(			$v )		dBUG_ReICEzSV_($v )	\
+#define	ReICEzSvZ(			$v )		dBUG_ReICEzSvZ($v )	\
 	if( A[$v]< 8){	if( B[$v]< 8 ){	cubeZ[zcZ]=/*	0x00 |*/	(			B[$v]    << 3 ) |			A[$v];		CSZ-=Q[$v];					Q[$v]=0;			}	\
 				else		{	cubeZ[zcZ]=	0x80 |( (	q=zOf( 		B[$v] ) )<< 3 ) |			A[$v];		cS=CSZ-Q[$v];	Qc=Q[$v];	Q[$v]=1 +q;		CSZ=cS+Q[$v];	if(Qc< Q[$v] ) cubeZ= SvGROW( svZ, CSZ+1	);	pqz=cubeZ+cS;	switch( q ){ lluiCASTa(	B[$v],			pqz ); }	}	\
 	}else{		if( B[$v]< 8 ){	cubeZ[zcZ]=  	0x40 |(				B[$v]    << 3 ) | ( q=zOf(  	A[$v] ) );		cS=CSZ-Q[$v];	Qc=Q[$v];	Q[$v]=1 +q;		CSZ=cS+Q[$v];	if(Qc< Q[$v] ) cubeZ= SvGROW( svZ, CSZ+1	);	pqz=cubeZ+cS;	switch( q ){ lluiCASTa(			A[$v],	pqz ); }	}	\
@@ -60,72 +60,99 @@
 				else		{	*$pk	=  	0xC0 |(	q=( (	q1=zOf( 	$b ) )<< 3 ) | ( q0=zOf( 	$a ) ) );	switch( q ){ lluiCASTab(	$b,	$a,	$pq ); }	$pq +=2 +q0 +q1;	}	\
 		}
 
+#ifdef DEBUG_ACCESS_L3
+	#define dBUG_DeICEz	if( zc==-1 ){	cS = sprintf(aString, 	"\r! 	%s line %lld: cube #%lld is empty.		\n",									__FILE__, __LINE__, iC				);	AvDBUG_PUSH( aString, cS );	}
+#else
+	#define dBUG_DeICEz
+#endif
 
-#define _DeICE0u(	$cube, $CS, $u, $v )									pq=$cube+16;	O[ $u ] =16;	\
-	switch( $cube[ 0 ]	){	SwCASE_ICEq2AB_init_o( Q[ $u ],	A[ $u ],	B[ $u ],	pq,	$cube,	O[ $u ],	O[ $v ] ); }	
+#define _DeICE0u(	$cube, $CS, $u, $v )										pq=$cube+16;	O[ $u ] =16;			\
+	switch( $cube[ 0 ]	){	SwCASE_IC2AB_init16(		Q[ $u ],	A[ $u ],	B[ $u ],	pq,			O[ $v ]			); }	
 
-#define _DeICEv(	$cube, $CS, $u, $v )	w = $v+1; 						pq=	$cube +	O[ $v ];		\
-	switch( $cube[ ic ]	){	SwCASE_ICEq2AB_inc_o(Q[ $v ],	A[ $v ],	B[ $v ],	pq,	$cube,	O[ $v ],	O[w]	); }
+#define _DeICEv(	$cube, $CS, $u, $v )	w = $v+1; 							pq=	$cube +	O[ $v ];				\
+	switch( $cube[ ic ]	){	SwCASE_IC2AB_vec(		Q[ $v ],	A[ $v ],	B[ $v ],	pq,			O[ $v ],	O[ w ]	); }
 
-#define _DeICEzu(	$cube, $CS, $u	)									pqz= $cube +	$CS;		\
-	switch( H[ $u ]		){	SwCASE_ICEq2ABrev(	Q[ $u ],	A[ $u ],	B[ $u ],	pqz,	$cube,	NULL/*,	NULL */	); }	O[ $u ]=$CS -Q[ $u ];
+#define _DeICEzu(	$cube, $CS, $zc, $u )		dBUG_DeICEz;					pqz= $cube +	$CS;				\
+	switch( $cube[ $zc ]	){	SwCASE_IC2AB_R2L(		Q[ $u ],	A[ $u ],	B[ $u ],	pqz							); }	O[ $u ]=$CS -Q[ $u ];
 
+/*
+#define _DeICEv1( $cube, $CS, $u, $v )		w = $v+1; /*	streamlines ( +1) to A[v]		pq=$cube+16;*//*O[ $v ] =16;			\
+	switch( $cube[ ic ]	){	SwCASE_IC2A1B_init16(		Q[ $v ],	A[$v],	B[ $v ],	pq,			O[ w ]			); }
 
+*/
 
-#define	_DeICE0v( $cube,	$CS,	$u, $v )	w = $v+1;					pq=$cube+16;	O[ $v ] =16;		\
-	switch( $cube[ 0 ]	){	SwCASE_ICEq2AB_init_o( Q[ $v ],	A[ $v ],	B[ $v ],	pq,	$cube,	O[ $v ],	O[ w ]	);	}
+/*
+#define	_DeICE0v( $cube,	$CS,	$u, $v )	w = $v+1;						pq=$cube+16;	O[ $v ] =16;			\
+	switch( $cube[ 0 ]	){	SwCASE_IC2AB_init16(		Q[ $v ],	A[ $v ],	B[ $v ],	pq,			O[ w ]	); }
 
-#define	_DeICEu(	$cube,	$CS,	$u, $v )								pq=$cube  +	O[ $u ];				\
-	switch( $cube[ ic ]	){	SwCASE_ICEq2AB_inc_o( Q[ $u ],	A[ $u ],	B[ $u ],	pq,	$cube,	O[ $u ],	O[ $v ]	);	}
-
-
-
-#define	_deICE0(	$cube,	$CS,	$H,		$pq,	$Q,		$A,		$B )		$pq = $cube +16;	\
-	switch(	$H		){	SwCASE_ICEq2AB_init_p( $Q,  	$A,  	$B,		$pq,	$cube,	NULL,	NULL	 );	}
-
-#define	_deICE(	$cube,	$CS,	$H,		$pq,	$Q,		$A,		$B )		\
-	switch(	$H		){	SwCASE_ICEq2AB_inc_p( $Q,  	$A,  	$B,		$pq,	$cube,	NULL,	NULL	 );	}
-
-#define	deICE0(								$Q,		$A,		$B )		\
-		_deICE0(	cube,	CS,  	cube[0],	pq,	$Q,		$A,		$B )
-
-#define	deICE(					$H,			$Q,		$A,		$B )		\
-		_deICE(	cube,	CS,  	$H,		pq,	$Q,		$A,		$B )
-
-#define	deICE0_(								$Q,		$A,		$B )		\
-		_deICE0(	cubeZ,	CSZ,	cubeZ[0],	pqz,	$Q,		$A,		$B )
-
-#define	deICE_(					$H,			$Q,		$A,		$B )		\
-		_deICE(	cubeZ,	CSZ,	$H,		pq,	$Q,		$A,		$B )
+#define	_DeICEu(	$cube,	$CS,	$u, $v )									pq=	$cube  +	O[ $u ];				\
+	switch( $cube[ ic ]	){	SwCASE_IC2AB_vec(		Q[ $u ],	A[ $u ],	B[ $u ],	pq,			O[ $u ],	O[ $v ]	); }
+*/
 
 
+#define	_deICE0(	$cube,	$CS,	$H,		$pq, 	$Q,		$A,		$B )		$pq = $cube +16;	\
+	switch(	$H		){	SwCASE_IC2AB_inc(		$Q,  	$A,  	$B,		$pq,	$pq	);	}
 
-//	#define DeICEu(		$u,	$v	) _DeICEu(  	cube, 	CS,			$u,	$v	);
-	#define DeICEv(		$u,	$v	) _DeICEv(  	cube, 	CS,			$u,	$v	);
-	#define DeICE0u(		$u,	$v	) _DeICE0u(	cube, 	CS,			$u,	$v	);
-	#define DeICE0v(		$u,	$v	) _DeICE0v(	cube, 	CS,			$u,	$v	);
-	#define DeICEzu(		$u		) _DeICEzu(	cube, 	CS,			$u		);		RW[ $u ]=ok;
+#define	_deICE(	$cube,	$CS,	$H,		$pq, 	$Q,		$A,		$B )		\
+	switch(	$H		){	SwCASE_IC2AB_inc(		$Q,  	$A,  	$B,		$pq,	$pq	 	);	}
 
-//	#define DeICEu_(		$u,	$v	) _DeICEu(  	cubeZ, 	CSZ,			$u,	$v	);
-	#define DeICEv_(		$u,	$v	) _DeICEv(  	cubeZ, 	CSZ,			$u,	$v	);
-	#define DeICE0u_(		$u,	$v	) _DeICE0u(	cubeZ, 	CSZ,			$u,	$v	);
-	#define DeICE0v_(		$u,	$v	) _DeICE0v(	cubeZ, 	CSZ,			$u,	$v	);
-	#define DeICEzu_(		$u		) _DeICEzu(	cubeZ, 	CSZ,			$u		);
+#define	_deICEr(	$cube,	$CS,	$H,		$pq, 	$Q,		$A,		$B )		\
+	switch(	$H		){	SwCASE_IC2AB_R2L_dec(	$Q,  	$A,  	$B,		$pq,	$pq	 );	}
+
+#define	deICE0(									$Q,		$A,		$B )		\
+		_deICE0(	cube,	CS,  	cube[0],	pq,		$Q,		$A,		$B )
+
+#define	deICE(					$H,				$Q,		$A,		$B )		\
+		_deICE(	cube,	CS,  	$H,		pq,		$Q,		$A,		$B )
+
+#define	deICEr(					$H,				$Q,		$A,		$B )		\
+		_deICEr(	cube,	CS,  	$H,		pq,		$Q,		$A,		$B )
+
+
+
+#define	deICE0_(									$Q,		$A,		$B )		\
+		_deICE0(	cubeZ,	CSZ,	cubeZ[0],	pqz,		$Q,		$A,		$B )
+
+#define	deICE_(					$H,				$Q,		$A,		$B )		\
+		_deICE(	cubeZ,	CSZ,	$H,		pq,		$Q,		$A,		$B )
+
+
+
+//	#define DeICEu(		$u,	$v	) _DeICEu(  		cube, 	CS,				$u,	$v	);
+	#define DeICEv1(		$u,	$v	) _DeICEv1(  		cube, 	CS,				$u,	$v	);
+	#define DeICEv(		$u,	$v	) _DeICEv(  		cube, 	CS,				$u,	$v	);
+	#define DeICE0u(		$u,	$v	) _DeICE0u(		cube, 	CS,				$u,	$v	);
+//	#define DeICE0v(		$u,	$v	) _DeICE0v(		cube, 	CS,				$u,	$v	);
+	#define DeICEzu(		$u		) _DeICEzu(		cube, 	CS,		zc,		$u		);		RW[ $u ]=ok;
+
+//	#define DeICEu_(		$u,	$v	) _DeICEu(  		cubeZ, 	CSZ,			$u,	$v	);
+	#define DeICEv_(		$u,	$v	) _DeICEv(  		cubeZ, 	CSZ,			$u,	$v	);
+	#define DeICE0u_(		$u,	$v	) _DeICE0u(		cubeZ, 	CSZ,			$u,	$v	);
+//	#define DeICE0v_(		$u,	$v	) _DeICE0v(		cubeZ, 	CSZ,			$u,	$v	);
+	#define DeICEzu_(		$u		) _DeICEzu(		cubeZ, 	CSZ,	zcZ,		$u		);
 
 //	#define DeICEv_E(		$u,	$v	)				++ic;					DeICEv(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];
 //	#define DeICEu_K(		$u,	$v	) H[$u] = cube[	++ic	];					DeICEu(		$u,	$v	);	RW[ $u ]=ok;
+	#define DeICEv1_KI(	$u,	$v	) H[$v] = cube[	++ic	];					DeICEv1( 	$u,	$v	);	RW[ $v ]=mod; 						I[ $v ] =ic;
+//	#define DeICEv1_KEI(	$u,	$v	) H[$v] = cube[	++ic	];					DeICEv1( 	$u,	$v	);	RW[ $v ]=mod; E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;
 //	#define DeICEv_K(		$u,	$v	) H[$v] = cube[	++ic	];					DeICEv(		$u,	$v	);	RW[ $v ]=ok;
 	#define DeICEv_I(   	$u,	$v	)				++ic;					DeICEv(		$u,	$v	);	RW[ $v ]=ok;							I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
-//	#define DeICEv_KI(	$u,	$v	) H[$v] = cube[	++ic	];					DeICEv(		$u,	$v	);	RW[ $v ]=ok;							I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
-	#define DeICEv_KE(	$u,	$v	) H[$v] = cube[	++ic	];					DeICEv(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];
 	#define DeICEv_EI( 	$u,	$v	) 				++ic;					DeICEv(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
+	#define DeICEv_E(  	$u,	$v	) 				++ic;					DeICEv(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];
+	#define DeICEv_K( 	$u,	$v	) H[$v] = cube[	++ic	];					DeICEv(		$u,	$v	);	RW[ $v ]=ok;							
+	#define DeICEv_KE(	$u,	$v	) H[$v] = cube[	++ic	];					DeICEv(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];
 	#define DeICEv_KEI(	$u,	$v	) H[$v] = cube[	++ic	];					DeICEv(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
-	#define DeICE0u_K(	$u,	$v	) /* *( (ui64*) (H+$u) )=*( (ui64*) cube ); */ ic=0;	DeICE0u(		$u,	$v	);	RW[ $u ]=ok;	
+	#define DeICE0u_K(	$u,	$v	) 								ic=0;	DeICE0u(		$u,	$v	);	RW[ $u ]=ok;	
+	#define DeICE0u_KE(	$u,	$v	) 								ic=0;	DeICE0u(		$u,	$v	);	RW[ $u ]=ok;	E[$u] =A[$u] +B[$u] +*( (ui64*) cubeZ+1 );
+	#define DeICE0u_KEI(	$u,	$v	) 								ic=0;	DeICE0u(		$u,	$v	);	RW[ $u ]=ok;	E[$u] =A[$u] +B[$u] +*( (ui64*) cubeZ+1 );	I[$u]=0;
+	#define DeICE0u_E(	$u,	$v	) 								ic=0;	DeICE0u(		$u,	$v	);	RW[ $u ]=ok;	E[$u] =A[$u] +B[$u] +*( (ui64*) cubeZ+1 );
 //	#define DeICE0v_K(	$u,	$v	) /* *( (ui64*) (H+$v) )=*( (ui64*) cube ); */ ic=0;	DeICE0v(		$u,	$v	);	RW[ $v ]=ok;	
 	#define DeICE0v_KE(	$u,	$v	) /* *( (ui64*) (H+$v) )=*( (ui64*) cube ); */ ic=0;	DeICE0v(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];
 //	#define DeICE0v_KEI(	$u,	$v	) /* *( (ui64*) (H+$v) )=*( (ui64*) cube ); */ ic=0;	DeICE0v(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
 //	#define DeICEzu_K(	$u,	$v	) H[$u] = cube[	ic=zc ];					DeICEzu(		$u		);				
-	#define DeICEzu_KE(	$u		) H[$u] = cube[	ic=zc ];					DeICEzu(		$u		);				E[$u] =*( (ui64*) cube+1);
+	#define DeICEzu_KEI(	$u		) H[$u] = cube[	ic=zc ];					DeICEzu(		$u		);	RW[ $u ]=ok;	E[$u] =*( (ui64*) cube+1);	I[ $u ] =zc;
+//	#define DeICEru_KEI(	$u		) H[$u] = cube[	--ic	];					DeICEru(		$u		);	RW[ $u ]=ok;	E[$u] =E[$v] -A[$u] -B[$u];	I[ $u ] =ic;
+	#define DeICEru_KI(	$u		) H[$u] = cube[	--ic	];					DeICEru(		$u		);	RW[ $u ]=ok;							I[ $u ] =ic;
 
 //	#define DeICEzu_KEI(	$u,	$v	) H[$u] = cube[	ic=zc ];					DeICEzu(		$u		);				E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =zc; 	//this is not consistent with the incremental statement "[ $v ] =I[ $u ]+1"; zx_KEI variants are impracticable!
 
@@ -136,15 +163,8 @@
 //	#define DeICEzu_KEI_(	$u,	$v	) H[$u]=cubeZ[	zcZ	];					DeICEzu_(	$u		);				E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;	//	I[ $v ] =I[ $u ]+1;
 
 
+	#define deICEzc_KE(	$zc		)										deICEr( cube[ $zc ],	Qc, Ac, Bc );			Ec =*( (ui64*) cube+1);
 
-
-#define deICEk(	$Q, $A, $B	 ) ++ic;	deICE(	$Q,		$A,		$B);
-#define deICEe(	$Q, $A, $B, $E )		deICE(	$Q,		$A,		$B);				$E +=$A +$B;
-#define deICEke(	$Q, $A, $B, $E ) ++ic;	deICE(	$Q,		$A,		$B);				$E +=$A +$B;
-#define deICE0k(	$Q, $A, $B	 ) ic =0;	deICE0(	$Q,		$A,		$B);							/*pk = cube;*/
-#define deICE0ke(	$Q, $A, $B, $E ) ic =0;	deICE0(	$Q,		$A,		$B);				$E +=$A +$B;	/*pk = cube;*/
-#define deICEzk(	$Q, $A, $B	 ) ic =zc;	deICEz(	$Q,		$A,		$B);							pk = cube +zc;
-#define deICEbk(	$Q, $A, $B	 ) --ic;	deICEb(	$Q,		$A,		$B);							--pk;
 
 
 #define AvEXT( $avICE, $cube, $pk, $pq, $avArg, $a, $za, $E0 )	/* "Cube" an ascending list of unsigned integers	*/					\

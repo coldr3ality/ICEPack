@@ -13,6 +13,9 @@
 	limitations under the License.
 */
 
+//	void _sv_commit() updates or fragments source cube into 2, 3, or 4+ parts.  The overlap of fragment boundaries and modification range boundaries further differentiates these four main cases.
+//	void _av_commit() conducts a streamlined batch splice on AV* avICE by unwrapping the rSeq schedule as a sequence of mixed ascending/descending ranges.
+
 /*	"PERISTALSIS" vs "COMPACTION / EXPANSION":
 Me:	Given the familiarity to systems programming, I am satisfied that "compaction" is the most well-chosen term
 	to use in documentation, but to answer your question precisely, I do not actually think that it describes the concept perfectly.
@@ -40,7 +43,6 @@ Claude Haiku 4.5:
 	and what would break if reversed.
 	*/
 
-//	void _sv_commit() re-encodes ICE data and rebalances cube fragmentation.
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -48,7 +50,7 @@ Claude Haiku 4.5:
 #include	"_ICE.h"
 #include	"xv_commit.h"
 
-// the following(4) macros are some typical cases that were able to be generalized and consolidate across cases 1F3 and 1F4.
+// the following(4) macros are fragment-generating code blocks shared within _sv_commit() by main cases 1F2S, 1F3 and 1F4.
 
 /*######	CREATE:	HIGH CUBE [iC+1] 	######		(CASE 1F3)		######							*/
 		/*	[iC+Z]:	HIGH CUBE		SUBCASE 1: 	HIGHPASS				*/
@@ -65,46 +67,46 @@ Claude Haiku 4.5:
 		/*	[iC+Z]:	HIGH CUBE		SUBCASE 2: 	MODS x HIGHPASS		*/
 #define NEW_CUBE_Z_AS_MODSxHPASS(	$dBUG_hiCAST, $dBUG_hiCAST_i,			$dBUG_XLOAD	)	\
 																hpZ_q=CS-O[ ixH ];						\
-			postZ_q	=	Ox[	ixH ]	-	Ox[	ixZ ];		CSZ=16+	hpZ_q + postZ_q;						\
+			postZ_q	=	Ox[	inM ]	-	Ox[	ixZ ];		CSZ=16+	hpZ_q + postZ_q;						\
 			pqZ=( cubeZ	= SvPVbyte_nolen(	svZ = newSVpvz(	CSZ |0x6 ) ) )+16;	SvCUR_set( svZ, CSZ );			dBUG_SvCUR(	CSZ,	"CSZ"	);	\
-			postZ_xc	= 		ixO		-		ixZ;		\
-			preZ_c	= 		icH		-	I[	ixZ ];		\
-			relZ_c	= 	1+	postZ_xc	-		preZ_c;		\
+			postZ_xc	= 		izM		-		ixZ;			\
+			preZ_xc	= 		icO		-	I[	ixZ ];		\
+			relZ_c	= 		postZ_xc	-		preZ_xc;		\
 		/*	hpZ_i	=	I[	ixZ ] 	-		relZ_c;	*/	\
 			hpZ_c	=		zc		-		icO;			\
 			\
 			if( hpZ_c ){	enXhp	=	postZ_xc| ( hpZ_c<< 3 );					hpZ_i = I[ ixZ ] -relZ_c;								*( (ui64*) cubeZ+1 ) = *( (ui64*) cube +1 );	/* Epsilon of [iC] is conserved */	\
 				switch(	enXhp	){	SwCASE_LPXOVER_10Y( *( (ui64*)( cube +	hpZ_i ) ), 	*( (ui64*)( H +ixZ ) ),	*( (ui64*) cubeZ )  )  	}			dBUG_TRACE4x1		\
-			}else{				/*	^lowpass crossover wye	 ^high passthrough, shifted	^low inclusion src		^wye output		*/	*( (ui64*) cubeZ+1 ) = E[ ixO ];			/* Epsilon changed			*/	\
+			}else{				/*	^lowpass crossover wye	 ^high passthrough, shifted	^low inclusion src		^wye output		*/	*( (ui64*) cubeZ+1 ) = E[ izM ];			/* Epsilon changed			*/	\
 				switch(	postZ_xc ){	SwCASE_LOWPASS_1I(							*( (ui64*)( H +ixZ ) ),	*( (ui64*) cubeZ )	)	}			\
 				}				/*	^lowpass inline assignment						^definitive src			^low passthrough	*/	\
-			if(		postZ_q )	{		iCEpACK( pqZ,	ixZ, ixO, ixH,										$dBUG_hiCAST, $dBUG_hiCAST_i );	dBUG_TRACE4x2;	\
-							}	/*	^re-pack modified q-data vectors ixZ..ixO to cubeZ[ 16..16+postZ_q-1 ]	*/									\
+			if(		postZ_q )	{		iCEpACK( pqZ,	ixZ, izM, inM,										$dBUG_hiCAST, $dBUG_hiCAST_i );	dBUG_TRACE4x2;	\
+							}	/*	^re-pack modified q-data vectors ixZ..izM to cubeZ[ 16..16+postZ_q-1 ]	*/									\
 			if(		hpZ_q )	{		XLOAD(	pqZ,	O[ ixH ],		hpZ_q,								$dBUG_XLOAD );					dBUG_TRACE4x4;	\
 							}	/*	^crossload (hpZ_q) high-pass bytes from *(cube+O[ ixH ] ) to *pqZ		*/
 
 
 /*######	UPDATE:	LOW CUBE [iC+0] 	######		(CASE 1F3)		######							*/
 		/*	[iC+0]:	LOW CUBE		SUBCASE 1: 	LOWPASS				*/
-#define MOD_CUBE_0_AS_LPASS( 		ix$ )	/*	if( ixI >zc0 ){	*/\
+#define MOD_CUBE_0_AS_LPASS( 		ix$ )	/*	if( ixM >zc0 ){	*/\
 				switch(		zc0 ){	SwCASE_LOWPASS_1IS(	*( (ui64*) cube0 )	)		}					\
-				if( CS != O[	ix$ ] ){			SvCUR_set(	sv,	O[	ix$ ] );	cube0[	O[	ix$ ] ]=0;			dBUG_SvCUR(	O[	ix$], "O[ix$]" );	}\
+				if( CS != O[	ix$ ] ){			SvCUR_set(	sv,	O[	ix$ ] );	cube0[	O[	ix$ ] ]=0;			dBUG_SvCUR(	O[	ix$], sprintf( "O[%s]", #ix$) );	}\
 		/*	} */
 
 
 		/*	[iC+0]:	LOW CUBE		SUBCASE 2: 	LOWPASS x MODS			*/
 #define MOD_CUBE_0_AS_LPASSxMODS( ix$,		$dBUG_hiCAST, $dBUG_hiCAST_i	)	\
 				if( CS <  Ox[	ix$ ] ){ cube0  =	SvGROW(	sv,	Ox[	ix$ ] +1 );							\
-											SvCUR_set(	sv,	Ox[	ix$ ] );	cube0[	Ox[	ix$ ] ]=0;			dBUG_SvCUR(	Ox[	ix$ ], "Ox[ ix$ ]"	);	}	\
-			else	if( CS != Ox[	ix$ ] ){			SvCUR_set(	sv,	Ox[	ix$ ] );	cube0[	Ox[	ix$ ] ]=0;			dBUG_SvCUR(	Ox[	ix$ ], "Ox[ ix$ ]"	);	}	\
+											SvCUR_set(	sv,	Ox[	ix$ ] );	cube0[	Ox[	ix$ ] ]=0;			dBUG_SvCUR(	Ox[	ix$ ], sprintf( "O[%s]", #ix$)	);	}	\
+			else	if( CS != Ox[	ix$ ] ){			SvCUR_set(	sv,	Ox[	ix$ ] );	cube0[	Ox[	ix$ ] ]=0;			dBUG_SvCUR(	Ox[	ix$ ], sprintf( "O[%s]", #ix$)	);	}	\
 			\
-			pq0 =cube0 +O[	ixI	];			post0_xc	= zc0 - ixI;										\
+			pq0 =cube0 +O[	ixM	];			post0_xc	= zc0 - ixM;										\
 						lpXen	=	icI |(	post0_xc<< 3 );											\
 			switch(		lpXen	){	SwCASE_LPXOVER_01T( *( (ui64*) H ),									*( (ui64*) cube0)  );  }							\
 								/*	^lowpass crossover tee	^high inclusion src								^low passthrough / tee output	*/				\
-					post0_q		=	Ox[	ix$	]	-	Ox[ 	ixI	];																					\
-			if(		post0_q )	{		iCEPACK( pq0, 	ixI, zc0, ix$,										$dBUG_hiCAST, $dBUG_hiCAST_i );	dBUG_TRACE0x1;	\
-							}	/*	^re-pack modified q-data vectors ixI..zc0 to cube0[ O[ ixI ]..O[ zc0 ] ]	*/
+					post0_q		=	Ox[	ix$	]	-	Ox[ 	ixM	];																					\
+			if(		post0_q )	{		iCEPACK( pq0, 	ixM, zc0, ix$,										$dBUG_hiCAST, $dBUG_hiCAST_i );	dBUG_TRACE0x1;	\
+							}	/*	^re-pack modified q-data vectors ixM..zc0 to cube0[ O[ ixM ]..O[ zc0 ] ]	*/
 
 
 void _sv_commit( ){
@@ -124,25 +126,26 @@ void _sv_commit( ){
 				lpXen, enXhp,
 				exo_c,																	/*	cycla count				balances		the terminating fragment	in	char *	SvPVbyte( *( AvARRAY( avICE ) +iCO), CS )	*/
 				endo_c,																	/*	cycla count				balances		the endogenous fragment[s]	in	char *	SvPVbyte( *( AvARRAY( avICE ) +iCX), CS )	*/
-	//	pre_xc,																			/*	cycla count	(zero-based )	measures	the pre-op mod. range		in	char *	cube				*/
 		pre_q,																			/*	q-data length sum			specs		the pre-op  mod. cycla		in	char *	cube				*/
 		post_q,	post0_q,		post1_q,		post2_q, 		postX_q,		postY_q,		postZ_q,		/*	q-data length sum			measures	the post-op mod. cycla		in	char *	cube				*/
 				tota0_q,		tota1_q,		tota2_q,		totaX_q,		totaY_q,		totaZ_q,
-		post_xc,	post0_xc,	post1_xc,	post2_xc,	postX_xc,	postY_xc,	postZ_xc,	/*	cycla count	(zero-based )	defines		the post-op mod. range		in	char *	cube				*/
+		hp_q,	hp0_q,		hp1_q,		hp2_q,		hpX_y,		hpY_q,		hpZ_q;		/*	q-data length				defines		the "high pass" range	 	in	char *	cube				*/
+
+	char	post_xc,	post0_xc,	post1_xc,	post2_xc,	postX_xc,	postY_xc,	postZ_xc,	/*	cycla count	(zero-based )	defines		the post-op mod. range		in	char *	cube				*/
 		post_c,	post0_c,		post1_c,		post2_c,		postX_c,		postY_c,		postZ_c,		/*	cycla count				defines		the post-op mod. range		in	char *	cube				*/
 		pre_c,	pre0_c,		pre1_c,		pre2_c,		preX_c,		preY_c,		preZ_c,		/*	cycla count				measures	the pre-op mod. range		in	char *	cube				*/
+		pre_xc,	pre0_xc,		pre1_xc,		pre2_xc,		preX_xc,		preY_xc,		preZ_xc,		/*	cycla count	(zero-based )	measures	the pre-op mod. range		in	char *	cube				*/
 							lp1_c,		lp2_c,		lpX_c,		lpY_c,		lpZ_c,		/*	cycla count				defines		the "low pass" range		in	char *	cube				*/
 							lp1_q,		lp2_q,		lpX_q,		lpY_q,		lpZ_q,		/*	q-data length				defines		the "low pass" range	 	in	char *	cube				*/
 		hp_c,				hp1_c,		hp2_c,		hpX_c,		hpY_c,		hpZ_c,		/*	cycla count				defines		the "high pass" range		in	char *	cube				*/
-		hp_q,	hp0_q,		hp1_q,		hp2_q,		hpX_y,		hpY_q,		hpZ_q;		/*	q-data length				defines		the "high pass" range	 	in	char *	cube				*/
-	char	hp_i,				hp1_i,		hp2_i,		hpX_i,		hpY_i,		hpZ_i,
+		hp_i,				hp1_i,		hp2_i,		hpX_i,		hpY_i,		hpZ_i,
 		zc0,	zc1,	zcX, zcY, ncX,
 		rel_q,/*	rel0_q,		rel1_q,		rel2_q,		relX_q,		relY_q,		relZ_q,*/		/*	q-data length difference		compares	pre & post op q-data totals	in	matrix { A[], B[], E[], Q[] }	*/
 		rel_c, /*	rel0_c,	*/	rel1_c,		rel2_c,		relX_c,		relY_c,		relZ_c;		/*	cycla count difference		compares	pre & post op cyclum counts	in	matrix { A[], B[], E[], Q[] }	*/
 
 
-	short temp_a;
-	long long temp_x;
+	long long temp_x;	short temp_a;		// temporarily tracing the extremely improbable 1F4 subcases to make sure they work
+
 /*	Going in, we expect (SV*) sv  to equal *( AvARRAY( iC ) ), and (char*) cube to equal SvPVbyte( sv... ).
 	In the 'operating' state,	(SV*) sv,  	(char*) cube,   	(int) iC, 	and (uchar) zc 	represent "this" 'pre-operational' cube.
 	The "Z" aliases:		(SV*) svZ, 	(char*) cubeZ,  	(int) iCO,	and (uchar) zcZ	represent the cube preceding that one.
@@ -164,12 +167,12 @@ void _sv_commit( ){
 	*/
 //	cube= SvPVbyte_nolen(	*( pSv0 + iC ) );
 
-#ifdef DEBUG_RACK_L1	// process audit (brief)
+#ifdef DEBUG_SvCOMMIT_L1	// process audit (brief)
 	av_push( avDBUG, &PL_sv_undef );	avdbuginx_dmarkcase=AvFILLp( avDBUG );	//reserve a point in the debug output for dBUG1F3 messages
 #endif
-	pre_q		= O[ 	icH	]	-	O[	icI	];
-	post_q		= Ox[	ixH	]	-	Ox[  ixI	];
-	rel_q		= Ox[	ixH	]	-	O[	ixH	];
+//	pre_q		= O[ 	icN	]	-	O[	icI	];	//once used to calculate rel_q by subtracting from post_q
+//	post_q		= Ox[	inM	]	-	Ox[  ixM	];	//only used in 1F1, 1F2L and 1F2H	(where mod range is confined)
+//	rel_q		= Ox[	inM	]	-	O[	inM	];	//only used in 1F1 and 1F2L		(where highpass in low cube shifts)
 
 	if(		/*****		CASE 1A0	*****/	tena_zc< 0	)	{ /* One cube is annihilated.				*/	dBUGrackCALL(	0 );
 	/*	mark element iC for deletion		*/																dBUGmxB4(		8 );
@@ -201,20 +204,20 @@ void _sv_commit( ){
 
 */
 	else if(	/*****		CASE 1F1	*****/	tena_zc< 8	)	{ /* One cube in, one cube out.			*/	dBUGrackCALL(	1 );
-		svZ			=		sv;																		dBUGmxB4(		8	);
+		svZ			=		sv;																		dBUGmxB4(		12	);
 		zcZ			=		tena_zc;
-		post_xc		=		ixO		-		ixI;		/* post-op endogenous cycla	(zero-based—	it is used as a vector.)	*/
-		post_c		=		ixH		-		ixI;		/* post-op engodenous cycla	(one-based —	it is used as a numeral.)	*/
-		pre_c		=		icH		-		icI;		/* pre-op ablative cycla		(one-based)						*/
-		rel_c		=		post_c	-		pre_c;	/* pre-to-post relative difference								*/
+		post_xc		=		izM		-		ixM;		/* post-op endogenous cycla	(zero-based—	it is used as a vector.)	*/
+		pre_xc		=		icO		-		icI;		/* pre-op ablative cycla		(one-based)						*/
+		rel_c		=		post_xc	-		pre_xc;	/* pre-to-post relative difference								*/
 		hp_q		=		CS		-	O[	ixH	];	/* high passthrough q-bytes	*/
 		hp_c		=		zc		-		icO;		/* high passthrough cycla	*/						dBUG_1F1
-
+		rel_q		= Ox[	inM	]	-	O[	inM	];	/* relative difference in q pre-to-post op	only used in 1F1 and 1F2L		(where highpass in low cube shifts) */
+		post_q		= Ox[	inM	]	-	Ox[	ixM	];	/* length of q data to be modified. 		only used in 1F1, 1F2L and 1F2H	(where mod range is confined 	*/
 
 /*######	UPDATE ORIGINAL CUBE [iC]	######		(CASE 1F1)									*/
 		/*	[iC ]:		DISPLACE HIGH END VIA PERISTALSIS IN-SITU										*/
 		if(				rel_q==0	){	CSZ= CS;		cubeZ =	cube;			
-		}else{						CSZ= CS +rel_q;		SvCUR_set(	svZ,	O[ ixI ]  	); // prevent copying old data
+		}else{						CSZ= CS +rel_q;		SvCUR_set(	svZ,	O[ ixM ]  	); // prevent copying old data
 /*expand*/	if( 			rel_q >0 ) 	{			cubeZ =	SvGROW(	svZ,	CSZ+1	);
 				if(					hp_q >0 ){			ix = CSZ;				i = CS;					dBUG_bSHIFT_1F1_UP
 					if(	rel_q< 2 )	goto lift_1x;
@@ -264,10 +267,9 @@ void _sv_commit( ){
 			}	// displacement		^double crossover tee							^endo inclusion src		^exo passthrough / tee output
 
 		/*	[iC ]:		PACK NEW Q-DATA				(CASE 1F1)									*/
-		if(		post_q	)	{					pqZ = cubeZ +O[ ixI ];
-									ICEPACK(	pqZ, 	ixI, ixO, ixH,									dBUG_hiCAST_1F1_post,	dBUG_hiCAST_1F1_post_i );
-							}	/*	^re-pack modified q-data vectors [ ixI..ixH ] in-situ					*/	dBUGmxEO(		8	);
-
+		if(		post_q	)	{					pqZ = cubeZ +O[ ixM ];
+									ICEPACK(	pqZ, 	ixM, izM, inM,									dBUG_hiCAST_1F1_post,	dBUG_hiCAST_1F1_post_i );
+							}	/*	^re-pack modified q-data vectors [ ixM..inM ] in-situ					*/	dBUGmxEO(		12	);
 		}/*		so.
 
 
@@ -277,26 +279,26 @@ void _sv_commit( ){
 
 
 */
-	else if( 	/*****		CASE 1F2	*****/	tena_zc< 15	)	{ /* One cube splits in two.				*/	dBUGrackCALL(	2 );
-		zcZ		= tena_zc >>1;	ixZ =tena_zc	-zcZ;													dBUGmxB4(		16 );
+	else if( 	/*****		CASE 1F2	*****/	tena_zc< 14	)	{ /* One cube splits in two.				*/	dBUGrackCALL(	2 );
+		zcZ		= tena_zc >>1;	ixZ =tena_zc	-zcZ;													dBUGmxB4(		18 );
 		zc0		= ixZ -1;
 
 		/*	retain char * pointer and char * length of pre-op cube iC for final step later	*/
 		cube0	= cube;
 		sv0		= *(pSv0 +iC );
 
-		if(		/*	CASE 1F2L  	*/	ixO< 	ixZ )	{	/* mod range contained in left fragment.			*/
+		if(		/*	CASE 1F2L  	*/	izM< 	ixZ )	{	/* mod range contained in left fragment.			*/
 		/*	read up to fragment boundary if cursor (u) hasn't read that far	*/
 			if(			u< ixZ ){		/*	Ox[v]=Ox[u]+Q[u];  	*/	if( RW[ v ] == null )	deIceV_KEI();
 				while(	v< ixZ ){ u=v++;	Ox[v]=Ox[u]+Q[u];							DeICEv_KEI( u, v );	
 				}	}
-			post_xc	=		ixO		-		ixI; 	/*	post_xc is zero-based—	it is used as a bitvector.		*/
-			post_c	=		ixH		-		ixI; 	/*	post_c is one-based—	it is used in arithmetic.		*/
-			pre_c	=		icH		-		icI;
-			rel_c	=		post_c	-		pre_c;
-//			totaZ_q	=		CS		-	O[	ixZ ];
-					//		CS0		=	Ox[ 	ixZ ];
-			hp0_q	=	Ox[ 	ixZ ]	-	Ox[ 	ixH	];
+			post_xc	=		izM		-		ixM; 	/*	post_xc is zero-based—	it is used as a bitvector.		*/
+			post_c	=		inM		-		ixM; 	/*	post_c is one-based—	it is used in arithmetic.		*/
+			pre_xc	=		icO		-		icI;
+			rel_c	=		post_xc	-		pre_xc;
+			rel_q	=	Ox[	inM	]	-	O[	inM	];	/* relative difference in q pre-to-post op	only used in 1F1 and 1F2L		(where highpass in low cube shifts) */
+			post_q	=	Ox[	inM	]	-	Ox[	ixM	];	/* length of q data to be modified. 		only used in 1F1, 1F2L and 1F2H	(where mod range is confined 	*/
+			hp0_q	=	Ox[ 	ixZ	]	-	Ox[ 	ixH	];
 /*######	CREATE HIGH CUBE [iC+1]:	SV SETUP		(CASE 1F2L)									*/	{	
 									NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F2L_tota1 );
 			*( (ui64*) cube0 +1 ) =		E[ zc0	];		/* set Epsilon of low cube while we're at it			*/	dBUG_SvCUR(CSZ, "CSZ" );
@@ -317,7 +319,7 @@ void _sv_commit( ){
 
 
 		/*	[iC+0]:	IN-SITU Q-DATA SHIFT				(CASE 1F2L )									*/
-/*expand*/	if(			rel_q >0 )	{							SvCUR_set(	sv0, O[	ixI] );	// to prevent copying old data
+/*expand*/	if(			rel_q >0 )	{							SvCUR_set(	sv0, O[	ixM] );	// to prevent copying old data
 													cube0 =	SvGROW(	sv0, Ox[	ixZ ] +1	);
 				if(					hp0_q >0 ){		ix = Ox[	ixZ ];		i =	O[	ixZ ];				dBUG_bSHIFT_1F2L_UP
 					if(	rel_q< 2 )	goto lift01x;
@@ -355,27 +357,28 @@ void _sv_commit( ){
 			}										cube0[ Ox[ixZ] ] = 0;	SvCUR_set( sv0, Ox[ixZ] );		dBUG_SvCUR(Ox[ixZ], "Ox[ixZ]" );
 
 		/*	[iC+0]:  RE-PACK MOD Q-DATA				(CASE 1F2L)									*/
-			if(	post_q	)	{				pq0 = cube0 +O[ ixI ];
-									ICEPACK( pq0, 	ixI, zc0, ixZ,										dBUG_hiCAST_1F2L_post,	dBUG_hiCAST_1F2L_post_i );
-							}	/*	^re-pack modified q-data vectors ixI..zc0 to cube0[ O[ ixI ]..Ox[ ixZ ]-1 ]	*/}	dBUG_1F2L
+			if(	post_q	)	{				pq0 = cube0 +O[ ixM ];
+									ICEPACK( pq0, 	ixM, zc0, ixZ,										dBUG_hiCAST_1F2L_post,	dBUG_hiCAST_1F2L_post_i );
+							}	/*	^re-pack modified q-data vectors ixM..zc0 to cube0[ O[ ixM ]..Ox[ ixZ ]-1 ] */ }	dBUG_1F2L
 			}
-		else if(	/*	CASE 1F2H  	*/	ixI >=	ixZ )	{	/* mod range contained in right fragment.		*/
-			post_xc	=		ixO		-		ixI;
-			post_c	=		ixH		-		ixI;
-			pre_c	=		icH		-		icI;
-			rel_c	=		post_c	-		pre_c;
+		else if(	/*	CASE 1F2H  	*/	ixM >=	ixZ )	{	/* mod range contained in right fragment.		*/
+			post_q	=	Ox[	inM	]	-	Ox[	ixM	];	/* length of q data to be modified. 		only used in 1F1, 1F2L and 1F2H	(where mod range is confined 	*/
+			post_xc	=		izM		-		ixM;
+			post_c	=		inM		-		ixM;
+			pre_xc	=		icO		-		icI;
+			rel_c	=		post_xc	-		pre_xc;
 			relZ_c	=		rel_c	-	I[	ixZ ];
 
-		//					CS0		=	O[  	ixZ ];
 			tota0_q	=	O[	ixZ ]	-		16;		// only used once
-			lpZ_c	=		ixI		-		ixZ;
-			lpZ_q	=	O[	ixI	]	-	O[	ixZ ];
+			lpZ_c	=		ixM		-		ixZ;
+			lpZ_q	=	O[	ixM	]	-	O[	ixZ ];
 			hpZ_q	=		CS		-	O[	ixH	];
 		//	hpZ_i	=	I[	ixZ ]	-		rel_c;
 
 /*######	CREATE HIGH CUBE [iC+1]:	SV SETUP		(CASE 1F2H)									*/
 		/*	create new cube to serve as the higher fragment											*/
-			CSZ		= CS +rel_q   	-tota0_q;																
+		//	CSZ		= CS +rel_q   	-tota0_q;
+			CSZ		= Ox[ inM ] + hpZ_q -tota0_q;	// we are excluding deleted q between Ox[ inM ]+Q[ inM ] .. Ox[ ixH ]-1.
 			svZ		= newSVpvz(	0x6 |	CSZ	);	// round svZ allocation up to the nearest quad, +0 / -1
 			SvCUR_set(				svZ,	CSZ	);
 			cubeZ  	= SvPVbyte_nolen(	svZ	); 
@@ -385,7 +388,7 @@ void _sv_commit( ){
 		/*	[iC+1]:	SPLICE KEYBYTE SECTION			(CASE 1F2H)									*/
 		/*	cross high half of modified key data (from H) with passthrough (from char * cube0)					*/
 						lpXen	=	lpZ_c| ( post_xc<< 3 );
-			if(		zc == icO	){	/*	no high passthrough;	ixO is the new end			Epsilon changes -->	*/	*( (ui64*) cubeZ+1 )	= E[ ixO ];
+			if(		zc == icO	){	/*	no high passthrough;	izM is the new end			Epsilon changes -->	*/	*( (ui64*) cubeZ+1 )	= E[ izM ];
 				switch(	lpXen	){	SwCASE_LPXOVER_01Y( *( (ui64*) ( H +ixZ ) ),		*( (ui64*)(cube+I[ixZ])),	*( (ui64*) cubeZ )  )  }
 			//						^lowpass xover wye	^high inclusion src			^low passthrough src	^ wye output
 
@@ -402,8 +405,8 @@ void _sv_commit( ){
 			pqZ  = cubeZ +16;
 			if(	lpZ_q	)	{		XLOAD(	pqZ,	O[ixZ],	lpZ_q,									dBUG_XLOAD_1F2H_lp1 );
 						}		/*	^crossload (lpZ_q) low-pass bytes from *(cube+O[ ixZ ]) to *pqZ			*/
-			if(	post_q	)	{		ICEPACK( pqZ, 	ixI, ixO, ixH,										dBUG_hiCAST_1F2H_post,	dBUG_hiCAST_1F2H_post_i );
-							}	/*	^re-pack modified q-data vectors ixZ..ixO to cubeZ[ 16+lpZ_q..16+lpZ_q+post_q-1 ] 	*/
+			if(	post_q	)	{		ICEPACK( pqZ, 	ixM, izM, ixH,										dBUG_hiCAST_1F2H_post,	dBUG_hiCAST_1F2H_post_i );
+							}	/*	^re-pack modified q-data vectors ixZ..izM to cubeZ[ 16+lpZ_q..16+lpZ_q+post_q-1 ] 	*/
 			if(	hpZ_q	)	{		XLOAD(	pqZ,	O[ ixH ],	hpZ_q,									dBUG_XLOAD_1F2H_hpZ );
 							}	/*	^crossload (hpZ_q) high-pass bytes from *(cube+O[ ixH ] ) to *pqZ		*/
 
@@ -421,7 +424,7 @@ void _sv_commit( ){
 
 
 */
-	else if( 	/*****		CASE 1F3	*****/	tena_zc< 22	)	{ /* One cube splits in three.				*/	dBUGrackCALL(	3 );
+	else if( 	/*****		CASE 1F3	*****/	tena_zc< 21	)	{ /* One cube splits in three.				*/	dBUGrackCALL(	3 );
 		/*	*	*	*	*	*	*	*	*	*	*	*	*	*	*/	tena_nc	= tena_zc +1;
 		/*	*	*	*	*	*	*	*	*	*	*	*	*/	zcZ = (	tena_nc /3) -1;		/* 4..7  */
 		/*	*	*	*	*	*	*	*	*/	ixZ = tena_zc -	zcZ;
@@ -431,7 +434,7 @@ void _sv_commit( ){
 		zc0		=	iz1  -	ncX;			/* 4..7  */
 		ix1		=	zc0		+1;																		dBUG_1F3_TENA_ZC
 
-		post_c= ixO-ixI;	cube0 = cube; 	sv0 = *(pSv0 +iC );
+		post_c= izM-ixM;	cube0 = cube; 	sv0 = *(pSv0 +iC );
 
 	/*	read ahead to last fragment boundary if cursor (u) hasn't read that far	*/
 		if(			u< ixZ ){/*	O[v]=O[u]+Q[u];	*/	if( RW[ v ] == null )	deIceV_KEI();
@@ -439,29 +442,29 @@ void _sv_commit( ){
 			}
 
 /*######	CREATE:	MEDIAL CUBE [iC+1] 	######		(CASE 1F3)		######						*/
-		if( ixI >ix1 ){						CS1 = 16 +Ox[ ixZ ] - O[ ix1 ];
+		if( ixM >ix1 ){						CS1 = 16 +Ox[ ixZ ] - O[ ix1 ];
 			sv1		= newSVpvz(	0x6 |	CS1	);
 			SvCUR_set(				sv1,	CS1	);														dBUG_SvCUR(CS1, "CS1" );
 			cube1  	= SvPVbyte_nolen(	sv1	);		pq1  = cube1 +16;										*( (ui64*)	cube1+1	)	= E[ iz1 ];
 
-						lp1_q	=	O[	ixI ]	-	O[	ix1 ];
+						lp1_q	=	O[	ixM ] -	O[	ix1 ];
 			if(			lp1_q )	{	XLOAD(	pq1,	O[	ix1 ],	lp1_q,									dBUG_XLOAD_1F3_lp1 );		
 								}/*	^crossload (hp1_q) low-pass bytes from *(cube+O[ ix1 ] ) to *pq1		*/
-						lp1_c	=		ixI	-		ix1;
+						lp1_c	=		ixM	-		ix1;
 		
 		/*	[iC+1]:	SUBCASE 1F3-0:	NEW CUBE 1 AS LOWPASS x MODS x HIGHPASS	(N/A)			*/
-		/*	if( ixO< iz1 ){		//	DELETED!!!	see backups prior to 2026-05-02						*/
+		/*	if( izM< iz1 ){		//	DELETED!!!	see backups prior to 2026-05-02						*/
 
 		/*	[iC+1]:	SUBCASE 1F3-1:	NEW CUBE 1 AS LOWPASS x MODS								*/
-		/*	}else{ */	if( ixO==iz1)	{	NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F3MH_hpZ );
+		/*	}else{ */	if( izM==iz1)	{	NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F3MH_hpZ );
 					}else  		{	NEW_CUBE_Z_AS_MODSxHPASS(									dBUG_hiCAST_1F3_postZ,	dBUG_hiCAST_1F3_postZ_i,	dBUG_XLOAD_1F3M_hpZ);
-								}				post1_xc = iz1 -ixI;
+								}				post1_xc = iz1 -ixM;
 							lpXen=		lp1_c| (	post1_xc<< 3 );
 					switch(	lpXen){	SwCASE_LPXOVER_01Y( *( (ui64*) ( H +ix1 ) ),							*( (ui64*)(cube+I[ix1] )),	*( (ui64*) cube1 )  )  }
 			//						^lowpass xover wye	^high inclusion src								^low passthrough src	^ wye output
-					post1_q	=		Ox[	ixZ ]	-	Ox[	ixI	];
-				if(	post1_q )	{		iCEPACK( pq1, 	ixI, iz1, ixZ,										dBUG_hiCAST_1F3LM_post1,	dBUG_hiCAST_1F3LM_post1_i );
-		/*		}	*/		}	/*	^re-pack modified q-data vectors ixI..iz1 to cube1[ 16..16+post1_q-1 ]  	*/
+					post1_q	=		Ox[	ixZ ]	-	Ox[	ixM	];
+				if(	post1_q )	{		iCEPACK( pq1, 	ixM, iz1, ixZ,										dBUG_hiCAST_1F3LM_post1,	dBUG_hiCAST_1F3LM_post1_i );
+		/*		}	*/		}	/*	^re-pack modified q-data vectors ixM..iz1 to cube1[ 16..16+post1_q-1 ]  	*/
 		*( (ui64*) cube0+1)	= E[ zc0 ];	MOD_CUBE_0_AS_LPASS(	ix1 );
 
 		}else{							CS1 = 16 +Ox[ ixZ ] - Ox[ ix1 ];
@@ -470,11 +473,11 @@ void _sv_commit( ){
 			cube1  	= SvPVbyte_nolen(	sv1	);		pq1  = cube1 +16;										*( (ui64*)	cube1+1	)	= E[ iz1 ];
 
 		/*	[iC+1]:	SUBCASE 1F3-2:	NEW CUBE 1 AS MODS x HIGHPASS								*/
-			if( ixO< iz1)	{			NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F3MH_hpZ );
+			if( izM< iz1)	{			NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F3MH_hpZ );
 						hp1_c	=		iz1		-		ixH;
-						pre1_c	=	I[	ixH	]	-	I[	ix1 ];
-						post1_c	=		ixH		-		ix1;
-						rel1_c	= 		post1_c	-		pre1_c;
+						pre1_xc	=	I[	izM	]	-	I[	ix1 ];
+						post1_c	=		izM		-		zc0;
+						rel1_c	= 		post1_c	- 1 -		pre1_xc;		//	printf("\ncool\n");
 							enXhp=		post1_c |(		hp1_c<< 3 );
 				if(		rel1_c ){	/*	high passthrough shifts	*/				hp1_i = I[ ix1 ] -rel1_c;
 					switch(	enXhp ){	SwCASE_LPXOVER_10Y( *( (ui64*)(cube +	hp1_i ) ),	*( (ui64*)( H +ix1 ) ),	*( (ui64*) cube1 )  )  }
@@ -482,14 +485,14 @@ void _sv_commit( ){
 					switch(	enXhp ){	SwCASE_LPXOVER_10Y( *( (ui64*)(cube+I[ ix1 ] )),	*( (ui64*)( H +ix1 ) ),	*( (ui64*) cube1 )  )  }
 					}		/*		^lowpass crossover wye	^high passthrough src		^low inclusion src		^ wye output		*/
 					post1_q	=		Ox[ ixH ]	- Ox[	ix1 ];
-				if(	post1_q )	{		iCEPACK( pq1, 	ix1, ixO, ixH,										dBUG_hiCAST_1F3MH_post1,	dBUG_hiCAST_1F3MH_post1_i );
-							}	/*	^re-pack modified q-data vectors ix1..ixO to cube1[ 16..16+post1_q-1 ]  	*/
+				if(	post1_q )	{		iCEPACK( pq1, 	ix1, izM, ixH,										dBUG_hiCAST_1F3MH_post1,	dBUG_hiCAST_1F3MH_post1_i );
+							}	/*	^re-pack modified q-data vectors ix1..izM to cube1[ 16..16+post1_q-1 ]  	*/
 						hp1_q	=	O[ ixZ ]	-	O[ ixH ];
 				if(		hp1_q )	{	XLOAD(	pq1,	O[ ixH ],	hp1_q,										dBUG_XLOAD_1F3MH_hp1 );
 								}/*	^crossload (hp1_q) high-pass bytes from *(cube+O[ ixH ] ) to *pq1		*/
 
 		/*	[iC+1]:	SUBCASE 1F3-3:	NEW CUBE 1 AS MODS 										*/
-			}else{	if( ixO==iz1)	{	NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F3MH_hpZ );
+			}else{	if( izM==iz1)	{	NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F3MH_hpZ );
 					}else  		{	NEW_CUBE_Z_AS_MODSxHPASS(									dBUG_hiCAST_1F3_postZ,	dBUG_hiCAST_1F3_postZ_i,	dBUG_XLOAD_1F3M_hpZ);
 								}
 					switch(iz1-ix1){	SwCASE_LOWPASS_1I(							*( (ui64*)( H +ix1 ) ),	*( (ui64*) cube1 )  )  }
@@ -499,7 +502,7 @@ void _sv_commit( ){
 				}			}	/*	^re-pack modified q-data vectors ix1..iz1 to cube1[ 16..16+post1_q-1 ]  	*/
 
 		*( (ui64*) cube0+1)	= E[ zc0 ];	// update cube0 epsilon only now that old value can have been conserved
-			if( ixI >zc0 )	{			MOD_CUBE_0_AS_LPASS(		ix1 );
+			if( ixM >zc0 )	{			MOD_CUBE_0_AS_LPASS(		ix1 );
 			}else 		{			MOD_CUBE_0_AS_LPASSxMODS( ix1, 									dBUG_hiCAST_1F3_post0,	dBUG_hiCAST_1F3_post0_i);
 			}			}
 
@@ -513,7 +516,7 @@ void _sv_commit( ){
 
 
 */
-	else if( 	/*****		CASE 1F4	*****/	tena_zc< 128	)	{ /* One cube splits in 4+.				*/	dBUGrackCALL(	4 );
+	else if( 	/*****		CASE 1F4	*****/	tena_zc< 246	)	{ /* One cube splits in 4+.				*/	dBUGrackCALL(	4 );
 		int							nCx=(	tena_zc /7 )-3;
 							endo_c =	nCx *7;
 					exo_c = tena_zc %7;
@@ -539,8 +542,8 @@ void _sv_commit( ){
 //				}								iz1 =					izX =	ixY-1;	izY =	ixZ-1;
 //			}	
 
-//		cS=sprintf( aString, "\rCASE 1F4		ixI..O: %d..%d		endo_c: %d	nCx: %d	tena_zc: %d	nCx: %d	zc0: %d	zc1: %d	zcX: %d	zcY:	%d	zcZ: %d		ix1: %d	ixX: %d	ixY: %d	ixZ: %d	\n",
-//							ixI, ixO,			endo_c,		nCx,	tena_zc,		nCx,	zc0,		zc1,		zcX,		zcY,		zcZ,			ix1,		ixX,		ixY,		ixZ	);
+//		cS=sprintf( aString, "\rCASE 1F4		ixM..O: %d..%d		endo_c: %d	nCx: %d	tena_zc: %d	nCx: %d	zc0: %d	zc1: %d	zcX: %d	zcY:	%d	zcZ: %d		ix1: %d	ixX: %d	ixY: %d	ixZ: %d	\n",
+//											ixM, izM,			endo_c,		nCx,	tena_zc,		nCx,	zc0,		zc1,		zcX,		zcY,		zcZ,			ix1,		ixX,		ixY,		ixZ	);
 //		av_push( avDBUG, newSVpvn( aString, cS ) );
 
 
@@ -557,11 +560,12 @@ void _sv_commit( ){
 		cubeY  	= SvPVbyte_nolen(	svY	);		pqY  = cubeY +16;											*( (ui64*)	cubeY+1	)	= E[ izY ];
 
 		/*	[iC+1]:	SUBCASE 1F4H-1:	NEW CUBE Y AS MODS x HIGHPASS								*/
-		if( ixO< izY )	{				NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F4MH_hpZ );
+		if( izM< izY )	{				NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F4MH_hpZ );
 						hpY_c	=		izY   	-		ixH;											dBUG_SUBc1F4x1;
-						preY_c	=	I[	ixH	]	-	I[	ixY	];
-						postY_c	=		ixH		-		ixY;
-						relY_c	= 		postY_c	-		preY_c;
+						preY_xc	=	I[	izM	]	-	I[	ixY	];
+						postY_xc	=		izM		-		ixY;
+						postY_c	=	1+	postY_xc;
+						relY_c	= 		postY_xc	-		preY_xc;		printf("\nsupacool	I[ixY]=%d	relY_c=%d\n", I[ixY], relY_c);
 							enXhp=		postY_c |(		hpY_c<< 3 );
 
 			if(			relY_c ){	/*	high passthrough shifts	*/				hpY_i = I[ ixY ] -relY_c;
@@ -570,15 +574,15 @@ void _sv_commit( ){
 					switch(	enXhp ){	SwCASE_LPXOVER_10Y( *( (ui64*)(cube+I[ ixY] ) ), 	*( (ui64*)( H +ixY ) ),	*( (ui64*) cubeY )  )  }
 					}		/*		^lowpass crossover wye	^high passthrough src		^low inclusion src		^ wye output		*/
 					postY_q	=		Ox[ ixH ]	- Ox[	ixY	];
-			if(		postY_q )	{		iCEpACK( pqY, 	ixY, ixO, ixH,										dBUG_hiCAST_1F4MH_postY, dBUG_hiCAST_1F4MH_postY_i );	dBUG_TRACE3x2
-							}	/*	^re-pack modified q-data vectors ixY..ixO to cubeY[ 16..16+postY_q-1 ]  	*/
+			if(		postY_q )	{		iCEpACK( pqY, 	ixY, izM, ixH,										dBUG_hiCAST_1F4MH_postY, dBUG_hiCAST_1F4MH_postY_i );	dBUG_TRACE3x2
+							}	/*	^re-pack modified q-data vectors ixY..izM to cubeY[ 16..16+postY_q-1 ]  	*/
 						hpY_q	=	O[ ixZ ]		-	O[ ixH ];
 			if(			hpY_q )	{	XLOAD(	pqY,	O[ ixH ],	hpY_q,									dBUG_XLOAD_1F4MH_hpY );							dBUG_TRACE3x4;
 								}/*	^crossload (hpY_q) high-pass bytes from *(cube+O[ ixH ] ) to *pqY		*/
 
 		/*	[iC+1]:	SUBCASE 1F4H-2:	NEW CUBE Y AS MODS 										*/
 		}else{
-					if( ixO==izY)	{	NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F4MH_hpZ );
+					if( izM==izY)	{	NEW_CUBE_Z_AS_HIGHPASS(										dBUG_XLOAD_1F4MH_hpZ );
 					}else  		{	NEW_CUBE_Z_AS_MODSxHPASS(									dBUG_hiCAST_1F4_postZ,	dBUG_hiCAST_1F4_postZ_i,	dBUG_XLOAD_1F4M_hpZ);	dBUG_SUBc1F4x2
 								}
 					switch( izY-ixY){	SwCASE_LOWPASS_1I(							*( (ui64*)( H +ixY ) ),	*( (ui64*) cubeY )  )  }
@@ -590,22 +594,22 @@ void _sv_commit( ){
 		*( (ui64*) cube0+1)	= E[ zc0 ];	// update cube0 epsilon only now that old value can have been conserved
 
 		/*	[iC+1]:	SUBCASE 1F4L-1:	NEW CUBE 1 AS LOWPASS x MODS								*/
-		if( ixI >ix1 ){						CS1 = 16 +Ox[ ixX ] - O[ ix1 ];										dBUG_SUBc1F4x4;
+		if( ixM >ix1 ){						CS1 = 16 +Ox[ ixX ] - O[ ix1 ];										dBUG_SUBc1F4x4;
 										sv1		= newSVpvz(	0x6 |	CS1	);
 			SvCUR_set(				sv1,	CS1	);														dBUG_SvCUR(CS1, "CS1" );
 			cube1  	= SvPVbyte_nolen(	sv1	);	pq1  = cube1 +16;											*( (ui64*)	cube1+1	)	= E[ iz1 ];
 
-						lp1_q	=	O[	ixI ]	-	O[	ix1 ];
+						lp1_q	=	O[	ixM]	-	O[	ix1 ];
 			if(			lp1_q )	{	XLOAD(	pq1,	O[	ix1 ],	lp1_q,									dBUG_XLOAD_1F4_lp1 );								dBUG_TRACE1x1;
 								}/*	^crossload (hp1_q) low-pass bytes from *(cube+O[ ix1 ] ) to *pq1		*/
-						lp1_c	=		ixI	-		ix1;
-												post1_xc = iz1 -ixI;
+						lp1_c	=		ixM	-		ix1;
+												post1_xc = iz1 -ixM;
 							lpXen=		lp1_c| (	post1_xc<< 3 );
 					switch(	lpXen){	SwCASE_LPXOVER_01Y( *( (ui64*) ( H +ix1 ) ),							*( (ui64*)(cube+I[ix1] )),	*( (ui64*) cube1 )  )  }
 			//						^lowpass xover wye	^high inclusion src								^low passthrough src	^ wye output
-					post1_q	=		Ox[	ixX	] -	Ox[	ixI	];
-			if(		post1_q )	{		iCEpACK( pq1, 	ixI, iz1, 	ixX,										dBUG_hiCAST_1F4LM_post1,	dBUG_hiCAST_1F4LM_post1_i );	dBUG_TRACE1x2;
-							}	/*	^re-pack modified q-data vectors ixI..iz1 to cube1[ 16..16+post1_q-1 ]  	*/
+					post1_q	=		Ox[	ixX	] -	Ox[	ixM	];
+			if(		post1_q )	{		iCEpACK( pq1, 	ixM, iz1, 	ixX,										dBUG_hiCAST_1F4LM_post1,	dBUG_hiCAST_1F4LM_post1_i );	dBUG_TRACE1x2;
+							}	/*	^re-pack modified q-data vectors ixM..iz1 to cube1[ 16..16+post1_q-1 ]  	*/
 									MOD_CUBE_0_AS_LPASS(		ix1 );
 
 		/*	[iC+1]:	SUBCASE 1F4L-2:	NEW CUBE 1 AS MODS 										*/
@@ -619,7 +623,7 @@ void _sv_commit( ){
 			if(		post1_q )	{		iCEpACK( pq1, 	ix1, iz1, 	ixX,										dBUG_hiCAST_1F4M_post1,	dBUG_hiCAST_1F4M_post1_i );	dBUG_TRACE1x4;
 							}	/*	^re-pack modified q-data vectors ix1..iz1 to cube1[ 16..16+post1_q-1 ]  	*/
 
-			if( ixI >zc0 )	{			MOD_CUBE_0_AS_LPASS(		ix1 );	
+			if( ixM >zc0 )	{			MOD_CUBE_0_AS_LPASS(		ix1 );	
 			}else 		{			MOD_CUBE_0_AS_LPASSxMODS( ix1, 									dBUG_hiCAST_1F4_post0,	dBUG_hiCAST_1F4_post0_i );		dBUG_SUBc1F4x8;
 			}			}
 		cube1[ CS1	] = 0;	AvPOST( iC, sv1 );
@@ -651,16 +655,13 @@ void _sv_commit( ){
 
 
 
-*/	else{ printf("\ntena_zc too great: %d\n\n", tena_zc);	}
-
-_end:		
-	ixI=0xFF;
+*/
+	else{ printf("\ntena_zc too great: %d\n\n", tena_zc);	}
+_end: ixM=0xFF;
 	}
-
-
 void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. */
 
-/*	word up: the algorithmic action of compaction and expansion is charicterized by peristalsis—
+/*	word up: the algorithmic action of compaction and expansion is charicterized by "peristalsis"—
 	a directed, sequential wave of movement where the order of units matters structurally,
 	not just for performance.
 
@@ -670,28 +671,30 @@ void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. *
 	from a simple copy or memcpy.
 
 	*/
-	long long int	asc, zsc, dial, jmp;
+	long long int	asc, /*dsc, */ zsc, juke, jmp;
 	
-	#ifdef DEBUG_ReSEQ_L2		//	verbose audit of nominal activity	
+	#ifdef DEBUG_AvCOMMIT_L2		//	verbose audit of nominal activity	
 		long long int iRz;
-		#define dBUGiniA		{	cS=sprintf( aString, "\n starting in ascending mode at step #%lld/%lld for %lld iterations\n\n",   	asc, zsc, dial);		AvPUSHdBUG( aString, cS );	}
-		#define dBUGiniD		{	cS=sprintf( aString, "\n starting in descending mode at step #%lld/%lld for %lld iterations\n\n", 	dsc, zsc, dial);		AvPUSHdBUG( aString, cS );	}
-		#define dBUGriniA		{	cS=sprintf( aString, "\n switching to ascending mode at step #%lld/%lld for %lld iterations\n\n",	asc, zsc, dial	);	AvPUSHdBUG( aString, cS );	}
-		#define dBUGriniD		{	cS=sprintf( aString, "\n switching to descending mode at step #%lld/%lld for %lld iterations\n\n",	dsc, zsc, dial	);	AvPUSHdBUG( aString, cS );	}
+		#define dBUGiniA		{	cS=sprintf( aString, "\n starting in ascending mode at step #%lld/%lld for %lld iterations\n\n",   	asc, zsc, juke);		AvDBUG_PUSH( aString, cS );	}
+		#define dBUGiniD		{	cS=sprintf( aString, "\n starting in descending mode at step #%lld/%lld for %lld iterations\n\n", 	dsc, zsc, juke);		AvDBUG_PUSH( aString, cS );	}
+		#define dBUGriniA		{	cS=sprintf( aString, "\n switching to ascending mode at step #%lld/%lld for %lld iterations\n\n",	asc, zsc, juke	);	AvDBUG_PUSH( aString, cS );	}
+		#define dBUGriniD		{	cS=sprintf( aString, "\n switching to descending mode at step #%lld/%lld for %lld iterations\n\n",	dsc, zsc, juke	);	AvDBUG_PUSH( aString, cS );	}
 
-		#define dBUGinsA  	{	cS=sprintf( aString, "\r+I+	avICE[ %4lld ]	= SV%-4lld			asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",				dst-pSv0-1, 	rSeq_iR[asc]-$insA, 	asc,	zsc, dial, src-pSv0, dst-pSv0 ); 	AvPUSHdBUG( aString, cS );	}
-		#define dBUGcutA  	{	cS=sprintf( aString, "\r-X-	avICE[ %4lld ]	= NULL				asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",				src-pSv0, 				  		asc,	zsc, dial, src-pSv0, dst-pSv0 );	AvPUSHdBUG( aString, cS );	}
-		#define dBUGjmpA  	{	cS=sprintf( aString, "\r%c%c_	avICE[ %4lld ]	=	avICE[ %4lld ];		asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	174,174, 		dst-pSv0-1, 		src-pSv0-1,	  	asc,	zsc, dial, src-pSv0, dst-pSv0 );	AvPUSHdBUG( aString, cS );	}
-		#define dBUGlocA  	{	cS=sprintf( aString, "\r|%c%c	avICE[ %4lld ]	=	avICE[ %4lld ]; [T]	asc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	174,174,		dst-pSv0, 		$srcA,  			asc,	zsc, dial, src-pSv0, dst-pSv0 );	AvPUSHdBUG( aString, cS );	}
+		#define dBUGinsA  	{	cS=sprintf( aString, "\r+I+	avICE[ %4lld ]	= SV%-4lld			asc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",				dst-pSv0-1, 	rSeq_iR[asc]-$insA, 	asc,	zsc, juke, src-pSv0, dst-pSv0 ); 	AvDBUG_PUSH( aString, cS );	}
+		#define dBUGcutA  	{	cS=sprintf( aString, "\r-X-	avICE[ %4lld ]	= NULL				asc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",				src-pSv0, 				  		asc,	zsc, juke, src-pSv0, dst-pSv0 );	AvDBUG_PUSH( aString, cS );	}
+		#define dBUGjmpA  	{	cS=sprintf( aString, "\r%c%c_	avICE[ %4lld ]	=	avICE[ %4lld ];		asc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",	174,174, 		dst-pSv0-1, 		src-pSv0-1,	  	asc,	zsc, juke, src-pSv0, dst-pSv0 );	AvDBUG_PUSH( aString, cS );	}
+		#define dBUGlocA  	{	cS=sprintf( aString, "\r|%c%c	avICE[ %4lld ]	=	avICE[ %4lld ]; [T]	asc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",	174,174,		dst-pSv0, 		$srcA,  			asc,	zsc, juke, src-pSv0, dst-pSv0 );	AvDBUG_PUSH( aString, cS );	}
 
-		#define dBUGinsD  	{	cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",			1+	dst-pSv0,	rSeq_iR[dsc]+1,	 	dsc,	zsc, dial, src-pSv0, dst-pSv0);  	AvPUSHdBUG( aString, cS );	}
-		#define dBUGcutD  	{	cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",				src-pSv0,							dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHdBUG( aString, cS );	}
-		#define dBUGjmpD  	{	cS=sprintf( aString, "\r_%c%c	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	175,175,	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHdBUG( aString, cS );	}
-		#define dBUGlocD  	{	cS=sprintf( aString, "\r%c%c|	avICE[ %4d ]	=	avICE[ %4d ]; [T]	dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	175,175,		dst-pSv0, 		$srcD,  			dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHdBUG( aString, cS );	}
-		#define dBUGlocDx	{	cS=sprintf( aString, "\r_%c|	avICE[ %4d ]	=	avICE[ %4d ]; [Tx]	dsc: %lld/%lld	\n", 							175,			$dstD, 			$srcD,			dsc,	zsc						);	AvPUSHdBUG( aString, cS );	}
-		#define dBUGjmpDxA	{	cS=sprintf( aString, "\r__%c	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %lld/%lld	dial: %lld	src/dst: %lld/%lld\n",	175, 	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	zsc, dial, src-pSv0, dst-pSv0);		AvPUSHdBUG( aString, cS );	}
+		#define dBUGinsD  	{	cS=sprintf( aString, "\r+I+	avICE[ %4d ]	= SV%-4d			dsc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",			1+	dst-pSv0,	rSeq_iR[dsc]+1,	 	dsc,	zsc, juke, src-pSv0, dst-pSv0);  	AvDBUG_PUSH( aString, cS );	}
+		#define dBUGcutD  	{	cS=sprintf( aString, "\r-X-	avICE[ %4d ]	= NULL				dsc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",				src-pSv0,							dsc,	zsc, juke, src-pSv0, dst-pSv0);		AvDBUG_PUSH( aString, cS );	}
+		#define dBUGjmpD  	{	cS=sprintf( aString, "\r_%c%c	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",	175,175,	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	zsc, juke, src-pSv0, dst-pSv0);		AvDBUG_PUSH( aString, cS );	}
+		#define dBUGlocD_  	{	cS=sprintf( aString, "\r%c%c|	avICE[ %4d ]	=	avICE[ %4d ]; [T]	dsc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",	175,175,		dst-pSv0, 		$srcD,  			dsc,	zsc, juke, src-pSv0, dst-pSv0);		AvDBUG_PUSH( aString, cS );	}
+		#define dBUGlocD  	{	cS=sprintf( aString, "\r%c%c|	avICE[ %4d ]	=	avICE[ %4d ]; [T]	dsc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",	175,175,		dst-pSv0-$insD,	$srcD,  			dsc,	zsc, juke, src-pSv0, dst-pSv0);		AvDBUG_PUSH( aString, cS );	}
 
-		#define dBUG_ReSEQ_SCHED_PRE	\
+		#define dBUGlocDx	{	cS=sprintf( aString, "\r_%c|	avICE[ %4d ]	=	avICE[ %4d ]; [Tx]	dsc: %lld/%lld	\n", 							175,			$dstD, 			$srcD,			dsc,	zsc						);	AvDBUG_PUSH( aString, cS );	}
+		#define dBUGjmpDxA	{	cS=sprintf( aString, "\r__%c	avICE[ %4d ]	=	avICE[ %4d ];		dsc: %lld/%lld	juke: %lld	src/dst: %lld/%lld\n",	175, 	1+	dst-pSv0,	1+	src-pSv0,  		dsc,	zsc, juke, src-pSv0, dst-pSv0);		AvDBUG_PUSH( aString, cS );	}
+
+		#define dBUG_AvCOMMIT_SCHED_PRE	\
 		{	cS =sprintf( aString,	"\ncommit schedule (pre process):\n	#\t\t");													\
 													for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, "#%-7lld", 		iRz ); 	\
 			cS+=sprintf( aString +cS, "\n	rSeq_iR:\t"	);	for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, " %-7lld",	rSeq_iR[ 	iRz ]	);	\
@@ -699,9 +702,9 @@ void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. *
 			cS+=sprintf( aString +cS, "\n	rSeqCut:\t"	);	for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, " %-7lld",	rSeqCut[	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqSrc:\t"	);	for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, " %-7lld",	rSeqSrc[	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqDst:\t"	);	for( iRz=0; iRz<=7; ++iRz )	cS+=sprintf( aString +cS, " %-7lld",	rSeqDst[	iRz ]	);	\
-			cS+=sprintf( aString +cS, "\n\n");				AvPUSHdBUG( aString, cS );	\
+			cS+=sprintf( aString +cS, "\n\n");				AvDBUG_PUSH( aString, cS );	\
 		}
-		#define dBUG_ReSEQ_SCHED_POST	\
+		#define dBUG_AvCOMMIT_SCHED_POST	\
 		{	cS =sprintf( aString,    	"\ncommit schedule (post process):\n	#\t\t");													\
 													for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, "#%-7lld", 			iRz );	\
 			cS+=sprintf( aString +cS, "\n	rSeq_iR:\t"	);	for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, " %-7lld",	rSeq_iR[ 	iRz ]	);	\
@@ -709,7 +712,7 @@ void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. *
 			cS+=sprintf( aString +cS, "\n	rSeqCut:\t"	);	for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, " %-7lld",	rSeqCut[	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqSrc:\t"	);	for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, " %-7lld",	rSeqSrc[	iRz ]	);	\
 			cS+=sprintf( aString +cS, "\n	rSeqDst:\t"	);	for( iRz=0; iRz<=7; ++iRz ) cS+=sprintf( aString +cS, " %-7lld",	rSeqDst[	iRz ]	);	\
-			cS+=sprintf( aString +cS, "\n\n");				AvPUSHdBUG( aString, cS );	\
+			cS+=sprintf( aString +cS, "\n\n");				AvDBUG_PUSH( aString, cS );	\
 		}
 	#else
 		#define dBUGiniA
@@ -727,20 +730,20 @@ void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. *
 		#define dBUGlocD
 		#define dBUGlocDx
 		#define dBUGjmpDxA
-		#define dBUG_ReSEQ_SCHED_PRE
-		#define dBUG_ReSEQ_SCHED_POST
+		#define dBUG_AvCOMMIT_SCHED_PRE
+		#define dBUG_AvCOMMIT_SCHED_POST
 	#endif
-	#ifdef DEBUG_ReSEQ_L3		//	paranoid integrity checks which are silent until there's a problem
-		#define dBUGdscDIR	if(dsc<0 || dsc>zsc)	{	cS=sprintf( aString,		"\n!	dsc is out of bounds 0..%lld (%lld)\n", zsc, dsc);		AvPUSHdBUG( aString, cS );	}	\
-							if(src >dst )	{		cS=sprintf( aString,		"\n!	going in the wrong direction for ReSEQ_DESCEND	src( %lld ) > dst( %lld ), step #%d/%d;	rSeqCut[%lld]: %d	rSeqSrc[%lld]: %d	rSeqDst[%lld]: %d\n",	\
-																													src - pSv0, dst -pSv0,	dsc, zsc,		dsc, rSeqCut[dsc],	dsc, rSeqSrc[dsc],	dsc, rSeqDst[dsc]	);	AvPUSHdBUG( aString, cS );	\
+	#ifdef DEBUG_AvCOMMIT_L3		//	paranoid integrity checks which are silent until there's a problem
+		#define dBUGdscDIR	if(dsc<0 || dsc>zsc)	{	cS=sprintf( aString,		"\n!	dsc is out of bounds 0..%lld (%lld)\n", zsc, dsc);		AvDBUG_PUSH( aString, cS );	}	\
+							if(src >dst )	{		cS=sprintf( aString,		"\n!	going in the wrong direction for AvCOMMIT_DESCEND	src( %lld ) > dst( %lld ), step #%d/%d;	rSeqCut[%lld]: %d	rSeqSrc[%lld]: %d	rSeqDst[%lld]: %d\n",	\
+																													src - pSv0, dst -pSv0,	dsc, zsc,		dsc, rSeqCut[dsc],	dsc, rSeqSrc[dsc],	dsc, rSeqDst[dsc]	);	AvDBUG_PUSH( aString, cS );	\
 										}
-		#define dBUGascDIR	if(asc<0 || asc>zsc){	cS=sprintf( aString, 	"\n!	asc is out of bounds 0..%lld (%lld)\n", zsc, asc);	AvPUSHdBUG( aString, cS );	}	\
-							if(src< dst )	{		cS=sprintf( aString, 	"\n!	going in the wrong direction for ReSEQ_ASCEND    	src( %lld ) < dst( %lld ), step #%d/%d;	rSeqCut[%lld]: %d	rSeqSrc[%lld]: %d	rSeqDst[%lld]: %d\n", 	\
-																													src - pSv0, dst -pSv0,	asc, zsc,		asc, rSeqCut[asc],	asc, rSeqSrc[asc],	asc, rSeqDst[asc]	);	AvPUSHdBUG( aString, cS );	\
+		#define dBUGascDIR	if(asc<0 || asc>zsc){	cS=sprintf( aString, 	"\n!	asc is out of bounds 0..%lld (%lld)\n", zsc, asc);	AvDBUG_PUSH( aString, cS );	}	\
+							if(src< dst )	{		cS=sprintf( aString, 	"\n!	going in the wrong direction for AvCOMMIT_ASCEND    	src( %lld ) < dst( %lld ), step #%d/%d;	rSeqCut[%lld]: %d	rSeqSrc[%lld]: %d	rSeqDst[%lld]: %d\n", 	\
+																													src - pSv0, dst -pSv0,	asc, zsc,		asc, rSeqCut[asc],	asc, rSeqSrc[asc],	asc, rSeqDst[asc]	);	AvDBUG_PUSH( aString, cS );	\
 										}
-		if( zC!= AvFILLp( avICE ) ){zzC=( zC = AvFILLp( avICE ) )-1;	cS=sprintf( aString, 	"\n!	zC( %llu ) was out-of-sync with AvFILLp( avICE )( %llu )\n", zC, AvFILLp( avICE ) );	AvPUSHdBUG( aString, cS );			}
-		if(dsc<0){											cS=sprintf( aString, 	"\n!	dsc( %llu )< 0\n", dsc );													AvPUSHdBUG( aString, cS );	return;	}
+		if( zC!= AvFILLp( avICE ) ){zzC=( zC = AvFILLp( avICE ) )-1;	cS=sprintf( aString, 	"\n!	zC( %llu ) was out-of-sync with AvFILLp( avICE )( %llu )\n", zC, AvFILLp( avICE ) );	AvDBUG_PUSH( aString, cS );			}
+		if(dsc<0){											cS=sprintf( aString, 	"\n!	dsc( %llu )< 0\n", dsc );													AvDBUG_PUSH( aString, cS );	return;	}
 	#else
 		#define dBUGdscDIR
 		#define dBUGascDIR
@@ -751,7 +754,7 @@ void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. *
 /*	NOTES:
 
 	The "_av_commit()" function finalizes all deferred array splices without copying any shifted elements more than once.
-	It is only called once per call to any public accessor method, after all encoding and fragmentation has been completed.
+	It is only called once to finalize all insertions and deletions made by _sv_commit(), which can run many times per accessor call.
 
 	The parameters of all deferred splices are aggregated and temporarily stored in these (4) global arrays:
 		> rSeqSrc 	—the absolute index number of the operand element in the pre-operational array.
@@ -759,28 +762,29 @@ void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. *
 		> rSeqIns 	—the number of elements to be inserted at destination index.
 		> rSeqCut 	—the number of elements to be removed at source index.
 
-	These (4) arrays align to form a 4x256 matrix.  They share two common iterators, (asc) and (dsc), which each represent 1x4 vectors.
-	The matrix contains the relative offsets, lengths, and count parameters necessary to do multiple concurrent splices.
-	It is populated left-to-right, but it is processed as a descending series of ascending and/or descending runs, right-to-left overall.
-	As the running balance of elements in the pre-op vs post-op array can go positive or negative after any consecutive splice,
+	These (4) arrays align to form "the schedule", a 4x256 matrix, from which the iterators (asc) and (dsc) each select a 1x4 vector.
+	The schedule contains the relative offsets, lengths, and count parameters necessary to do multiple concurrent splices.
+	It is populated left-to-right, but it is processed as a descending series of ascending / descending runs, right-to-left overall.
+	The running balance of elements in the pre-op vs post-op array can go positive or negative after any consecutive splice, so,	
 	the main loop is actually two main loops which flip-flop at those indeces where the running balance changes signs.
 	The specific comparison which yields this sign is: (source index minus cut count) <=> (destination index pre-insertion).
 	This offset alignment is due to the incongruency of reference index between cuts and inserts when they are first registered;
 	both are determined only after the accessor's cursor has passed the reference index, but to-be-cut elements are already there,
 	whereas to-be-inserted elements are not— therefore any one reference index leads its cuts and trails its inserts.
 
-	Prior to getting here, the population of the matrix is event-based; simplex "insert" and "cut" ops are aggregated into "steps".
-	Each step outlines a triad of insert/cut/shift runs which represent a single splice operation.
+	Prior to getting here, the population of the schedule is event-based; simplex "insert" and "cut" ops are aggregated into "steps".
+	Each step outlines an insert-cut-shift procedure which affects a single splice operation.
 	
 	The loop starts by determining which direction to iterate in depending on whether the new length is greater than the old length.
-	The direction of iteration will reverse after any step where the relative difference between source and destination index crosses zero.
+	Actually, the direction of iteration will reverse every time the relative difference between source and destination index crosses zero.
 	When flipping to "ascending mode", the (asc) iterator jumps its entire step run all at once, back tracking to (dsc-1) step-by-step;
 	upon returning to (dsc-1), it jumps that amount again, flopping over to "descending mode" which picks up one element down
-	from where "ascending mode" last began.  Ascending motion steps like an old rotary phone dial, while descending motion is normal.
-	Overall though, the flip-flopping iteration pattern still starts at the high end and works leftwards to zero.
+	from where "ascending mode" last began.  Descending mode simply iterates, while ascending mode "jukes".
 
+	Overall though, the flip-flopping iteration pattern starts at the high end of the rSeq schedule and works leftwards to zero.
+	The transitional boundary from descending to ascending shift requires special control logic (labeled "_edge").
 
-	This scratch matrix illustration helped me wrap my mind around the process:
+	This text-based illustration helped me wrap my mind around the process:
 
 dsc:		 0                    1     2               3            4        5            6    7    8    9
 	---------|--------------------|-----|---------------|------------|--------|------------|----|----|----|
@@ -833,6 +837,7 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 	#define $cutD		rSeqCut[	dsc ]
 	#define $srcD 	rSeqSrc[	dsc ]
 	#define $srcutD 	rSeqSrc[	dsc ] - rSeqCut[	dsc ]
+	#define $srcinsD 	rSeqSrc[	dsc ] + rSeqIns[	dsc ]
 	#define $dstD 	rSeqDst[	dsc ]
 
 	#define $insA		rSeqIns[	asc ]
@@ -840,37 +845,40 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 	#define $srcA		rSeqSrc[	asc ]
 	#define $srcutA	rSeqSrc[	asc ] - rSeqCut[	asc ]
 	#define $dstA 	rSeqDst[	asc ]
-	asc=dsc;																				dBUG_ReSEQ_SCHED_PRE	
+	asc=dsc;																				dBUG_AvCOMMIT_SCHED_PRE	
 	if(				$srcutD>=$dstD){				
 		do	{/*	ascending start	*/	if( dsc ) --dsc;	else	{	src=				dst=pSv0;
-														dial = asc+1;		asc=0;	dsc=-1;	dBUGiniA;	goto _asce;	printf( lightning );
+														juke = asc+1;		asc=0;	dsc=-1;	dBUGiniA;	goto _asce;	printf( lightning );
 													}
 			} while(	$srcutD>=$dstD );						src= pSv0+$srcD;	dst=pSv0+$dstD;
-														dial = asc -dsc;	asc=1+	dsc;		dBUGiniA;	goto _asce;	printf( lightning );
+														juke = asc -dsc;	asc=1+	dsc;		dBUGiniA;	goto _asce;	printf( lightning );
 
 	}else	{/*	descending start	*/						src = pSv0 +zC;	dst = pSv0 +post_zC;
-			while(	$srcutA< $dstA )	 if( asc ) --asc; else	{	dial = dsc+1;						dBUGiniD;	goto _desc;	printf( lightning );
-			}										}	dial = dsc-asc;						dBUGiniD;
+			while(	$srcutA< $dstA )	 if( asc ) --asc; else	{	juke = dsc+1;						dBUGiniD;	goto _desc;	printf( lightning );
+			}										}	juke = dsc-asc;					dBUGiniD;
 
 	do		{											/*	transverse loop			*/			
 	_desc:	do	{		jmp = (src-pSv0) -$srcD;				/*	descending expansion loop	*/	dBUGdscDIR;
 					if(	jmp >0 )	if( src == dst )	dst-=jmp;	/*	descending expansion		*/
 								else	do	{	*dst-- = *src--;								dBUGjmpD;	} while( -- jmp );
+
+					if( dst -pSv0 !=$srcinsD )	{	*(dst-$insD) = *( pSv0 +$srcD);					dBUGlocD;	}
 					while( $insD)			{	*dst-- = rSeq_SV[	rSeq_iR[ dsc ]--]; --$insD; 		dBUGinsD;	}
-					if(	dst -pSv0 != $srcD)	{	*dst = *( pSv0 +$srcD);							dBUGlocD;	}
+			//		if(	dst -pSv0 != $srcD)	{	*dst = *( pSv0 +$srcD);							dBUGlocD_;	}
+
 					if(	$cutD ){	src =pSv0 +$srcutD -1;	$cutD=0; }
 					else			src =pSv0 +$srcD -1;
 
-	--dsc; --dst;	} while( --dial );	if( dsc< 0) break;
+	--dsc; --dst;	} while( --juke );	if( dsc< 0) break;
 
-			if( src != dst )	{		jmp = (src-pSv0) -$srcD;		/*	finish dsc to asc edge		*/
+	_edge:	if( src != dst )	{		jmp = (src-pSv0) -$srcD;		/*	finish dsc to asc edge		*/
 							if(	jmp >0 ) do {	*dst-- = *src--;								dBUGjmpDxA;} while( -- jmp );
 						}
 
 			asc	= dsc;									/*	seek start index of asc run	*/
 			while(	$srcutD >= $dstD )	if( dsc ) --dsc;	else
-				{	src=				dst=pSv0;			dial = asc+1;		asc=0;	dsc=-1;	dBUGriniA;	goto _asce;
-				}	src= pSv0+$srcD;	dst=pSv0+$dstD;		dial = asc -dsc;	asc=1+	dsc;		dBUGriniA;
+				{	src=				dst=pSv0;			juke = asc+1;		asc=0;	dsc=-1;	dBUGriniA;	goto _asce;
+				}	src= pSv0+$srcD;	dst=pSv0+$dstD;		juke = asc -dsc;	asc=1+	dsc;		dBUGriniA;
 
 	_asce:	do	{										/*	ascending compaction loop	*/	dBUGascDIR;
 					if(	$cutA ){	jmp=( $srcutA )	-(src -pSv0);	$cutA=0;	}
@@ -882,25 +890,28 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 					++	dst;		src = pSv0 +$srcA +1;
 					while( $insA )			{	*dst++ = rSeq_SV[	rSeq_iR[ asc ] - --$insA ]; 		dBUGinsA;	}
 
-	++asc;		} while( --dial ); 	if( dsc< 0) break;
+	++asc;		} while( --juke ); 	if( dsc< 0) break;
 
 			src = dst	= pSv0 +$dstD;	/* cursor L-jumps (-1) past start of now-complete asc run	*/
 			asc = dsc;									/*	L-seek end index of dsc run	*/
-			while(	$srcutA <= $dstA ) if( asc ) --asc; 	else	{	dial = dsc;						dBUGriniD;	goto _descx;
-													}	dial = dsc-asc-1;					dBUGriniD;
+			while(	$srcutA <= $dstA ) if( asc ) --asc; 	else	{	juke = dsc;						dBUGriniD;	goto _descx;
+													}	juke = dsc-asc-1;					dBUGriniD;
 
 	_descx:				jmp = (src-pSv0) -$srcD;				/*	transversal to _desc		*/	dBUGdscDIR;
 					if(	jmp >0 )				dst -= jmp;
 						while( $insD)		{	*dst-- = rSeq_SV[	rSeq_iR[ dsc ]--]; --$insD; 		dBUGinsD;	}
-			/*		if(	dst -pSv0 != $srcD ){	*dst = *( pSv0 +$srcD);							dBUGlocD;	}	*/
+			/*		if(	dst -pSv0 != $srcD ){	*dst = *( pSv0 +$srcD);							dBUGlocD_;	}	*/
 			/*		^^	this omission is what differentiates the "_desc" and "_descx" blocks							*/
 					if(	dsc==0 ) break;
 					if(	$cutD ){	src =pSv0 +$srcutD -1;	$cutD=0; }
 					else			src =pSv0 +$srcD -1;
 	--dsc; --dst;
 
-			} while( 1 ); /* flip-flop asc/dsc */													dBUG_ReSEQ_SCHED_POST
-	dsc=asc=dial=0;
+			} while( 1 ); /* flip-flop asc/dsc */													dBUG_AvCOMMIT_SCHED_POST
+	dsc=asc=juke=0;
 
 	if( AvFILLp( avICE ) != post_zC ) AvFILLp( avICE ) = post_zC;
 	}
+
+
+/* **	***	***	MEXICAN FIESTA	***	***	***	***	*/

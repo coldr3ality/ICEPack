@@ -1,9 +1,6 @@
 #include "_AvMOD.h"
 #include	"_ICE.h"
 
-extern ui08	ixOmax, ixOmin, ixImax, ixImin;
-extern ui08	range[24][2];
-
 extern HV	*	hvICE,
 			*	hvArg,
 			*	hvOut;
@@ -30,10 +27,12 @@ extern const ui08	nube[16];		/*	null cube / new cube			*/
 extern char		aString[],	ic, zc;
 extern void		_icepack_init(),
 				_toText(),
+				_toTextX(),
 				_set240(),
+				_unset(),
 				_printHex( 	SV* rvICE);
 extern	SV	*	toHex(		SV* rvICE);
-extern bool		_checks(),
+extern bool		_addsUp(),
 				_has(),
 				_clears(),
 				_fits(),

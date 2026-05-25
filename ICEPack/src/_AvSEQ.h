@@ -5,13 +5,13 @@ extern long long int	rSeq_iR[	256	], iR,	// source index of rSeq_SV 				(for eac
 				rSeqCut[	256	],	// the number of leading SVs to remove 	(for each control point)
 				rSeqSrc[	256	],	// source index						(for each control point)
 				rSeqDst[	256	],	// destination index						(for each control point)
-	/*	rel_zC, */	dsc, /* asc, zsc, dial, jmp, */
+	/*	rel_zC, */	dsc, /* asc, zsc, juke, jmp, */
 				rack_iC;			// running control point iterator
 
-#if defined(DEBUG_ReSEQ_L1)
-	#define dBUG_SvINS(		$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	insert SV#%-2lld to %lld %+lld %+lld (%lld)\t\n",	241,	dsc, iR,	$iC,		rel_iC,  rSeqIns[ dsc ],	$iC+rel_iC+rSeqIns[ dsc ]	);	AvPUSHdBUG( aString, cS );
-	#define dBUG_SvCUT(		$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	delete SV     at %lld %+lld (%lld)\n",			241,	dsc, 	$iC,		rel_iC,				$iC+rel_iC			);	AvPUSHdBUG( aString, cS );
-	#define dBUG_SvReCUT(	$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	delete SV before %lld %+d (%lld-1)\n",			241,	dsc, 	$iC,		rel_iC,				$iC+rel_iC			);	AvPUSHdBUG( aString, cS );
+#if defined(DEBUG_AvCOMMIT_L1)
+	#define dBUG_SvINS(		$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	insert SV#%-2lld to %lld %+lld %+lld (%lld)\t\n",	241,	dsc, iR,	$iC,		rel_iC,  rSeqIns[ dsc ],	$iC+rel_iC+rSeqIns[ dsc ]	);	AvDBUG_PUSH( aString, cS );
+	#define dBUG_SvCUT(		$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	delete SV     at %lld %+lld (%lld)\n",			241,	dsc, 	$iC,		rel_iC,				$iC+rel_iC			);	AvDBUG_PUSH( aString, cS );
+	#define dBUG_SvReCUT(	$iC, $sv )		cS=sprintf(aString, "\r%c	in splice #%d:	delete SV before %lld %+d (%lld-1)\n",			241,	dsc, 	$iC,		rel_iC,				$iC+rel_iC			);	AvDBUG_PUSH( aString, cS );
 #else
 	#define dBUG_SvINS(		$iC, $sv )
 	#define dBUG_SvCUT(		$iC, $sv )

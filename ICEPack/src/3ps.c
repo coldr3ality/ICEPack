@@ -24,15 +24,15 @@
 #include "dBUG.h"
 #include "3ps.h"
 
-bool _checks(){
+bool _addsUp(){
 	#if defined( DEBUG_TRUTH_L1 )
-		#define dBUG3ps_NOPROB( $FUNC )	cS = sprintf(aString, 	"\rok 	%s line %lld: %s encountered no error.\n",								__FILE__, __LINE__,	$FUNC			);	AvPUSHdBUG( aString, cS );
-		#define dBUG3ps_NOARG			cS = sprintf(aString, 	"\r! 	%s line %lld: (AV*) avArg array is empty.\n",								__FILE__, __LINE__					);	AvPUSHdBUG( aString, cS );
-		#define dBUG3ps_NOCUBE			cS = sprintf(aString, 	"\r! 	%s line %lld: (AV*) avICE array is empty.\n",									__FILE__, __LINE__					);	AvPUSHdBUG( aString, cS );
-		#define dBUGzc(		$iC )			cS = sprintf(aString, 	"\r! 	%s line %lld: cube #%lld is empty.		\n",									__FILE__, __LINE__, $iC				);	AvPUSHdBUG( aString, cS );
-		#define dBUG3ps_ic(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld checksum error.	\n",								__FILE__, __LINE__, $iC				);	AvPUSHdBUG( aString, cS );
-		#define dBUG3ps_CS(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld STRLEN error.   	( computed: %llu 	stored: %llu  )\n",	__FILE__, __LINE__, $iC,	pq-cube, CS	);	AvPUSHdBUG( aString, cS );
-		#define dBUG3ps_svC(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld SV* pointer is null.	\n",								__FILE__, __LINE__, $iC				);	AvPUSHdBUG( aString, cS );
+		#define dBUG3ps_NOPROB( $FUNC )	cS = sprintf(aString, 	"\rok 	%s line %lld: %s encountered no error.\n",								__FILE__, __LINE__,	$FUNC			);	AvDBUG_PUSH( aString, cS );
+		#define dBUG3ps_NOARG			cS = sprintf(aString, 	"\r! 	%s line %lld: (AV*) avArg array is empty.\n",								__FILE__, __LINE__					);	AvDBUG_PUSH( aString, cS );
+		#define dBUG3ps_NOCUBE			cS = sprintf(aString, 	"\r! 	%s line %lld: (AV*) avICE array is empty.\n",									__FILE__, __LINE__					);	AvDBUG_PUSH( aString, cS );
+		#define dBUGzc(		$iC )			cS = sprintf(aString, 	"\r! 	%s line %lld: cube #%lld is empty.		\n",									__FILE__, __LINE__, $iC				);	AvDBUG_PUSH( aString, cS );
+		#define dBUG3ps_ic(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld checksum error.	\n",								__FILE__, __LINE__, $iC				);	AvDBUG_PUSH( aString, cS );
+		#define dBUG3ps_CS(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld STRLEN error.   	( computed: %llu 	stored: %llu  )\n",	__FILE__, __LINE__, $iC,	pq-cube, CS	);	AvDBUG_PUSH( aString, cS );
+		#define dBUG3ps_svC(	$iC )			cS = sprintf(aString,	"\r! 	%s line %lld: cube #%lld SV* pointer is null.	\n",								__FILE__, __LINE__, $iC				);	AvDBUG_PUSH( aString, cS );
 	#else
 		#define dBUG3ps_NOPROB
 		#define dBUG3ps_NOARG
@@ -62,7 +62,7 @@ bool _checks(){
 									}		if(*( (ui64*)	cube +1 ) 				!=	Ec ){    		dBUG3ps_ic( iC );	return 0; }
 											if(		pq -	cube!=	CS){								dBUG3ps_CS( iC );	return 0; }
 		}
-//	dBUG3ps_NOPROB("_checks()");
+//	dBUG3ps_NOPROB("_addsUp()");
 	return 1; // no prob.
 	}
 bool _has(	/* avArgs */ 	){ //	count matches in avArgs.	return true = object contains all arguments.				Searches ICEPack;	iterates args. 		Best for large objects with few args.
@@ -246,13 +246,16 @@ bool	_fits(	/* avArgs */ 	){ //	count matches in avArgs.	return true = argument 
 
 	for(		iC=1;iC<=	zC;	++iC ){						svC=*( pSvC0 +iC );			if( svC==NULL){					dBUG3ps_svC( iC );	return 0; }
 							cube = SvPVbyte(	svC, CS );
-					zc =zcOf(	cube );	deICE0(			Qc, Ac, Bc ); x=Ec+Ac;	for(	Ec=x+Bc;  x< Ec;  ++x ){			FIND_X_OR_MISS( iC );		}
+					zc =zcOf(	cube );			deICE0(			Qc, Ac, Bc ); x=Ec+Ac;	for(	Ec=x+Bc;  x< Ec;  ++x ){			FIND_X_OR_MISS( iC );		}
 		for(	ic=1; ic<=	zc;	++ic )	{			deICE( cube[ ic ],	Qc, Ac, Bc ); x=Ec+Ac;	for(	Ec=x+Bc;  x< Ec;  ++x ){			FIND_X_OR_MISS( iC );		}
 								} 												if(	Ec	!=*( (ui64*)	cube +1 )	){  	dBUG3ps_ic( iC );	return 0; }
 																				if(	CS	!= pq 	-	cube	){	dBUG3ps_CS( iC );	return 0; }
 		}
 	return miss==0? 1: 0;	/* np. */
 	}
+int	_hits(){
+	}
+
 bool _strikes(	/* avArgs */	){ //	cut matches from avArgs.	return true = argument set is emptied.					Searches args;	iterates ICEPack. 	best for small objects with many args.	
 	#define	PULL_X_OR_CONTINUE( $iC, $pSv )	\
 	while(	x !=SvIVX( svA ) ){	\

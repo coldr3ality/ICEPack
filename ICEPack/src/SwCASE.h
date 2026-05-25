@@ -1177,14 +1177,3 @@
 /* 7x7 */	case 0x3F:	endo$IS &=	0xFF00000000000000;  	
 
 
-#define LLUI_BYTESUB_MORE(	$LLUI, $i, $shift_bytes, $mask_bytes )\
-							bs = $shift_b<< 3;	/* Convert ( i ) bytes to ( bs ) bits.						*/	\
-	Kx8_ = *( (ui64*) $LLUI )<<	bs;				/* Left-shift a copy of $LLUI by (bs) bits.				*/	\
-			kSpliceOpcode =	bs|$i;			/* Serialize the given parameters to generate the opcode.	*/	\
-	switch(	kSpliceOpcode ){ LLUI_BYTECUT_SwCASES( Kx8_, *( (ui64*) $LLUI) );	}
-
-#define LLUI_BYTESUB_LESS		$LLUI, $i, $shift_bytes, $mask_bytes )\
-							bs = $shift_b<< 3;	/* Convert ( i ) bytes to ( bs ) bits.						*/	\
-	Kx8_ = *( (ui64*) $LLUI )>>	bs;				/* Right-shift a copy of $LLUI by (bs) bits.				*/	\
-			kSpliceOpcode =	bs|$i;			/* Serialize the given parameters to generate the opcode.	*/	\
-	switch(	kSpliceOpcode ){ LLUI_BYTECUT_SwCASES( Kx8_, *( (ui64*) $LLUI) );	}
