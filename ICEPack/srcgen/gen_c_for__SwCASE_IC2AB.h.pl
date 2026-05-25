@@ -13,34 +13,36 @@ use constant	D=>3;
 #	|Let's generate 		|Variant suffix 	|Add'l args		|Perl code to be eval'ed— to generate add'l C code
 #	|several variants		|shown in name	|to function-like	|at the end of each switch-case, 
 #	|at once.				|of macro & file:	|macro:			|immediately preceding "break":
-my @CASE_TERMINATOR=( 	'',				'',				'printf $fh( "	\$q =%2d;  ",						$s[A]	);',
-						'_inc_qo',			'',				'if( $s[A] >0 ){	printf $fh( "	\$q+=%2d;  	\$o1+=%2d;	",	$s[A], $s[A]	);	}',
-						'_inc_o',			'',				'printf $fh( "	\$q =%2d;  ",						$s[A]	);'.
-														'if( $s[A] >0 ){	printf $fh( "	\$o2 =\$o1 +%3d;	",	$s[A]	);	}'.
-														'else{		printf $fh( "	\$o2 =\$o1;		",			);	}',
-						'_init_o',			'',				'printf $fh( "	\$q =%2d;  ",						$s[A]	);'.
-														'if( $s[A] >0 ){	printf $fh( "	\$o2 =16 +%3d;	",	$s[A]	);	}'.
-														'else{		printf $fh( "	\$o2 =16;		",			);	}',
-						'_inc_p',			'',				'printf $fh( "	\$q =%2d;  ",							$s[A]	);'.
-														'if( $s[A] >0 ){	printf $fh( "	\$pq +=%3d;	",			$s[A]	);	}'.
-														'else{		printf $fh( "				",					);	}',
-						'_init_p',			'',				'printf $fh( "	\$q =%2d;  ",							$s[A]	);'.
-														'if( $s[A] >0 ){	printf $fh( "	\$pq =\$cube +%3d;	",	$s[A]+16	);	}'.
-														'else{		printf $fh( "	\$pq =\$cube+16;		",			);	}',
-#	|					|				|				|
-#	|					|				|				|
+my @CASE_TERMINATOR=(	'',				'',				'			printf $fh( "\$q =%2d;	",						$s[A]	);	',
+
+						'_incQ',			', $i',			'if( $s[A] >0 ){	printf $fh( "\$q+=%2d;  	",						$s[A]	);	'.
+														'			printf $fh( "\$i+=%2d;	",						$s[A]	);	}',
+
+						'_inc',			', $i',			'			printf $fh( "\$q =%2d;	",						$s[A]	);	'.
+														'if( $s[A] >0 ){	printf $fh( "\$i+=%3d;	",						$s[A]	);	}',
+
+						'_vec',			', $u, $v',    		'			printf $fh( "\$q =%2d;	",						$s[A]	);	'.
+														'if( $s[A] >0 ){	printf $fh( "\$v =\$u +%3d;	",					$s[A]	);	}'.
+														'else{		printf $fh( "\$v =\$u;		",						);	}',
+
+						'_vec_init16',		', $u, $v',    		'			printf $fh( "\$q =%2d;	",						$s[A]	);'.
+														'			printf $fh( "\$v =\$u +%3d;	",					$s[A]+16	);',
+
+						'_init16',			', $v',			'			printf $fh( "\$q =%2d;	",						$s[A]	);'.
+														'			printf $fh( "\$v =%3d;	",						$s[A]+16	);',
+
 						);
-my	($anycast, $qs, $b, $b2, $o, $o2, $c, @casts, @c, @b, @o, @s, @q);
+my	($anycast, $qs, $b, $b2, $o, $v, $c, @casts, @c, @b, @o, @s, @q);
 my $mtime = (stat($0))[9];
 my $readable_date = scalar localtime($mtime);
 
 
 for( my $ctv=0; $ctv< $#CASE_TERMINATOR; $ctv+=3 ){
 # foreach my $overrunBytes(0..3){
-  open(my $fh, '>',	"SwCASE_ICEq2AB$CASE_TERMINATOR[$ctv].h");
+  open(my $fh, '>',	"SwCASE_IC2AB$CASE_TERMINATOR[$ctv].h");
   printf $fh(
 	"/*	This file was programmatically generated.\n\t	script:\t\t$0\n\t	last modified:\t$readable_date	*/\n\n".
-	"#define	SwCASE_ICEq2AB%s( \$q, \$a, \$b, \$pq, \$cube, \$o1, \$o2 %s)	/*	expand [a, b] from the q-data at *pq		*/		\\\n",
+	"#define	SwCASE_IC2AB%s(		\$q, \$a, \$b, \$pq %s)	/*	expand [a, b] from the q-data at *pq		*/		\\\n",
 		$CASE_TERMINATOR[$ctv		],	# variant's name suffix
 		$CASE_TERMINATOR[$ctv	+1	],	# variant's add'l macro arguments
 		);

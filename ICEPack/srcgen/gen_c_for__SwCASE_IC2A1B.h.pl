@@ -13,22 +13,15 @@ use constant	D=>3;
 #	|Let's generate 		|Variant suffix 	|Add'l args		|Perl code to be eval'ed— to generate add'l C code
 #	|several variants		|shown in name	|to function-like	|at the end of each switch-case, 
 #	|at once.				|of macro & file:	|macro:			|immediately preceding "break":
-my @CASE_TERMINATOR=( 	'',				'',				'printf $fh( "	\$q =%2d;  ",						$s[A]	);',
-						'_inc_qo',			'',				'if( $s[A] >0 ){	printf $fh( "	\$q+=%2d;  	\$o1+=%2d;	",	$s[A], $s[A]	);	}',
-						'_inc_o',			'',				'printf $fh( "	\$q =%2d;  ",						$s[A]	);'.
-														'if( $s[A] >0 ){	printf $fh( "	\$o2 =\$o1 +%3d;	",	$s[A]	);	}'.
-														'else{		printf $fh( "	\$o2 =\$o1;		",			);	}',
-						'_init_o',			'',				'printf $fh( "	\$q =%2d;  ",						$s[A]	);'.
-														'if( $s[A] >0 ){	printf $fh( "	\$o2 =16 +%3d;	",	$s[A]	);	}'.
-														'else{		printf $fh( "	\$o2 =16;		",			);	}',
-						'_inc_p',			'',				'printf $fh( "	\$q =%2d;  ",							$s[A]	);'.
-														'if( $s[A] >0 ){	printf $fh( "	\$pq +=%3d;	",			$s[A]	);	}'.
-														'else{		printf $fh( "				",					);	}',
-						'_init_p',			'',				'printf $fh( "	\$q =%2d;  ",							$s[A]	);'.
-														'if( $s[A] >0 ){	printf $fh( "	\$pq =\$cube +%3d;	",	$s[A]+16	);	}'.
-														'else{		printf $fh( "	\$pq =\$cube+16;		",			);	}',
-#	|					|				|				|
-#	|					|				|				|
+my @CASE_TERMINATOR=(	'_vecx_incQ',		', $qu, $u, $v',		'if( $s[A] >0 ){	printf $fh( " \$q=\$qu+%d;	",		$s[A]	);	'.
+														'			printf $fh( " \$v =\$u +%d;	",		$s[A]	);	}'.
+														'else{		printf $fh( " \$q=\$qu;		"				);	'.
+														'			printf $fh( " \$v =\$u;		",				);	}',
+						'_vec_init16',		', $u, $v',  		'			printf $fh( "\$v =\$u +%3d;	",		$s[A]+16	);',
+
+						'_init16',			', $v',			'			printf $fh( "\$q =%2d;	",			$s[A]	);'.
+														'			printf $fh( "\$v =%3d;	",			$s[A]+16	);',
+
 						);
 my	($anycast, $qs, $b, $b2, $o, $o2, $c, @casts, @c, @b, @o, @s, @q);
 my $mtime = (stat($0))[9];
@@ -37,10 +30,10 @@ my $readable_date = scalar localtime($mtime);
 
 for( my $ctv=0; $ctv< $#CASE_TERMINATOR; $ctv+=3 ){
 # foreach my $overrunBytes(0..3){
-  open(my $fh, '>',	"SwCASE_ICEq2AB$CASE_TERMINATOR[$ctv].h");
+  open(my $fh, '>',	"SwCASE_IC2A1B$CASE_TERMINATOR[$ctv].h");
   printf $fh(
 	"/*	This file was programmatically generated.\n\t	script:\t\t$0\n\t	last modified:\t$readable_date	*/\n\n".
-	"#define	SwCASE_ICEq2AB%s( \$q, \$a, \$b, \$pq, \$cube, \$o1, \$o2 %s)	/*	expand [a, b] from the q-data at *pq		*/		\\\n",
+	"#define	SwCASE_IC2A1B%s(		\$q, \$a, \$b, \$pq  %s)	/*	Expand [a, b] from the q-data at *pq, adding (+1) to a.		*/		\\\n",
 		$CASE_TERMINATOR[$ctv		],	# variant's name suffix
 		$CASE_TERMINATOR[$ctv	+1	],	# variant's add'l macro arguments
 		);
@@ -51,7 +44,7 @@ for( my $ctv=0; $ctv< $#CASE_TERMINATOR; $ctv+=3 ){
 			for( $q[B]=1;		$q[B]< 9; ++$q[B] ){
 				for( $q[A]=1;	$q[A]< 9; ++$q[A] ){	#	q( A ): 1..8	q( B ): 0
 					$qs=		( ( $q[B] -1) <<3)|	($q[A]-1);
-  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= %d;".								"	$T	$ABCD[1]= %d;$T",										$qs, 0, 0,				$q[A] -1,					$q[B] -1	);
+  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= %d;	".							"	$T	$ABCD[1]= %d;$T",										$qs, 0, 0,		$q[A],								$q[B] -1	);
 
 					eval( $CASE_TERMINATOR[ $ctv +2 ] );
 					print $fh( "	break;	\\\n");
@@ -65,9 +58,9 @@ for( my $ctv=0; $ctv< $#CASE_TERMINATOR; $ctv+=3 ){
 					$s[A]=			$q[A];
 					$o[A]=	$OS[	$q[A] ];
 if( $OS[$q[A] ] ==0){
-  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= *( ($CAST[ $q[A]]*) \$pq		)".	"%-18s	\t	$ABCD[1]= %d;$T",										$qs, $q[A], 0,			$BS[$q[A] ],				$q[B] -1	);
+  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]=1+ *( ($CAST[ $q[A]]*) \$pq		)".	"%-18s	\t	$ABCD[1]= %d;$T",										$qs, $q[A], 0,				$BS[$q[A] ],				$q[B] -1	);
 }else{
-  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= *( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	$ABCD[1]= %d;$T",										$qs, $q[A], 0,	$o[A],	$BS[$q[A] ],				$q[B] -1	);
+  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]=1+ *( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	$ABCD[1]= %d;$T",										$qs, $q[A], 0,		$o[A],	$BS[$q[A] ],				$q[B] -1	);
 	}
 
 					eval( $CASE_TERMINATOR[ $ctv +2 ] );
@@ -85,9 +78,9 @@ if( $OS[$q[A] ] ==0){
 					$o[B]=	$OS[	$q[B] ];
 
 if( $o[B ]==0){
-  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= %d;".								"	$T	$ABCD[1]= *( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, 0, $q[B],	 			$q[A]-1,				$BS[$q[B] ]	);
+  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]=%d;	".							"	$T	$ABCD[1]= *( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, 0, $q[B],	 	$q[A],						$BS[$q[B] ]	);
 }else{
-  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= %d;".								"	$T	$ABCD[1]= *( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, 0, $q[B],	 			$q[A]-1,		$o[B],	$BS[$q[B] ]	);
+  printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]=%d;	".							"	$T	$ABCD[1]= *( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, 0, $q[B],	 	$q[A],				$o[B],	$BS[$q[B] ]	);
 	}
 					eval( $CASE_TERMINATOR[ $ctv +2 ] );
 					print $fh( "	break;	\\\n");
@@ -107,14 +100,14 @@ if( $o[B ]==0){
 					$qs=0xC0|	( ( $q[B] -1) <<3)|	($q[A]-1);
 if(		$o[A ]==0){
   if(		$o[B ]==0){
-    printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= *( ($CAST[ $q[A]]*) \$pq		)".	"%-18s	\t	$ABCD[1]= *( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, $q[A], $q[B],			$BS[$q[A] ],			$BS[$q[B] ]	);
+    printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]=1+ *( ($CAST[ $q[A]]*) \$pq		)".	"%-18s	\t	$ABCD[1]= *( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, $q[A], $q[B],			$BS[$q[A] ],			$BS[$q[B] ]	);
   }else{
-    printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= *( ($CAST[ $q[A]]*) \$pq		)".	"%-18s	\t	$ABCD[1]= *( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, $q[A], $q[B],			$BS[$q[A] ],	$o[B],	$BS[$q[B] ]	);
+    printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]=1+ *( ($CAST[ $q[A]]*) \$pq		)".	"%-18s	\t	$ABCD[1]= *( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, $q[A], $q[B],			$BS[$q[A] ],	$o[B],	$BS[$q[B] ]	);
   }
 }elsif(	$o[B ]==0){
-    printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= *( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	$ABCD[1]= *( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, $q[A], $q[B],	$o[A],	$BS[$q[A] ],			$BS[$q[B] ]	);
+    printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]=1+ *( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	$ABCD[1]= *( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, $q[A], $q[B],	$o[A],	$BS[$q[A] ],			$BS[$q[B] ]	);
 }else{
-    printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]= *( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	$ABCD[1]= *( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, $q[A], $q[B],	$o[A],	$BS[$q[A] ],	$o[B],	$BS[$q[B] ]	);
+    printf $fh("case 0x%02X:	/* %2d, %-2d  */	$ABCD[0]=1+ *( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	$ABCD[1]= *( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, $q[A], $q[B],	$o[A],	$BS[$q[A] ],	$o[B],	$BS[$q[B] ]	);
 	}
 					eval( $CASE_TERMINATOR[ $ctv +2 ] );
 					print $fh( "	break;	\\\n");
