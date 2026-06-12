@@ -1,4 +1,3 @@
-
 #define SwCASE_LOWPASS_0IS(		lo$IS 	)	/* "0IS" means 	switch case vector 0 starts at zero,
 															and arg[0] is both the input and output variable, "In Situ".	*/	\
 		case 0x00:											lo$IS  =	0x0000000000000000;						break;\
@@ -948,7 +947,6 @@
 
 
 
-/*	kSpliceOpcode = ic0 |( post_c<< 3);	*/
 #define SwCASE_XSHELF_01T( hi$,	lo$T )			/* "01T" means	switch case vector 0 starts at zero,
 																switch case vector 1 starts at one,
 																and arg[0] "Tees into" arg[1], which is also the output variable.	*/	\
@@ -1177,16 +1175,3 @@
 /* 7x5 */	case 0x3D:	endo$IS &=	0xFFFFFF0000000000;  	break;\
 /* 7x6 */	case 0x3E:	endo$IS &=	0xFFFF000000000000;  	break;\
 /* 7x7 */	case 0x3F:	endo$IS &=	0xFF00000000000000;  	
-
-
-#define LLUI_BYTESUB_MORE(	$LLUI, $i, $shift_bytes, $mask_bytes )\
-							bs = $shift_b<< 3;	/* Convert ( i ) bytes to ( bs ) bits.						*/	\
-	Kx8_ = *( (ui64*) $LLUI )<<	bs;				/* Left-shift a copy of $LLUI by (bs) bits.				*/	\
-			kSpliceOpcode =	bs|$i;			/* Serialize the given parameters to generate the opcode.	*/	\
-	switch(	kSpliceOpcode ){ LLUI_BYTECUT_SwCASES( Kx8_, *( (ui64*) $LLUI) );	}
-
-#define LLUI_BYTESUB_LESS		$LLUI, $i, $shift_bytes, $mask_bytes )\
-							bs = $shift_b<< 3;	/* Convert ( i ) bytes to ( bs ) bits.						*/	\
-	Kx8_ = *( (ui64*) $LLUI )>>	bs;				/* Right-shift a copy of $LLUI by (bs) bits.				*/	\
-			kSpliceOpcode =	bs|$i;			/* Serialize the given parameters to generate the opcode.	*/	\
-	switch(	kSpliceOpcode ){ LLUI_BYTECUT_SwCASES( Kx8_, *( (ui64*) $LLUI) );	}

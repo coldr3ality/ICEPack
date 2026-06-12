@@ -22,33 +22,63 @@ our @ISA = qw(DynaLoader);	bootstrap ICEPack;
 use Exporter;
 our @EXPORT=qw( test_set_recursively );	printf("\n\nbrrrrr\n");
 use Time::HiRes qw(gettimeofday tv_interval);
-my @avOut=();	my @precursors;	my @precursors_off;
+my @avOut=();	my @precursors;	my @unset_precursors;
 my $msec0=gettimeofday; my $msec1=$msec0;
+sub test_hits($){
+	my ( $nTests)=@_;
+	my	($T,	$nTx100,		$hit,	$miss,	$fail,	$perSec, $msec0, $msec1, $msec2, $x, $ICE,  @ICE, @args1, @args2 )=
+		(0,	$nTests*0.01,	0,	0,		0,		);
+	$msec0=$msec1=gettimeofday;
+
+	TEST:foreach $T(1..$nTests){
+		@args1=();
+		@args2=();
+		for( my $t =11;  $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args2,		$x )	){	++$t;}
+													else{	insortIV( \@args1,		$x );			}	}
+
+		for( my $t =222;  $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args2,		$x ) ){	++$t;}	}
+
+		$ICE=av2ICE( \@args2 );
+		$hit=$ICE->has( \@args1 );
+		if($hit!=11){	$miss=11-$hit;
+			print(	"\r	($miss) keys not found\n");
+			++$fail;
+			}
+		$msec2=gettimeofday;
+
+		if($msec2-$msec1 >0.1){
+			$perSec =$T /( $msec2-$msec0);
+			printf(	"\rtesting hits():	%6.2f%c completed (%d) test[s] w/ (%d) fail[s]  %11.2f/sec  ", $T/$nTx100,	37, $T, $fail, $perSec );
+			$msec1=$msec2;
+		}	}
+	$perSec =$nTests /( gettimeofday-$msec0);
+	printf(	"\rtesting hits():	%6.2f%c completed (%d) test[s] w/ (%d) fail[s]  %11.2f/sec  \n", 100,	37, $T, $fail, $perSec );
+	}
 sub test_strikes($){
 	my ( $nTests)=@_;
-	my	($T,	$nTx100,		$ok,	$fail,	$perSec, $msec0, $msec1, $msec2, $x, $ICE,  @ICE, @args, @args_B4, @args_extra, @args_XX )=
+	my	($T,	$nTx100,		$ok,	$fail,	$perSec, $msec0, $msec1, $msec2, $x, $ICE,  @ICE, @args, @args_B4, @args_salt, @args_XX )=
 		(0,	$nTests*0.01,	0,	0,		);
 	$msec0=$msec1=gettimeofday;
 
 	TEST:foreach $T(1..$nTests){
 		@args=();
-		@args_extra=();
+		@args_salt=();
 		for( my $t =11;  $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args,		$x )	){	++$t;}	}
 
 		@args_B4=@args;
 		$ICE=av2ICE( \@args );
 		for( my $t =3;  $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args,		$x ) ){	++$t;}
-													else{	insortIV( \@args_extra,	$x );	}			}
+													else{	insortIV( \@args_salt,	$x );	}			}
 		@args_XX=@args;
 		$ok=$ICE->strikes( \@args );
-		if( join('', @args) ne join('', @args_extra ) ){	if(		$ok ){ printf("\n!	ICEPack::strikes() returned false positive!	\n");		}
+		if( join('', @args) ne join('', @args_salt ) ){	if(		$ok ){ printf("\n!	ICEPack::strikes() returned false positive!	\n");		}
 		#	print(	"\r	keys set:	",		join(', ', map{ sprintf( "%llX", $_ ) }	@args_B4 )		);
 		#	print(	"\r	keys checked:	",	join(', ', map{ sprintf( "%llX", $_ ) }	@args_XX )		);
-		#	print(	"\r	keys extra:	",	join(', ', map{ sprintf( "%llX", $_ ) }	@args_extra )		);
+		#	print(	"\r	keys extra:	",	join(', ', map{ sprintf( "%llX", $_ ) }	@args_salt )		);
 		#	print(	"\r	keys not found: ",	join(', ', map{ sprintf( "%llX", $_ ) }	@args )			);
 			print(	"\r	keys set:	",		join(', ', @args_B4 ),	"\n");
 			print(	"\r	keys checked:	",	join(', ', @args_XX ),	"\n");
-			print(	"\r	keys extra:	",	join(', ', @args_extra ),	"\n");
+			print(	"\r	keys extra:	",	join(', ', @args_salt ),	"\n");
 			print(	"\r	keys not found: ",	join(', ', @args ),		"\n");
 			print(	"\n\n" );
 			++$fail;
@@ -63,32 +93,32 @@ sub test_strikes($){
 	$perSec =$nTests /( gettimeofday-$msec0);
 	printf(	"\rtesting strikes():	%6.2f%c completed (%d) test[s] w/ (%d) fail[s]  %11.2f/sec  \n", 100,	37, $T, $fail, $perSec );
 	}
-sub test_clears($){
+sub test_3ps($){
 	my ( $nTests)=@_;
-	my	($T,	$nTx100,		$ok,	$fail,	$perSec, $msec0, $msec1, $msec2, $x, $ICE,  @ICE, @args, @args_B4, @args_extra, @args_XX )=
+	my	($T,	$nTx100,		$ok,	$fail,	$perSec, $msec0, $msec1, $msec2, $x, $ICE,  @ICE, @args, @nargs, @draw, @hits, @args_B4, @args_salt, @args_XX )=
 		(0,	$nTests*0.01,	0,	0,		);
 	$msec0=$msec1=gettimeofday;
 
 	TEST:foreach $T(1..$nTests){
 		@args=();
-		@args_extra=();
+		@args_salt=();
 		for( my $t =11;  $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args,		$x )	){	++$t;}	}
 
 		@args_B4=@args;
 		$ICE=av2ICE( \@args );
 		for( my $t =3;  $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args,		$x ) ){	++$t;}
-													else{	insortIV( \@args_extra,	$x );	}			}
+													else{	insortIV( \@args_salt,	$x );	}			}
 		@args_XX=@args;
-		$ok=$ICE->clears( \@args );
-		if( join('', @args) ne join('', @args_extra ) ){	if(		$ok ){ printf("\n!	ICEPack::clears() returned false positive!	\n");		}
+		$ok=$ICE->excludes( \@args );
+		if( join('', @args) ne join('', @args_salt ) ){	if(		$ok ){ printf("\n!	ICEPack::excludes() returned false positive!	\n");		}
 		#	print(	"\r	keys set:	",		join(', ', map{ sprintf( "%llX", $_ ) }	@args_B4 )		);
 		#	print(	"\r	keys checked:	",	join(', ', map{ sprintf( "%llX", $_ ) }	@args_XX )		);
-		#	print(	"\r	keys extra:	",	join(', ', map{ sprintf( "%llX", $_ ) }	@args_extra )		);
+		#	print(	"\r	keys extra:	",	join(', ', map{ sprintf( "%llX", $_ ) }	@args_salt )		);
 		#	print(	"\r	keys not found: ",	join(', ', map{ sprintf( "%llX", $_ ) }	@args )			);
-			print(	"\r	keys set:	",		join(', ', @args_B4 ),	"\n");
-			print(	"\r	keys checked:	",	join(', ', @args_XX ),	"\n");
-			print(	"\r	keys extra:	",	join(', ', @args_extra ),	"\n");
-			print(	"\r	keys not found: ",	join(', ', @args ),		"\n");
+			print(	"\r	keys set:	",		join(', ',						@args_B4 ),	"\n"	);
+			print(	"\r	keys checked:	",	join(', ',						@args_XX ),	"\n"	);
+			print(	"\r	keys of salt:	",	join(', ',						@args_salt ),"\n"	);
+			print(	"\r	keys excluded:\t",	join(', ',						@args ),		"\n"	);
 			print(	"\n\n" );
 			++$fail;
 			}
@@ -96,18 +126,66 @@ sub test_clears($){
 
 		if($msec2-$msec1 >0.1){
 			$perSec =$T /( $msec2-$msec0);
-			printf(	"\rtesting clears():	%6.2f%c completed (%d) test[s] w/ (%d) fail[s]  %11.2f/sec  ", $T/$nTx100,	37, $T, $fail, $perSec );
+			printf(	"\rtesting excludes():	%6.2f%c completed (%6d) test[s] w/ (%d) fail[s]  %11.2f/sec  ", $T/$nTx100,	37, $T, $fail, $perSec );
 			$msec1=$msec2;
 		}	}
 	$perSec =$nTests /( gettimeofday-$msec0);
-	printf(	"\rtesting clears():	%6.2f%c completed (%d) test[s] w/ (%d) fail[s]  %11.2f/sec  \n", 100,	37, $T, $fail, $perSec );
-	}
+	printf(	"\rtesting excludes():	%6.2f%c completed (%6d) test[s] w/ (%d) fail[s]  %11.2f/sec  \n", 100,	37, $nTests, $fail, $perSec );
 
-sub test_precursors{							my $miss;	my @pre_args;	my @post_args;	my $ICE_B4;
-	for( my $r=0; $r<$#precursors; $r+=2 ){
+	TEST_INCLUDES:foreach $T(1..$nTests){
+		@nargs=();
+		@args_salt=();
+
+		for( my $t =11;  $t >0;  --$t ){	$x = int( rand( 1024 ) );			if(	insortIV(	\@nargs,		$x )	){	++$t;}	}
+		for( my $t =3;  $t >0;  --$t ){	$x =$nargs[ int( rand( @nargs ) )];	if(	insortIV(	\@args_salt,	$x ) ){	++$t;}	}
+		@args=@args_salt;
+
+		$ICE=av2ICE( \@nargs );
+
+		for( my $t =8;  $t >0;  --$t ){	$x = int( rand( 1024 ) );			if(	inIV(		\@nargs,		$x )
+															or	insortIV( 	\@args,		$x ) ){	++$t;}	}
+
+		@args_XX=@args;
+		$ok=$ICE->includes( \@args );
+		if( join('', @args) ne join('', @args_salt ) ){	if(		$ok ){ printf("\n!	ICEPack::includes() returned false positive!	\n");		}
+		#	print(	"\r	keys set:	",		join(', ', map{ sprintf( "%llX", $_ ) }	@args_B4 )		);
+		#	print(	"\r	keys checked:	",	join(', ', map{ sprintf( "%llX", $_ ) }	@args_XX )		);
+		#	print(	"\r	keys extra:	",	join(', ', map{ sprintf( "%llX", $_ ) }	@args_salt )		);
+		#	print(	"\r	keys not found: ",	join(', ', map{ sprintf( "%llX", $_ ) }	@args )			);
+			print(	"\r	keys set:	",		join(', ',						@nargs ),	"\n"	);
+			print(	"\r	keys checked:	",	join(', ',						@args_XX ),	"\n"	);
+			print(	"\r	keys of salt:	",	join(', ',						@args_salt ),"\n"	);
+			print(	"\r	keys included:	",	join(', ',						@args ),		"\n"	);
+			print(	"\n\n" );
+			++$fail;
+			}
+		$msec2=gettimeofday;
+
+		if($msec2-$msec1 >0.1){
+			$perSec =$T /( $msec2-$msec0);
+			printf(	"\rtesting includes():	%6.2f%c completed (%6d) test[s] w/ (%d) fail[s]  %11.2f/sec  ", $T/$nTx100,	37, $T, $fail, $perSec );
+			$msec1=$msec2;
+		}	}
+	$perSec =$nTests /( gettimeofday-$msec0);
+	printf(	"\rtesting includes():	%6.2f%c completed (%6d) test[s] w/ (%d) fail[s]  %11.2f/sec  \n", 100,	37, $nTests, $fail, $perSec );
+	}
+sub test_set_precursors{
+	my	(@pre_args, @post_args,	$ICE, $ICE_B4, $first, $last);	my $pass=0;	my $fail=0;
+	my $max=$#precursors>>1;	my $nTests=$max+1;
+	if(	0<=		$#_ ){	if( $_[0] >$max || $_[0]< 0		){	$first=0;	print("\n!	invalid argument[s] to test_set_precursors()\n");
+						}else{							$first=$_[0];	}
+		if( 1<=	$#_ ){	if( $_[1] >$max || $_[0]< $first	){	$last=$first;	print("\n!	invalid argument[s] to test_set_precursors()\n");
+						}else{							$last=$_[1];	}
+		}else{						$last=$max;
+			}
+	}else{					$first=0;	$last=$max;	}
+	my $nRun=1+$last-$first;
+	print("\ntest_set_precursors(...): running $nRun of $nTests test[s].\n\n");
+	my $R=$last<<1;
+	for(	my $r=$first<<1;  $r<=$R;  $r+=2 ){
 		my ($ranges, $args) =@precursors[$r..$r+1];
 		@post_args=@$args;
-		print("\rtesting crash precursor #", $r>>1, "... ");
+		print("\nreplaying set() crash precursor #", $r>>1, "...\n");
 
 		my	$ICE=av2ICE( $ranges );
 			$ICE_B4=ICEPack::copy( $ICE );
@@ -116,55 +194,124 @@ sub test_precursors{							my $miss;	my @pre_args;	my @post_args;	my $ICE_B4;
 	#	ICEPack::snapshot(	$ICE);
 		ICEPack::set(		$ICE, $args );
 
-		if(	$ICE->checks()				# checks() performs a checksum, verifying all cube Epsilon values
-		and	$ICE->clears( \@post_args ) ){		# clears()  only reads relevant cubes, and does not checksum them
+		if(	$ICE->addsUp()						# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+		and	$ICE->excludes( \@post_args ) ){ ++$pass;	# excludes()  only reads relevant cycla in relevant cubes, and does not check epsilon
 	#			printAvDBUG();
-											print("######	pass	######\n");
-	#		print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(		$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@$args		), "],\n\n");
+											print("\t\t\t\t######	pass	######");
+	#		print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(	$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@$args		), "],\n\n");
 	#		print("\n\n\n\n\n\n\n\n");
-	#		print("\n[\n",								@{ ICEPack::toText(	$ICE_B4	)	},	"\n],	[", join(', ',						@$args		), "],\n\n");
+	#		print("\n[\n",								@{ ICEPack::toTextX(	$ICE_B4	)	},	"\n],	[", join(', ',						@$args		), "],\n\n");
 
-	#		print("\n\npost op:\n[\n");			print(	@{ ICEPack::toHex(		$ICE	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@post_args	), "],\n\n");
-	#										print(	@{ ICEPack::toText(	$ICE	)	},	"\n],	[", join(', ',						@post_args	), "],\n\n");
-		}else{								print("######	fail	######\n\n\n");
+	#		print("\n\npost op:\n[\n");			print(	@{ ICEPack::toHex(	$ICE	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@post_args	), "],\n\n");
+	#										print(	@{ ICEPack::toTextX(	$ICE	)	},	"\n],	[", join(', ',						@post_args	), "],\n\n");
+		}else{						++$fail;	print("\t\t\t\t######	fail	######\n\n\n");
 			printf("\naudit:\n\n");				printAvDBUG();	print("\n\n\n\n\n\n");
-	#		print("\n\npre text:\n");				print(	@{ ICEPack::toText(	$ICE_B4	)	}, "\n\n");
-			print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(		$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@$args	), "],\n\n");
+	#		print("\n\npre text:\n");				print(	@{ ICEPack::toTextX(	$ICE_B4	)	}, "\n\n");
+#			print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(	$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@$args	), "],\n\n");
+#											print(	@{ ICEPack::toTextX(	$ICE_B4	)	}, "\n\n");
 		#	print("\n[\n",								@{ $ICE->toHex()	},	"\n],	[", join(', ',						@$args	), "],\n\n");
 
-			print("\n\npost mortem:\n[\n");		print(	@{ ICEPack::toHex(		$ICE	)	}, "\n]\n\n");
-		#									print(	@{ ICEPack::toText(	$ICE	)	}, "\n\n");
+			print("\n\npost mortem:\n[\n");		print(	@{ ICEPack::toHex(	$ICE	)	}, "\n]\n\n");
+#											print(	@{ ICEPack::toTextX(	$ICE	)	}, "\n\n");
 	
-			print("\narg keys not found: [",		join(",", map { sprintf("0x%X", $_) } @post_args ), "]\n\n\n\n\n\n\n\n");
+#			print("\narg keys not found: [",		join(",", map { sprintf("0x%X", $_) } @post_args ), "]\n\n\n\n\n\n\n\n");
+			exit;
+		}	}
+	printf("\n\npass/fail: $pass/$fail 	run/total: $nRun/$nTests\n\n");
+	}
+sub test_unset_precursors{
+	my	(@pre_args, @post_args,	$ICE, $ICE_B4, $first, $last);	my $pass=0;	my $fail=0;
+	my $max=$#unset_precursors>>1;	my $nTests=$max+1;
+	if(	0<=		$#_ ){	if( $_[0] >$max || $_[0]< 0		){	$first=0;		print("\n!	invalid argument[s] to test_set_precursors()\n");
+						}else{							$first=$_[0];	}
+		if( 1<=	$#_ ){	if( $_[1] >$max || $_[0]< $first	){	$last=$first;	print("\n!	invalid argument[s] to test_set_precursors()\n");
+						}else{							$last=$_[1];	}
+		}else{						$last=$max;
+			}
+	}else{					$first=0;	$last=$max;	}
+	my $nRun=1+$last-$first;
+	print("\ntest_unset_precursors(...): running $nRun of $nTests test[s].\n\n");
+	my $R=$last<<1;
+	for(	my $r=$first<<1;  $r<=$R;  $r+=2 ){
+		my ($ranges, $args) =@unset_precursors[$r..$r+1];
+		if( ref( $ranges ) ne 'ARRAY' or ref( $args ) ne 'ARRAY' ){	print("\nskipping undefined unset() crash precursor #", $r>>1, "...\n");	next;
+		}else{											print("\nreplaying unset() crash precursor #", $r>>1, "...\n");	}
+		@post_args=@$args;
 
-	}	}	}
+		
+
+		my	$ICE=av2ICE( $ranges );
+			$ICE_B4=ICEPack::copy( $ICE );
+
+		ICEPack::snapshot(	$ICE);
+		ICEPack::unset(	$ICE, $args );
+
+		if(		$ICE->addsUp()					# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+		and not	$ICE->hits( \@post_args ) ){ ++$pass;	
+	#			printAvDBUG();
+	#			$ICE_B4=ICEPack::getSnapshot();	print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
+											print("\t\t\t\t######	pass #", $r>>1, "	######");#	print("\n"x100);
+	#		print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(	$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@$args		), "],\n\n");
+	#		print("\n\n\n\n\n\n\n\n");
+##			print("\n[\n",								@{ ICEPack::toTextX(	$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@post_args	), "],\n\n");
+
+	#		print("\n\npost op:\n[\n");			print(	@{ ICEPack::toHex(	$ICE	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@post_args	), "],\n\n");
+##											print(	@{ ICEPack::toTextX(	$ICE	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@post_args	), "],\n\n");
+		}else{						++$fail;	print("\t\t\t\t######	fail #", $r>>1, "	######\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+			$ICE_B4=ICEPack::getSnapshot();		print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
+			printf("\naudit:\n\n");				printAvDBUG();	print("\n\n\n\n\n\n");
+	#		print("\n\npre text:\n");				print(	@{ ICEPack::toTextX(	$ICE_B4	)	}, "\n\n");
+			print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(	$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@$args	), "],\n\n");
+											print(	@{ ICEPack::toTextX(	$ICE_B4	)	}, "\n\n");
+		#	print("\n[\n",								@{ $ICE->toHex()	},	"\n],	[", join(', ',						@$args	), "],\n\n");
+
+			print("\n\npost mortem:\n[\n");		print(	@{ ICEPack::toHex(	$ICE	)	}, "\n]\n\n");
+											print(	@{ ICEPack::toTextX(	$ICE	)	}, "\n\n");
+			exit;
+#			print("\narg keys not found: [",		join(",", map { sprintf("0x%X", $_) } @post_args ), "]\n\n\n\n\n\n\n\n");
+
+		}	}
+	printf("\n\npass/fail: $pass/$fail 	run/total: $nRun/$nTests\n\n");
+	}
 
 sub test_prompt{
 	my ($x, @A1, @D1);
 #	my $ICE=av2ICE( $A1 );
-	my $ICE=av2ICE( [1, 2, 111, 112, 211, 222,240,260, 280, 940] );	#	bless( [], 'ICEPack' );
+	my $ICE=av2ICE( [	1..4, 111..112, 211, 222,240,260..280, 940, 1060,
+					1080, 1099..1100, 1111..1113, 2100..2110, 2200..2222, 2300..2340, 2345..2460, 2598,
+					2600..2650, 2660..2666, 2690, undef,
+					2749, 2802, 2968, undef,
+					2970, 3003..4004, 5005..6006, undef,
+					7000, 7700..7777, 8000, 8800..8888, 9000] );	#	bless( [], 'ICEPack' );
 
 #	my $hv=$ICE->toHash();
 #	my @keys= sort keys %$hv;
 #	my $N=0;
 #	foreach(@keys){	print("$N:	", unpack( "Q", $_), "\n");	++$N;	}
 	
-	print("\n\n\n", @{ $ICE->toText() }, "\n[", @{ $ICE->toHex() }, "]\n\n>");
+	print("\n\n\n", @{ $ICE->toText() },	"]\n\n>");
 	while(	$_=<> ){
 		@D1=$_=~ /\d+/g;
 		@A1= map{ int($_) } @D1;
-		print("\nset()==",	$ICE->set(	\@A1	),
-			"\n\n\n\n\n",	@{	$ICE->toText() } ,
-	#		"\n\n", @{	$ICE->toHex() },
-			"\n>");
+		if(ord($_)==45){
+			print("\nunset()==",	$ICE->unset(	\@A1	)	);
+		}else{
+			print("\nset()==",	$ICE->set(	\@A1	)	);
+			}
+		print(	"\n\n\n\n\n",	@{	$ICE->toText() } ,
+		#		"\n\n", @{	$ICE->toHex() },
+				"\n>");
 				printAvDBUG();
-	}	}
 
+		if(	not $ICE->addsUp()		){	print("\n!	doesn't add up\n");		}
+		if(	not $ICE->excludes( \@A1 )	){	print("\n!	doesn't clear args: [",		join(",", @A1 ), "]\n\n\n");	}
+
+	}	}
 sub test_set($$$$$){		#\	Test ICEPack::set() by saturating the namespace range with random keys until it reaches totality.
 
 	our	( $min, $max, $nTests, $nSamps,	$saturation				)=@_;
 
-	our	( $window,	$Ct,			$Tsub,	$Tsub_,	$T,		$T_,	$T_stall,	$fpp,	$scale,	$scale100,	$nTx100,		$ok,	$batch,	$pass,	$fail,	$replay,					$maxZ,	$perSec, $msec2, $hit, $miss, $r, $R_, $d, $ICE, $ICE_B4, $x, $i, $I, %ICE, @ICE, @ICE_B4, @args, @args_B4, @args_extra, @args_XX, @keyBulk, @row)=
+	our	( $window,	$Ct,			$Tsub,	$Tsub_,	$T,		$T_,	$T_stall,	$fpp,	$scale,	$scale100,	$nTx100,		$ok,	$batch,	$pass,	$fail,	$replay,					$maxZ,	$perSec, $msec2, $hit, $miss, $r, $R_, $d, $ICE, $ICE_B4, $x, $i, $I, %ICE, @ICE, @ICE_B4, @args, @args_B4, @args_salt, @args_XX, @keyBulk, @row)=
 		( $max -$min,	0,			0,		0,		$nTests,	-1,	0,		0,		1,		100,			$nTests*0.01,	0,	0,		0,		0,		 ["nothing to see here\n"],	0		);
 	our	$saturationCt= int( $saturation*$window );
 	our			$band			= 1;
@@ -245,20 +392,20 @@ our	$format=sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.
 		#	print( "\nset( [ ", join(', ', @args ), "] );\n \$ICE=[", @{ $ICE_B4->toHex }, "];\n\n\n\n\n");
 			$Ct += $ICE->set( \@args );	
 		#	printAvDBUG();
-			if(	not $ICE->checks()				# checks() performs a checksum, verifying all cube Epsilon values
-		 	or	not $ICE->clears( \@args ) ){		# clears()  only reads relevant cubes, and does not checksum them
+			if(	not $ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+		 	or	not $ICE->excludes( \@args ) ){	# excludes()  only reads relevant cycla in relevant cubes, and does not check epsilon
 		#		){
 				$ICE_B4=ICEPack::getSnapshot();	print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
-				++$fail;							print("\n\ntest $T failed.\n");
+				++$fail;							print("\n\ntest $T failed	 ", scalar localtime(), "\n");
 				printf("\naudit:\n\n");				printAvDBUG();	print("\n\n\n\n\n\n");
-				print("\n\npre text:\n");				print(	@{ ICEPack::toText(	$ICE_B4	)	}, "\n\n");
+				print("\n\npre text:\n");				print(	@{ ICEPack::toTextX(	$ICE_B4	)	}, "\n\n");
 			#	print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(		$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@args_B4	), "],\n\n");
 				print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(	$ICE_B4	)	},#	"\n],	[", join(",", map { sprintf("0x%X", $_) }	@args_B4	), "],\n\n");
 																							"\n],	[", join(', ',						@args_B4	), "],\n\n");
 			#	print("\n[\n",								@{ $ICE->toHex()	},					"\n],	[", join(', ',						@$args		), "],\n\n");
 
 				print("\n\npost mortem:\n[\n");		print(	@{ ICEPack::toHex(	$ICE	)	}, "\n]\n\n");
-												print(	@{ ICEPack::toText(	$ICE	)	}, "\n\n");
+												print(	@{ ICEPack::toTextX(	$ICE	)	}, "\n\n");
 		
 				print("\narg keys not found: [",		join(",", map { sprintf("0x%X", $_) } @args ), "]\n\n\n\n\n\n\n\n");
 
@@ -286,10 +433,11 @@ our	$format=sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.
 
 #	$T=$nTests; #++$pass;
 	$Tsub=0;
-	progress();	printf("\n");
+	progress();	#	printf("\n");
 	}
 my $LOG2X24=log2(0xFFFFFF);
 sub test_set_recursively($$$){	my($start_bits, $end_bits, $saturation)=@_;	my $saturation_pct=$saturation*100;
+	print("\n recursive test script started ", scalar localtime(), "\n\n");
 	while( 1 ){							
 ######			Increasing the sample rate beyond the square root of the NS window 
 		foreach my $bit_width($start_bits..$end_bits){	my	$W=1<<($bit_width-1);	my $rms=sqrt( $W*($W>>1) ); my $nSamps=$rms;	$nSamps=240 if $nSamps >240;
@@ -298,10 +446,11 @@ sub test_set_recursively($$$){	my($start_bits, $end_bits, $saturation)=@_;	my $s
 #		foreach my $bit_width(3..4){			my	$W=8<<$bit_width;	my $nTests=0x0FFF/$bit_width;
 
 
-			my $nTests=int( 10000/$rms );	$nTests=1 if $nTests==0;
+			my $nTests=int( (100000/$saturation )/$rms );	$nTests=1 if $nTests==0;
 		#	printf("\nhit %d%c saturation of %d-bit namespace %3dx at sample rate %3d/call        \n",
 		#			$saturation_pct, 37,  $bit_width, $nTests, $nSamps );
 
+	## quiet for now
 			printf("\n%d-bit NS (+/- %-3d) to %d%c saturation %3dx, sample rate: %d/call        \n",
 					 $bit_width,	$W,	$saturation_pct, 37, $nTests,			$nSamps );
 		#	printf("\n range: 0x%X (%d) x%d test iteration[s]\n", $_=$W<<1, $_, 1 );
@@ -312,10 +461,331 @@ sub test_set_recursively($$$){	my($start_bits, $end_bits, $saturation)=@_;	my $s
 
 			#	printf("\n	NS 0x%-3llX +/- %-3d\n",$bytestep, $_=$W<<1);
 				test_set( $bytestep -$W,	$bytestep +$W,	$nTests,	$nSamps, $saturation )	if( $bytestep >$W && 0xFFFFFFFFFFFFFFFF-$bytestep >$W );
+				printf("\n");
 				}
 		}	}#			^NS lowbound		^NS highbound					^NS saturation factor to pass each test
 	}
-#	@precursors_off=(
+sub tug_a_war(){
+	my $Ct=0;	my $hits;	my @args_B4; my @ICE; my @ICE_B4;
+	my $ICE=bless( \@ICE, 'ICEPack');	my @args; my $args=\@args;	my $ICE_B4=\@ICE_B4;
+	my $fail=0;	my $T;	my $W=0xFFFF; my $Wx100=$W/1000; my $pct=0; my $_pct=0;
+	while( 1 ){	$T=0;
+	#	@ICE=();
+	#We	print("\nset\n");
+		while($Ct< $W){	++$T;
+			@args=();
+			while($#args< 32){ insortIV( $args, int( rand( $W ) ) );	}
+			@args_B4=@args;
+	#		ICEPack::snapshot($ICE);
+			$Ct +=	ICEPack::set( $ICE, $args );
+		#	printAvDBUG();
+			if(	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+		 	or	not	$ICE->excludes( \@args )
+		#	or	exitCode()
+				){		# excludes()  only reads relevant cycla in relevant cubes, and does not check epsilon
+		#		){
+				$ICE_B4=ICEPack::getSnapshot();	print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
+				++$fail;							print("\n\ntest $T failed	 ", scalar localtime(), "\n");
+				printf("\naudit:\n\n");				printAvDBUG();	print("\n\n\n\n\n\n");
+				print("\n\npre text:\n");				print(	@{ ICEPack::toTextX(	$ICE_B4	)	}, "\n\n");
+			#	print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(		$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@args_B4	), "],\n\n");
+				print("\n\npre op (set):\n[\n");		print(	@{ ICEPack::toHex(	$ICE_B4	)	},#	"\n],	[", join(",", map { sprintf("0x%X", $_) }	@args_B4	), "],\n\n");
+																							"\n],	[", join(', ',						@args_B4	), "],\n\n");
+
+				print("\n\npost mortem:\n[\n");		print(	@{ ICEPack::toHex(	$ICE	)	}, "\n]\n\n");
+												print(	@{ ICEPack::toTextX(	$ICE	)	}, "\n\n");
+		
+				print("\narg keys not found: [",		join(",", map { sprintf("0x%X", $_) } @args ), "]\n\n\n\n\n\n\n\n");
+
+	#			exit(exitCode());
+				next TEST;
+				}
+			$pct=int( $Ct/$Wx100 )/10;	if( $pct != $_pct ){	printf("\r<< %2.2f    ", $pct );	$_pct=$pct;	}
+			}
+		@args_B4=@args;		$T=0;
+#		print("\nunset\n");
+		while( $Ct >0 ){	++$T;
+			@args=();
+			while($#args< 32){ insortIV( $args, int( rand( $W ) ) );	}
+			@args_B4=@args;
+	#		ICEPack::snapshot($ICE);				
+			$Ct -=	ICEPack::unset(	$ICE, $args );
+
+			if(	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+				or	$ICE->includes( \@args )
+		#		or	exitCode()
+				){		# includes() only reads relevant cubes for specific keys; it doesn't verify overall integrity.
+				print("\r!	", scalar( @args ), " of ", scalar( @args_B4 ), " flags were not unset:\n	",#	join(',	', @args), "\n	", join(',	', @args_B4), "\n\n");
+																						join(",", map { sprintf("0x%X", $_) }	@args		),
+																				, "\n	",	join(', ',  map { sprintf("0x%X", $_) }	@args_B4	),	"\n\n");
+
+				$hits=$ICE->has( \@args_B4 );
+				print("\r	has(): $hits\n");
+			#	$hits=$ICE->hits( \@args_B4 );
+			#	print("\r	hits(): $hits\n");
+			#	my @args_AFTr=@args_B4;
+			#	$ICE->excludes(\@args_AFTr );
+			#	print("\r	excludes(): 	", scalar( @args_AFTr ), " of ", scalar( @args_B4 ), " \n");
+				
+
+				$ICE_B4=ICEPack::getSnapshot();	print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
+				printf("\naudit:\n\n");				printAvDBUG();	print("\n\n\n\n\n\n");
+				print("\n\npre text:\n");				print(	@{ ICEPack::toTextX(	$ICE_B4	)	}, "\n\n");
+			#	print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(	$ICE_B4	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@args_B4	), "],\n\n");
+				print("\n\npre op (unset):\n[\n");		print(	@{ ICEPack::toHex(	$ICE_B4	)	},	"\n],	[", join(",", map { sprintf("0x%X", $_) }	@args_B4	), "],\n\n");
+																						#	"\n],	[", join(', ',						@args_B4	), "],\n\n");
+
+				print("\n\npost mortem:\n[\n");		print(	@{ ICEPack::toHex(	$ICE	)	}, "\n]\n\n");
+												print(	@{ ICEPack::toTextX(	$ICE	)	}, "\n\n");
+		
+				print("\narg keys not found: [",		join(",", map { sprintf("0x%X", $_) } @args ), "]\n\n\n\n\n\n\n\n");
+
+	#			exit(exitCode());
+				}
+			$pct=int( $Ct/$Wx100 )/10;	if( $pct != $_pct ){	printf("\r>> %-2.2f    ", $pct );	$_pct=$pct;	}
+			if( $#$ICE==-1){  last;
+#				print("\n\npost unset #$T:\n[\n");		print(	@{ ICEPack::toHex(	$ICE	)	},#	"\n],	[", join(",", map { sprintf("0x%X", $_) }	@args	), "],\n\n");
+#																							"\n],	[", join(', ',						@args	), "],\n\n");
+				}
+			}
+		}
+	}
+
+
+#my	@unset_precursors_off=(
+ @unset_precursors=(
+	[
+	0x2,         0xA,         0xC,								undef,
+	0x10..0x11,  0x16..0x18,  0x1A,  0x1C,  0x1E,				undef,
+	0x25,        0x2B..0x2C,									undef,
+	0x3A..0x3B,											undef,
+	0x45,        0x47..0x48,  0x4E,								undef,
+	0x5E,        0x62,										undef,
+	0x6F,												undef,
+	0x7E,        0x80,        0x82,  0x85,  0x88,  0x8A,  0x8D..0x92,	undef,
+	0x9C,        0x9E..0x9F,  0xA4,							undef,
+	0xBA,        0xC1,        0xC4,								undef,
+	0xC8,        0xCA,        0xCD,  0xD5,  0xDA,					undef,
+	0xE0,        0xE3,        0xEA,  0xF0,							undef,
+	0xFB,												undef,
+	0x120,       0x125,										undef,
+	0x136,       0x13C,										
+	],      [12, 22, 24, 25, 30, 36, 37, 44, 45, 54, 60, 83, 96, 106, 124, 137, 152, 170, 173, 175, 188, 210, 222, 228, 238, 243, 246, 259, 277, 279, 283, 288, 290],
+	[
+	0x1..0x7,    0x9..0x1A,   0x1C..0x26,  0x2A..0x42,  0x44..0x49,    0x4C..0x4E,					undef,
+	0x50..0x5A,  0x5C..0x5F,  0x61..0x63,  0x65..0x66,  0x68..0x6A,    0x6C..0x8C,				undef,
+	0x8E..0xA0,  0xA2..0xA4,  0xA6..0xB3,  0xB5..0xBE,  0xC0..0xCE,    0xD0..0xD2,    0xD4..0xD8,	undef,
+	0xDA..0xDD,  0xDF..0xF3,  0xF5..0xFE,  0x100..0x106,0x109..0x110,							undef,
+	0x112..0x115,0x117..0x11D,0x11F..0x124,0x126..0x134,0x136..0x13B,
+	],      [4, 16, 18, 20, 33, 43, 44, 52, 65, 69, 74, 122, 124, 133, 148, 169, 172, 178, 181, 197, 209, 216, 221, 222, 226, 235, 238, 242, 267, 276, 283, 303, 306],
+	[
+	0x0,         0x2,         0x4..0x8,    0xA..0xC,    0xE..0x11,     0x13,          0x15..0x1E,    0x21..0x22,	undef,
+	0x24..0x25,  0x27,        0x2B..0x2C,  0x2E..0x2F,											undef,
+	0x31..0x36,  0x38..0x3A,  0x3C,        0x3F..0x41,  0x44..0x45,								undef,
+	0x48,        0x4A..0x4F,  0x51,        0x53..0x54,  0x57,          0x59..0x5F,						undef,
+	0x62..0x6F,  0x71..0x76,  0x78..0x7B,  0x7D..0x85,  0x87,									undef,
+	0x89..0x98,  0x9A..0xA0,  0xA2..0xA3,  0xA5..0xBC,  0xBE..0xC7,							undef,
+	0xC9..0xD2,  0xD4..0xD5,  0xD7..0xDA,  0xDC,        0xDE,									undef,
+	0xE0..0xE1,  0xE3..0xE4,  0xE6..0xEC,  0xEE..0xF4,  0xF6,          0xF8..0xFB,					undef,
+	0xFD..0x108, 0x10A..0x10C,0x10E..0x116,0x11A..0x11D,0x11F..0x122,						undef,
+	0x124..0x126,0x128..0x129,0x12B,       0x12D..0x131,0x133..0x134,  0x136..0x13A,			undef,
+	0x13B,
+
+	],      [29, 36, 40, 60, 62, 69, 77, 82, 85, 107, 112, 114, 116, 133, 134, 161, 172, 177, 191, 194, 196, 199, 227, 231, 236, 238, 248, 258, 269, 275, 296, 309, 310],
+	[
+	0x0,		undef,
+	0x3B,		undef,
+	0x7C,		undef,
+	0x8A,		undef,
+	0xC8, 0xCB, 0xD9,		undef,
+	0xE1,
+
+	],      [0x0,0x7,0x18,0x1C,0x1E,0x23,0x26,0x2B,0x3F,0x50,0x52,0x5F,0x60,0x62,0x65,0x66,0x6B,0x7A,0x94,0xA0,0xAB,0xC7,0xDC,0xE4,0xE9,0xEE,0xF1,0xFE,0x10C,0x111,0x122,0x12F,0x13B],
+	[
+	0x0..0x1,    0x3,         0x5..0x8,    0xA..0xB,														undef,
+	0xF,         0x11,        0x13,        0x16..0x17,  0x19..0x1E,    0x20,										undef,
+	0x24..0x25,  0x28..0x2C,  0x30,        0x34,														undef,
+	0x37,        0x3C..0x3F,  0x42..0x46,  0x49..0x4A,													undef,
+	0x4C..0x4E,  0x51..0x52,  0x55..0x56,  0x58,        0x5B,											undef,
+	0x61..0x62,  0x67..0x68,  0x6A,        0x6E..0x6F,													undef,
+	0x71,        0x74..0x75,  0x80..0x84,  0x86,        0x88,          0x8B..0x8C,								undef,
+	0x90,        0x94..0x95,  0x98..0x9A,  0x9D,        0xA3..0xA4,    0xA6,          0xAA..0xAB,    0xAD..0xB0,		undef,
+	0xB3,        0xB7,        0xB9,        0xBE..0xBF,  0xC2..0xC4,											undef,
+	0xC7,        0xC9,        0xCB,        0xD3..0xD4,													undef,
+	0xD6,        0xDA,        0xDC,        0xE4..0xE6,  0xE9..0xEB,    0xED,									undef,
+	0xEF..0xF0,  0xF6..0xF7,																		undef,
+	0xFE,        0x101,       0x103..0x104,0x107,       0x10A,												undef,
+	0x10F..0x111,0x113,       0x115,       0x11A,       0x11C,         0x11E,         0x120,         0x123,				undef,
+	0x126..0x128,0x12D,       0x130..0x131,0x135..0x137,
+
+	],      [0xB,0x10,0x12,0x16,0x28,0x32,0x35,0x5A,0x60,0x71,0x83,0x87,0x8B,0x91,0x9E,0xA6,0xAC,0xB5,0xB9,0xBF,0xC6,0xCE,0xD2,0xD6,0xDA,0xE2,0xE6,0xF7,0xFA,0x101,0x10B,0x11A,0x131],
+	[
+	0x6,		undef,
+	0x25,		undef,
+	0x36,		undef,
+	0x65,		undef,
+	0x7E,		undef,
+	0x8E,		undef,
+	0xB7,		undef,
+	0xDD, 0xE4,		undef,
+	0xED,		undef,
+	0x101,
+
+	],      [0x0,0x6,0x7,0x10,0x17,0x21,0x29,0x35,0x40,0x46,0x4D,0x59,0x5D,0x61,0x66,0x71,0x73,0x76,0x84,0x8C,0x90,0xA7,0xB2,0xB6,0xB7,0xC6,0xD7,0x10C,0x119,0x127,0x134,0x136,0x138],
+	[
+	0x1,         0x5,         0x7..0xC,															undef,
+	0x13,        0x15..0x16,  0x18..0x1C,  0x1E..0x22,  0x27..0x28,    0x2C,          0x2E..0x31,				undef,
+	0x37,        0x39,        0x3C,        0x3E,        0x40,          0x43,          0x46..0x47,    0x49..0x4C,			undef,
+	0x50..0x54,  0x56,        0x58..0x59,  0x5B..0x5C,												undef,
+	0x5E,        0x60,        0x62,        0x64,        0x66,												undef,
+	0x68..0x6F,  0x71,        0x76..0x79,  0x7D..0x7E,												undef,
+	0x81,        0x83,        0x85..0x8A,  0x8C,													undef,
+	0x8E..0x94,  0x98..0x99,  0x9B,        0x9F,        0xA1..0xA4,									undef,
+	0xAA,        0xAD,        0xAF..0xB0,  0xB2..0xB4,  0xB9..0xBA,									undef,
+	0xBC,        0xBE..0xC1,																	undef,
+	0xC3..0xC5,  0xC7,        0xC9,        0xCB,        0xCE..0xD3,    0xD5..0xD6,    0xD9..0xDA,    0xDE,		undef,
+	0xE0..0xE3,  0xE5..0xE9,  0xEE,        0xF1,        0xF3..0xF4,    0xF6..0xF7,    0xF9,          0xFB,			undef,
+	0xFE..0x100, 0x102..0x103,0x105,       0x109..0x10B,0x10E,         0x111..0x112,  0x114,         0x117,	undef,
+	0x11A,       0x11C..0x11D,0x11F..0x120,0x122,       0x124,         0x126..0x127,						undef,
+	0x12A..0x12D,0x12F..0x132,0x135,														undef,
+	0x13B,
+
+	],      [0x1,0xA,0x11,0x1B,0x29,0x4A,0x4D,0x60,0x6D,0x6F,0x78,0x7B,0x7E,0x9C,0xA2,0xAD,0xB6,0xB7,0xBB,0xBD,0xBF,0xC3,0xCB,0xD0,0xD2,0xE8,0xF6,0x111,0x113,0x118,0x121,0x122,0x134],
+	[#7
+	0x1,         0x3..0x4,    0x6..0x7,    0xA..0xF,    0x12..0x13,  0x17..0x1A,  0x1C..0x1D,  0x1F,	undef,
+	0x22,        0x25,        0x27..0x28,  0x2A..0x2D,  0x30..0x31,  0x33..0x34,  0x36..0x37,		undef,
+	0x3A..0x3B,  0x3D..0x3E,  0x44,        0x46,											undef,
+	0x49,        0x4B..0x4E,  0x51,        0x53..0x54,  0x56..0x57,  0x59,						undef,
+	0x5B,        0x5D,        0x5F,        0x61..0x62,  0x64,        0x66..0x67,						undef,
+	0x6A..0x6C,  0x6E,        0x70..0x71,  0x73,        0x75,        0x77,							undef,
+	0x79..0x7B,  0x7D,        0x7F..0x80,  0x82,        0x84,        0x86..0x87,  0x89..0x8A,			undef,
+	0x8D,        0x90,        0x92..0x93,  0x98..0x99,										undef,
+	0x9B..0x9F,  0xA1,        0xA4,        0xA6..0xA9,										undef,
+	0xAB..0xAC,  0xAE..0xAF,  0xB3..0xB4,  0xB6..0xB8,  0xBA..0xBB,  0xBD,        0xBF,		undef,
+	0xC1,        0xC5..0xC8,  0xCB,        0xCD..0xD0,  0xD2,        0xD4,        0xD6..0xDA,		undef,
+	0xDC..0xDE,  0xE0..0xE2,  0xE5..0xE6,  0xE9..0xEA,  0xEC..0xEF,  0xF4,        0xF6..0xF7,		undef,
+	0xF9,																		undef,	#original
+	0xFA,																		undef,	# original
+#	0xFB,																		undef,	# fixed
+	0xFE,
+
+	],      [0x6,0xB,0xE,0x13,0x16,0x1D,0x29,0x48,0x50,0x54,0x5A,0x6B,0x79,0x7B,0x85,0x98,0x9A,0x9D,0xA7,0xAD,0xB7,0xBA,0xBC,0xBD,0xDB,0xDF,0xE0,0xE2,0xE7,0xE9,0xEB,0xFA,0xFE],
+	[#8
+	0x0,         0x2..0x15,   0x17..0x1C,  0x1E..0x1F,  0x21..0x27,  0x29,        0x2B..0x35,					undef,
+	0x38..0x44,  0x46,        0x48..0x49,  0x4B..0x4F,  0x51..0x57,  0x59..0x5C,  0x5E..0x63,					undef,
+	0x65..0x70,																				undef,
+	0x73,        0x75..0x78,  0x7B..0x82,  0x85..0x8D,													undef,
+	0x8F..0x92,  0x94..0x99,  0x9B..0x9F,  0xA1..0xA4,  0xA6..0xA8,  0xAB..0xB4,							undef,
+	0xB6..0xBA,  0xBC..0xC0,  0xC3..0xCA,  0xCC..0xD4,  0xD6..0xD7,  0xD9..0xEA,  0xEC..0xF5,  0xF7..0xFD,	undef,
+	0xFF,
+
+	],      [0x2,0x8,0xD,0x10,0x15,0x18,0x2A,0x2B,0x2F,0x4D,0x4F,0x53,0x5B,0x6D,0x79,0x7A,0x94,0xAC,0xB0,0xB5,0xB9,0xC0,0xC9,0xCA,0xCD,0xD3,0xDF,0xE0,0xE4,0xEF,0xF1,0xFD,0xFE],
+	[#9	This is a tricky one because the last cube is a single cyclum with a rogue null void.  Technically, it is malformed, but not corrupt.
+#	"Rogue null void" (RNV) is where two vectors are separated by a null gap (void), which is better expressed as one unbroken vector.
+#	Diagnostics shows that if I allow ULL pmo to go negative in the "_desc" block of void _av_commit(), it'll actually handle this fine.
+#	However, that enables a much worse failure mode where _av_commit() corrupts the entire structure and overrun the array allocatiuon.
+#	I'm drawing a blank now on which precursors were prone to triggering that, but we have them here somewhere.
+#	I think the least evil is to arrest RNVs at the accessor op level and keep _av_commit() telemetry validation tight.
+#	0x0..0x7,    0x9..0xD,    0x10..0x11,													undef,
+#	0x13..0x16,  0x18,        0x1A..0x1B,  0x1D..0x22,  0x24..0x28,								undef,
+#	0x2A..0x2C,  0x2E,        0x30..0x33,  0x35,        0x37..0x3A,  0x3C..0x3E,  0x40,        0x42..0x43,	undef,
+#	0x45..0x49,  0x4B,        0x4D..0x4E,  0x50,        0x53..0x55,								undef,
+#	0x57..0x58,  0x5A..0x5D,  0x5F,        0x61..0x62,  0x64,									undef,
+	0x66,        0x68..0x6E,  0x70..0x71,  0x73..0x79,  0x7B..0x7E,  0x80..0x83,					undef,
+#	0x87,        0x89,        0x8B,        0x8D..0x90,												undef,
+#	0x92..0x9B,  0x9D..0xA0,  0xA3..0xA6,  0xA8..0xAA,  0xAC..0xAE,							undef,
+#	0xB2,        0xB4..0xB6,  0xB8,        0xBA..0xBC,  0xBF..0xC2,  0xC4,        0xC7..0xCA,			undef,
+#	0xCC..0xCD,  0xCF..0xD4,  0xD6..0xDE,  0xE0..0xE4,  0xE6..0xEC,							undef,
+	0xF3..0xF4,  0xF6..0xF8,  0xFB..0xFD,													undef,
+#	0xFE,	#original
+	0xFF,	#fixed RNV
+
+#orig ],	[0x6,0xB,0xD,0xF,0x16,0x1A,0x1C,0x21,0x24,0x2D,0x2E,0x2F,0x3B,0x47,0x53,0x5D,0x6A,0x70,0x74,0x76,0x79,0x82,0x9A,0xA9,0xAA,0xBC,0xCC,0xD3,0xD7,0xDA,0xDF,0xF5,0xFE],
+	],	[0x6A,0x70,0x74,0x76,0x79,0x82,	0xF5,0xFF],
+	[#10	I[u]=I[v] was commented out of operation F	(a.k.a."_x_").  In theory, I[] values should never be altered once initialized.
+	0x1..0x4,    0x6..0x9,      0xB,           0xD..0xE,      0x12..0x13,												undef,
+	0x15..0x16,  0x18,          0x1D,          0x20..0x21,    0x24..0x26,												undef,
+	0x29..0x2E,  0x30..0x33,    0x35..0x37,    0x39..0x3A,														undef,
+	0x3C..0x3E,  0x40,          0x44..0x46,    0x48..0x49,    0x4B..0x4E,											undef,
+	0x53..0x55,  0x57..0x58,    0x5A,          0x5C,          0x5E..0x60,    0x63..0x64,									undef,
+	0x67..0x69,  0x6C,          0x6E..0x6F,    0x71..0x72,    0x75..0x7A,											undef,
+	0x7D..0x80,  0x84..0x8C,																			undef,
+	0x8F,        0x91,          0x93..0x95,    0x97..0x9A,    0x9D..0x9E,												undef,
+	0xA0..0xA2,  0xA7,          0xA9..0xB0,    0xB2..0xB4,    0xB6,          0xB8..0xB9,								undef,
+	0xBB,        0xBD..0xC0,    0xC4..0xC6,    0xC8..0xCA,    0xCC..0xCD,											undef,
+	0xCF..0xD1,  0xD5,          0xD7..0xD8,    0xDB,															undef,
+	0xE0..0xE1,  0xE3..0xE7,    0xEB..0xEF,    0xF1..0xF3,														undef,
+	0xF5,        0xF7,          0xF9,          0xFB..0xFC,    0xFE..0x100,												undef,
+	0x103..0x107,0x10A..0x10C,  0x10F..0x112,  0x115..0x116,												undef,
+	0x118..0x119,0x11B,         0x11E..0x120,																undef,
+	0x123,       0x125..0x128,  0x12A..0x12C,																undef,
+	0x12E..0x131,0x136,         0x13A..0x13C,  0x13E..0x141,													undef,
+	0x145..0x14B,0x14F,         0x151..0x152,  0x154..0x15A,  0x15C..0x15D,  0x15F,								undef,
+	0x161..0x162,																						undef,
+	0x166..0x16B,0x170..0x173,  0x175..0x177,															undef,
+	0x17A..0x17D,0x17F..0x180,  0x183..0x184,  0x186,														undef,
+	0x189..0x18E,0x191,         0x194..0x197,  0x19A..0x19C,  0x19F,         0x1A1..0x1A2,							undef,
+	0x1A5..0x1A9,0x1AB,         0x1AE..0x1B1,  0x1B3..0x1B4,  0x1B9..0x1BC,									undef,
+	0x1BF..0x1C0,0x1C2,         0x1C4..0x1C8,  0x1CA,         0x1CE..0x1D2,										undef,
+	0x1D4..0x1D6,0x1D9..0x1DB,  0x1DD..0x1E0,  0x1E2,         0x1E5..0x1E6,  0x1E8..0x1E9,  0x1EC..0x1ED,			undef,
+	0x1EF,       0x1F1..0x1F2,  0x1F4..0x1F7,  0x1F9,         0x1FB,												undef,
+	0x1FD..0x202,0x204..0x206,  0x209..0x20A,  0x20C..0x20E,  0x210..0x211,									undef,
+	0x213,       0x216..0x21C,  0x21E..0x222,  0x225,         0x227..0x228,  0x22A..0x22D,  0x22F..0x232,				undef,
+	0x234..0x235,0x239,         0x23B..0x23C,  0x23E..0x23F,  0x241..0x244,  0x246,         0x248,						undef,
+	0x24A,       0x24C,																					undef,
+	0x24E..0x25B,0x25E,         0x261..0x262,																undef,
+	0x265..0x270,																						undef,
+	0x272..0x278,0x27A,         0x27C..0x27E,  0x280..0x288,  0x28A..0x28B,										undef,
+	0x28D..0x28E,0x290..0x294,  0x297..0x29C,  0x2A0,         0x2A2..0x2A4,  0x2A6..0x2A7,						undef,
+	0x2AB..0x2AE,0x2B1..0x2B3,  0x2B5..0x2B7,  0x2BA,         0x2BD,         0x2BF..0x2C0,							undef,
+	0x2C2..0x2C4,0x2CB,         0x2CE..0x2D1,  0x2D4,														undef,
+	0x2D7..0x2D8,0x2DB,         0x2DD..0x2E1,  0x2E3..0x2E4,  0x2E6,         0x2E8..0x2EB,  0x2ED..0x2F1,  0x2F4..0x2F6,	undef,
+	0x2F8..0x2F9,0x2FB,
+	0x2FD,
+
+	],      [0x5,0xE,0x15,0x1E,0x2C,0x3A,0x5D,0x60,0x73,0x7A,0xB3,0xB4,0xC0,0x13E,0x161,0x17C,0x186,0x1A1,0x1AB,0x1E8,0x1FE,0x20D,0x21D,0x223,0x253,0x254,0x261,0x297,0x2C0,0x2E6,0x2E9,0x2EF,0x2FC],
+
+
+	);
+
+my @precursorzs=(
+#	[	# overflows the main buffer, for which rotation still is not implemented 2026/05/10
+	[
+	0xDDE7,           0xE327,  0xF276,  0xF6F1,  0xFA5E,           0xFCC8,  0xFD43,  0xFF6E,
+	0x1013D,          0x101A2, 0x103A3, 0x10586, 0x1062D,          0x106CA, 0x10752, 0x1084C,
+	0x10897,          0x10940, 0x109D2, 0x10AFA, 0x10B03,          0x10C0B, 0x10CA3, 0x10D31,
+	0x10F00,          0x1102A, 0x1110E, 0x1111F, 0x11235,          0x11336, 0x11354, 0x11495,
+	0x11513,          0x11556, 0x1159E, 0x115EA, 0x11623,          0x11825, 0x118CB, 0x119D4,
+	0x11A2C,          0x11A60, 0x11B12, 0x11C91, 0x11CB2,          0x11D0D, 0x11DB5, 0x11E16,
+	0x11E9C,          0x11FD5, 0x12060, 0x1208B, 0x120C4..0x120C5, 0x1214E, 0x121CE, 0x1220E,
+	0x12223,          0x12324, 0x1233B, 0x123C3, 0x12415,          0x12450, 0x12632, 0x1265A,
+	0x126B5,          0x12713, 0x12895, 0x129B7, 0x129F0,          0x12A61, 0x12AEA, 0x12B8A,
+	0x12BDB,          0x12C02, 0x12C1C, 0x12C2F, 0x12E30,          0x12E7A, 0x12EC9, 0x12F03,
+	0x12F07,          0x12F3C, 0x12F51, 0x12FEE, 0x1311C,          0x13156, 0x1318D, 0x131C5,
+	0x13335,          0x1333F, 0x133A3, 0x133FB, 0x1341A,          0x1343C, 0x13445, 0x1346C,
+	0x1348C,          0x134FA, 0x134FF, 0x1359C, 0x135E2,          0x136C1, 0x13788, 0x137DA,
+	0x137DE,          0x1386D, 0x13915, 0x1392D, 0x139D6,          0x13A23, 0x13A8A, 0x13CB9,
+	0x13D4A,          0x13DF5, 0x13E27, 0x13EFB, 0x13FE3,          0x14045, 0x1404B, 0x14125,
+	0x141AE,          0x14367, 0x14396, 0x143B8, 0x143CC,          0x1442A, 0x144EC, 0x14511,
+	0x1451B,          0x145E5, 0x145F3, 0x146F5, 0x14719,          0x14739, 0x14757, 0x14819,
+	0x148B4,          0x148E4, 0x1497F, 0x149BA, 0x14A8C,          0x14B5B, 0x14C99, 0x14CC9,
+	0x14DA0,          0x14DCE, 0x14DD5, 0x14E04, 0x14E39,          0x14E88, 0x14F05, 0x14FB5,
+	0x15003,          0x1512A, 0x15149, 0x151BC, 0x151D7,          0x1520D, 0x15231, 0x15287,
+	0x152C4,          0x153F4, 0x1548E, 0x1560A, 0x15611,          0x15640, 0x15696, 0x156F8,
+	0x15745,          0x1581A, 0x158E1, 0x15908, 0x15B60,          0x15B7D, 0x15CE7, 0x15D91,
+	0x15F19,          0x16032, 0x1603B, 0x160EE, 0x16106,          0x1618C, 0x161AB, 0x161D2,
+	0x16282,          0x162E4, 0x1636B, 0x164CB, 0x1658E,          0x16596, 0x16598, 0x1659E,
+	0x16697..0x16698, 0x1673B, 0x16786, 0x1688E, 0x16895,          0x16947, 0x16956, 0x169E1,
+	0x16AFC,          0x16C67, 0x16C72, 0x16CE4, 0x16D1A,          0x16D70, 0x16E54, 0x17153,
+	0x171B3,          0x17220, 0x17240, 0x17305, 0x173B0,          0x17517, 0x176D3, 0x1772C,
+	0x1776E,          0x177D4, 0x17838, 0x17874, 0x178B3,          0x17951, 0x17A05, 0x17C58,
+	0x17D27,          0x17DA5, 0x17FE9, 0x1800E, 0x18046,          0x1811E, 0x181A3, 0x182E6,
+	0x182E9,          0x183C4, 0x183D2, 0x1843C, 0x18492,          0x1856A, 0x1857D, 0x18620,
+	0x18725,          0x18925, 0x18ACE, 0x18D2E, 0x18F17,          0x18FBA, 0x1981D, 0x1A014,
+	0x1A09D,          0x1A2B9, 0x1A3F4, 0x1AC9C
+	],      [50730, 50794, 50982, 51690, 51778, 51825, 51859, 51932, 52227, 52241, 52312, 52417, 52535, 52704, 52775, 52984, 52988, 52997, 53071, 53207, 53340, 53345, 53392, 53836, 53855, 54035, 54060, 54113, 54244, 54319, 54566, 54717, 55074, 55092, 55430, 55479, 55590, 55639, 55745, 55775, 55914, 55996, 56052, 56130, 56388, 56493, 56557, 56575, 56611, 56663, 56697, 56700, 56835, 56873, 57177, 57228, 57352, 57479, 57505, 57545, 57594, 57672, 57690, 57727, 57845, 57883, 57994, 58368, 58393, 58405, 58542, 58601, 58655, 58728, 59412, 59720, 59908, 60012, 60073, 60354, 60438, 60613, 60685, 60741, 60931, 61037, 61118, 61376, 61416, 61731, 61732, 61746, 61784, 61937, 61939, 62099, 62370, 62392, 62517, 62661, 62687, 62743, 62744, 62799, 62813, 62852, 63017, 63135, 63197, 63257, 63343, 63375, 63459, 63784, 64036, 64161, 64178, 64343, 64344, 64475, 64957, 65153, 65253, 65322, 65352, 65380, 65697, 65834, 65839, 65869, 65972, 66304, 66535, 66755, 67012, 67048, 67196, 67222, 67324, 67415, 67455, 67536, 67625, 67752, 67927, 67937, 68057, 68296, 68472, 68539, 68988, 69026, 69116, 69157, 69175, 69831, 69914, 70268, 70436, 70637, 70835, 70933, 71111, 71164, 71208, 71493, 71822, 71962, 72543, 72592, 72598, 72714, 72781, 73335, 73525, 73778, 73948, 74135, 74241, 74445, 74547, 74567, 74595, 74601, 74824, 74995, 74998, 75382, 75505, 75524, 75663, 75853, 75895, 76436, 76632, 76836, 77027, 77185, 77283, 77675, 77697, 77826, 77908, 77970, 78033, 78268, 78432, 78588, 78629, 78672, 78703, 78875, 79304, 79432, 79441, 79509, 79604, 79630, 79679, 79957, 80048, 80105, 80202, 80238, 80523, 80605, 80779, 80841, 81075, 81103, 81159, 81315, 81317, 81611, 81717, 81724, 81812, 81830, 81985, 82016, 82063, 82461, 82498, 82512, 82546, 82583, 82642, 82761, 83537, 83726, 84038, 84140, 84615, 84680],
+	);
+
 	@precursors=(
 	[	196..197,  199..200,  204,       207,       209,       211..212,  214,  216..218,		undef,
 		220..227,  230..246,												undef,
@@ -848,7 +1318,7 @@ sub test_set_recursively($$$){	my($start_bits, $end_bits, $saturation)=@_;	my $s
 	0xFFFFFFFFFFFFB8,  0xFFFFFFFFFFFFD7,  0xFFFFFFFFFFFFDB,  0xFFFFFFFFFFFFE2,  0xFFFFFFFFFFFFE6,  0xFFFFFFFFFFFFE8,  0xFFFFFFFFFFFFF1,  0xFFFFFFFFFFFFF6,
 	0xFFFFFFFFFFFFF8,  0x100000000000012, 0x100000000000019, 0x100000000000038, 0x10000000000003B, 0x100000000000043, 0x100000000000056, 0x100000000000061
 	],      [0xFFFFFFFFFFFF92,0xFFFFFFFFFFFF9B,0xFFFFFFFFFFFFAE,0xFFFFFFFFFFFFBD,0xFFFFFFFFFFFFC2,0xFFFFFFFFFFFFD3,0xFFFFFFFFFFFFF7,0xFFFFFFFFFFFFFE,0x100000000000007,0x10000000000001A,0x10000000000001F,0x10000000000002D,0x10000000000003B,0x10000000000005F,0x10000000000006D,0x100000000000077],
-	[	#this is the one that finally elucidated the need for the descending-to-ascending jmp remainder.
+	[	#this is the one that finally elucidated the need for the descending-to-ascending pmo remainder.
 	0xFFFFFFFFFFFFC2..0xFFFFFFFFFFFFC3,	undef,
 	0xFFFFFFFFFFFFC5..0xFFFFFFFFFFFFCD,	0xFFFFFFFFFFFFCF..0xFFFFFFFFFFFFD0,	0xFFFFFFFFFFFFD3,				0xFFFFFFFFFFFFD5,				0xFFFFFFFFFFFFD9,				0xFFFFFFFFFFFFDC,		undef,
 	0xFFFFFFFFFFFFDE, 			0xFFFFFFFFFFFFE7..0xFFFFFFFFFFFFE9,	0xFFFFFFFFFFFFEB,				0xFFFFFFFFFFFFED,				0xFFFFFFFFFFFFF4,				0xFFFFFFFFFFFFFB,		0x100000000000000,    0x100000000000002..0x100000000000005,	undef,
@@ -929,7 +1399,7 @@ sub test_set_recursively($$$){	my($start_bits, $end_bits, $saturation)=@_;	my $s
 	1099511629074, 1099511629082, 1099511629144, 1099511629162, 1099511629247, 1099511629388, 1099511629401, 1099511629425,
 	1099511629440, 1099511629445, 1099511629529, 1099511629547, 1099511629558, 1099511629650, 1099511629706, 1099511629763
 	],      [1099511625822, 1099511625858, 1099511625894, 1099511626017, 1099511626089, 1099511626156, 1099511626213, 1099511626293, 1099511626375, 1099511626391, 1099511626483, 1099511626513, 1099511626536, 1099511626746, 1099511626849, 1099511626892, 1099511626932, 1099511626948, 1099511627012, 1099511627217, 1099511627233, 1099511627257, 1099511627451, 1099511627496, 1099511627508, 1099511627540, 1099511627546, 1099511627576, 1099511627585, 1099511627666, 1099511627742, 1099511627766, 1099511627773, 1099511627806, 1099511627953, 1099511628018, 1099511628038, 1099511628054, 1099511628104, 1099511628133, 1099511628242, 1099511628244, 1099511628431, 1099511628485, 1099511628501, 1099511628545, 1099511628608, 1099511628625, 1099511628670, 1099511628728, 1099511628874, 1099511629017, 1099511629164, 1099511629183, 1099511629226, 1099511629231, 1099511629374, 1099511629392, 1099511629395, 1099511629412, 1099511629437, 1099511629627, 1099511629632, 1099511629801],
-#	);@precursors=(
+#	);@precursors=(#
 	#	verify rare subcases of main case 1F4 within _sv_commit()
 	#	each precursor here is commented with a hex code.  The first 3 digits are the subcase, and the last 10 are the trace.
 	#	SUBCASE
@@ -1013,52 +1483,330 @@ sub test_set_recursively($$$){	my($start_bits, $end_bits, $saturation)=@_;	my $s
 	0x1000000000000E4, 0x100000000000119,                   0x10000000000011E, 0x100000000000122, 0x10000000000012D, 0x10000000000012F..0x100000000000130, 0x100000000000144, 0x10000000000023F,
 	0x100000000000251, 0x100000000000277,                   0x100000000000291, 0x1000000000002AC
 	], [ 0xFFFFFFFFFFFE5F, 0xFFFFFFFFFFFEDA, 0xFFFFFFFFFFFEF7, 0xFFFFFFFFFFFF06, 0xFFFFFFFFFFFF0C, 0xFFFFFFFFFFFF12, 0xFFFFFFFFFFFF1C, 0xFFFFFFFFFFFF2A, 0xFFFFFFFFFFFF42, 0xFFFFFFFFFFFF63, 0xFFFFFFFFFFFF73, 0xFFFFFFFFFFFF82, 0xFFFFFFFFFFFF95, 0xFFFFFFFFFFFF98, 0xFFFFFFFFFFFFB4, 0xFFFFFFFFFFFFCD, 0xFFFFFFFFFFFFDB, 0xFFFFFFFFFFFFE1, 0xFFFFFFFFFFFFEF, 0xFFFFFFFFFFFFFB, 0xFFFFFFFFFFFFFF, 0x10000000000001E, 0x100000000000063, 0x10000000000006E, 0x10000000000008A, 0x100000000000095, 0x1000000000000AB, 0x1000000000000C0, 0x100000000000164, 0x100000000000176, 0x100000000000186, 0x10000000000018E, 0x10000000000019A, 0x1000000000001AD, 0x1000000000001B3, 0x1000000000001B7, 0x1000000000001C7, 0x1000000000001E4, 0x1000000000001E9, 0x1000000000001F1, 0x1000000000001F6, 0x100000000000217, 0x100000000000226, 0x100000000000249, 0x10000000000026C, 0x100000000000290, ],
-	);
-my @precursorzs=(
-#	[	# overflows the main buffer, for which rotation still is not implemented 2026/05/10
-[
-0xDDE7,           0xE327,  0xF276,  0xF6F1,  0xFA5E,           0xFCC8,  0xFD43,  0xFF6E,
-0x1013D,          0x101A2, 0x103A3, 0x10586, 0x1062D,          0x106CA, 0x10752, 0x1084C,
-0x10897,          0x10940, 0x109D2, 0x10AFA, 0x10B03,          0x10C0B, 0x10CA3, 0x10D31,
-0x10F00,          0x1102A, 0x1110E, 0x1111F, 0x11235,          0x11336, 0x11354, 0x11495,
-0x11513,          0x11556, 0x1159E, 0x115EA, 0x11623,          0x11825, 0x118CB, 0x119D4,
-0x11A2C,          0x11A60, 0x11B12, 0x11C91, 0x11CB2,          0x11D0D, 0x11DB5, 0x11E16,
-0x11E9C,          0x11FD5, 0x12060, 0x1208B, 0x120C4..0x120C5, 0x1214E, 0x121CE, 0x1220E,
-0x12223,          0x12324, 0x1233B, 0x123C3, 0x12415,          0x12450, 0x12632, 0x1265A,
-0x126B5,          0x12713, 0x12895, 0x129B7, 0x129F0,          0x12A61, 0x12AEA, 0x12B8A,
-0x12BDB,          0x12C02, 0x12C1C, 0x12C2F, 0x12E30,          0x12E7A, 0x12EC9, 0x12F03,
-0x12F07,          0x12F3C, 0x12F51, 0x12FEE, 0x1311C,          0x13156, 0x1318D, 0x131C5,
-0x13335,          0x1333F, 0x133A3, 0x133FB, 0x1341A,          0x1343C, 0x13445, 0x1346C,
-0x1348C,          0x134FA, 0x134FF, 0x1359C, 0x135E2,          0x136C1, 0x13788, 0x137DA,
-0x137DE,          0x1386D, 0x13915, 0x1392D, 0x139D6,          0x13A23, 0x13A8A, 0x13CB9,
-0x13D4A,          0x13DF5, 0x13E27, 0x13EFB, 0x13FE3,          0x14045, 0x1404B, 0x14125,
-0x141AE,          0x14367, 0x14396, 0x143B8, 0x143CC,          0x1442A, 0x144EC, 0x14511,
-0x1451B,          0x145E5, 0x145F3, 0x146F5, 0x14719,          0x14739, 0x14757, 0x14819,
-0x148B4,          0x148E4, 0x1497F, 0x149BA, 0x14A8C,          0x14B5B, 0x14C99, 0x14CC9,
-0x14DA0,          0x14DCE, 0x14DD5, 0x14E04, 0x14E39,          0x14E88, 0x14F05, 0x14FB5,
-0x15003,          0x1512A, 0x15149, 0x151BC, 0x151D7,          0x1520D, 0x15231, 0x15287,
-0x152C4,          0x153F4, 0x1548E, 0x1560A, 0x15611,          0x15640, 0x15696, 0x156F8,
-0x15745,          0x1581A, 0x158E1, 0x15908, 0x15B60,          0x15B7D, 0x15CE7, 0x15D91,
-0x15F19,          0x16032, 0x1603B, 0x160EE, 0x16106,          0x1618C, 0x161AB, 0x161D2,
-0x16282,          0x162E4, 0x1636B, 0x164CB, 0x1658E,          0x16596, 0x16598, 0x1659E,
-0x16697..0x16698, 0x1673B, 0x16786, 0x1688E, 0x16895,          0x16947, 0x16956, 0x169E1,
-0x16AFC,          0x16C67, 0x16C72, 0x16CE4, 0x16D1A,          0x16D70, 0x16E54, 0x17153,
-0x171B3,          0x17220, 0x17240, 0x17305, 0x173B0,          0x17517, 0x176D3, 0x1772C,
-0x1776E,          0x177D4, 0x17838, 0x17874, 0x178B3,          0x17951, 0x17A05, 0x17C58,
-0x17D27,          0x17DA5, 0x17FE9, 0x1800E, 0x18046,          0x1811E, 0x181A3, 0x182E6,
-0x182E9,          0x183C4, 0x183D2, 0x1843C, 0x18492,          0x1856A, 0x1857D, 0x18620,
-0x18725,          0x18925, 0x18ACE, 0x18D2E, 0x18F17,          0x18FBA, 0x1981D, 0x1A014,
-0x1A09D,          0x1A2B9, 0x1A3F4, 0x1AC9C
-],      [50730, 50794, 50982, 51690, 51778, 51825, 51859, 51932, 52227, 52241, 52312, 52417, 52535, 52704, 52775, 52984, 52988, 52997, 53071, 53207, 53340, 53345, 53392, 53836, 53855, 54035, 54060, 54113, 54244, 54319, 54566, 54717, 55074, 55092, 55430, 55479, 55590, 55639, 55745, 55775, 55914, 55996, 56052, 56130, 56388, 56493, 56557, 56575, 56611, 56663, 56697, 56700, 56835, 56873, 57177, 57228, 57352, 57479, 57505, 57545, 57594, 57672, 57690, 57727, 57845, 57883, 57994, 58368, 58393, 58405, 58542, 58601, 58655, 58728, 59412, 59720, 59908, 60012, 60073, 60354, 60438, 60613, 60685, 60741, 60931, 61037, 61118, 61376, 61416, 61731, 61732, 61746, 61784, 61937, 61939, 62099, 62370, 62392, 62517, 62661, 62687, 62743, 62744, 62799, 62813, 62852, 63017, 63135, 63197, 63257, 63343, 63375, 63459, 63784, 64036, 64161, 64178, 64343, 64344, 64475, 64957, 65153, 65253, 65322, 65352, 65380, 65697, 65834, 65839, 65869, 65972, 66304, 66535, 66755, 67012, 67048, 67196, 67222, 67324, 67415, 67455, 67536, 67625, 67752, 67927, 67937, 68057, 68296, 68472, 68539, 68988, 69026, 69116, 69157, 69175, 69831, 69914, 70268, 70436, 70637, 70835, 70933, 71111, 71164, 71208, 71493, 71822, 71962, 72543, 72592, 72598, 72714, 72781, 73335, 73525, 73778, 73948, 74135, 74241, 74445, 74547, 74567, 74595, 74601, 74824, 74995, 74998, 75382, 75505, 75524, 75663, 75853, 75895, 76436, 76632, 76836, 77027, 77185, 77283, 77675, 77697, 77826, 77908, 77970, 78033, 78268, 78432, 78588, 78629, 78672, 78703, 78875, 79304, 79432, 79441, 79509, 79604, 79630, 79679, 79957, 80048, 80105, 80202, 80238, 80523, 80605, 80779, 80841, 81075, 81103, 81159, 81315, 81317, 81611, 81717, 81724, 81812, 81830, 81985, 82016, 82063, 82461, 82498, 82512, 82546, 82583, 82642, 82761, 83537, 83726, 84038, 84140, 84615, 84680],
+#	);
+#	@precursors=(
+	# holy shit!  I can't believe I'm still finding bugs like this!  How did this never hit?  "The law of averages is a fallacy", and so I know
+	# my current test script parameters must bias the probabilities just right in order to hit this far-out exception twice in 10 minutes
+	# 
+	# The bug was in the _asce block.  I noticed in the audit that an insert was being made to the spot vacated by the control index move,
+	# but in the wrong order: the control index move is really an optional finishing iteration of the peristaltic shift loop, which
+	# obviously needs to do its work before any insertions are made, in order to clear space for them.
+	# Maybe the reason this hadn't caused a problem yet is that rel_q had never pivoted from positive to negative on the control index.
+	# Say that requires an insertion of more than one element swinging rel_q from positive to negative, skipping over zero-crossing,
+	# and that is what made it so unlikely— because typically, the "asce" loop would take over before rel_q goes negative.
+	# I think I would need to watch step-by-step replays in order to understand all these edge cases in clear, obvious detail—
+	# but while the question of why it never hit may still puzzle me, the fact that those lines were swapped is perfectly obvious.
+	# See backups of av_commit() before/after 2026/05/23 to see the change that was made.
+	# 
+	[
+	# Again, holy shit!  I have no confidence in brute force anymore.
+	# well, it was so obvious, which puts things in perspective.  There are areas of the code which simply haven't grown up
+	# past rudimentary status.  This was yet another bug in void _av_commit().  Right at the top, when it initializes the main loop,
+	# it decides which mode to start in (ascending or descending) based on the difference in pre / post length.
+	# But what if the length is the same?
+	# Previously, it just assumed same length could be treated like regular descending mode, but on second thought,
+	# it's ambiguous.  We have to skip initial steps until the tie breaks.
+#	0xFFFFFFFE00..0xFFFFFFFE01,  0xFFFFFFFE03,                0xFFFFFFFE05..0xFFFFFFFE06,    0xFFFFFFFE08,	undef,
+	0xFFFFFFFE0A..0xFFFFFFFE11,  0xFFFFFFFE13..0xFFFFFFFE14,  0xFFFFFFFE17,                  0xFFFFFFFE1A..0xFFFFFFFE20,    0xFFFFFFFE22,                  0xFFFFFFFE26,                  0xFFFFFFFE29..0xFFFFFFFE2B,	undef,
+	0xFFFFFFFE2E,                0xFFFFFFFE31..0xFFFFFFFE32,  0xFFFFFFFE39..0xFFFFFFFE3B,    0xFFFFFFFE3D,	undef,
+	0xFFFFFFFE41,                0xFFFFFFFE44..0xFFFFFFFE45,  0xFFFFFFFE49..0xFFFFFFFE4A,    0xFFFFFFFE4C..0xFFFFFFFE4D,    0xFFFFFFFE4F..0xFFFFFFFE50,	undef,
+	0xFFFFFFFE52..0xFFFFFFFE54,  0xFFFFFFFE56,                0xFFFFFFFE59,                  0xFFFFFFFE5B..0xFFFFFFFE5D,    0xFFFFFFFE5F..0xFFFFFFFE62,	undef,
+#	0xFFFFFFFE65..0xFFFFFFFE68,  0xFFFFFFFE6C..0xFFFFFFFE6D,  0xFFFFFFFE6F,                  0xFFFFFFFE73..0xFFFFFFFE74,    0xFFFFFFFE76,	undef,
+#	0xFFFFFFFE7C,                0xFFFFFFFE7F,                0xFFFFFFFE81,                  0xFFFFFFFE85..0xFFFFFFFE8C,	undef,
+	0xFFFFFFFE8E..0xFFFFFFFE91,  0xFFFFFFFE93,                0xFFFFFFFE95..0xFFFFFFFE96,    0xFFFFFFFE98..0xFFFFFFFE99,    0xFFFFFFFE9C..0xFFFFFFFE9F,	undef,
+#	0xFFFFFFFEA3,                0xFFFFFFFEA6,                0xFFFFFFFEA8..0xFFFFFFFEA9,    0xFFFFFFFEAD,                  0xFFFFFFFEB0..0xFFFFFFFEB1,	undef,
+#	0xFFFFFFFEB3..0xFFFFFFFEB5,  0xFFFFFFFEB8..0xFFFFFFFEB9,  0xFFFFFFFEBB..0xFFFFFFFEBE,    0xFFFFFFFEC0..0xFFFFFFFEC1,	undef,
+	0xFFFFFFFEC3..0xFFFFFFFEC8,  0xFFFFFFFECB..0xFFFFFFFECC,  0xFFFFFFFECE..0xFFFFFFFED2,    0xFFFFFFFED4..0xFFFFFFFED5,	undef,
+#	0xFFFFFFFED7,                0xFFFFFFFED9,                0xFFFFFFFEDB,                  0xFFFFFFFEE2..0xFFFFFFFEE3,    0xFFFFFFFEE6..0xFFFFFFFEE9,	undef,
+	0xFFFFFFFEEB,                0xFFFFFFFEED..0xFFFFFFFEF2,  0xFFFFFFFEF4..0xFFFFFFFEF6,    0xFFFFFFFEF8,                  0xFFFFFFFEFA..0xFFFFFFFEFB,	undef,
+#	0xFFFFFFFEFD,                0xFFFFFFFF00,                0xFFFFFFFF03..0xFFFFFFFF05,    0xFFFFFFFF09,                  0xFFFFFFFF0B..0xFFFFFFFF0C,	undef,
+	0xFFFFFFFF0E..0xFFFFFFFF13,  0xFFFFFFFF15..0xFFFFFFFF16,  0xFFFFFFFF19..0xFFFFFFFF1D,    0xFFFFFFFF1F,	undef,
+	0xFFFFFFFF25..0xFFFFFFFF26,  0xFFFFFFFF28..0xFFFFFFFF29,  0xFFFFFFFF2E,                  0xFFFFFFFF30..0xFFFFFFFF31,	undef,
+	0xFFFFFFFF33..0xFFFFFFFF36,  0xFFFFFFFF38,                0xFFFFFFFF3A,                  0xFFFFFFFF41,                  0xFFFFFFFF44,                  0xFFFFFFFF48,                  0xFFFFFFFF4A..0xFFFFFFFF4B,	undef,
+	0xFFFFFFFF4E..0xFFFFFFFF50,  0xFFFFFFFF53..0xFFFFFFFF63,	undef,
+	0xFFFFFFFF65,                0xFFFFFFFF69..0xFFFFFFFF6B,  0xFFFFFFFF6D..0xFFFFFFFF6E,    0xFFFFFFFF70..0xFFFFFFFF71,    0xFFFFFFFF73,                  0xFFFFFFFF77..0xFFFFFFFF79,    0xFFFFFFFF7D..0xFFFFFFFF7E,    0xFFFFFFFF81,	undef,
+	0xFFFFFFFF83,                0xFFFFFFFF86..0xFFFFFFFF89,  0xFFFFFFFF8C..0xFFFFFFFF8D,    0xFFFFFFFF93..0xFFFFFFFF94,    0xFFFFFFFF98,                  0xFFFFFFFF9B..0xFFFFFFFF9C,	undef,
+	0xFFFFFFFF9E..0xFFFFFFFFA1,  0xFFFFFFFFA7,                0xFFFFFFFFAA,                  0xFFFFFFFFAD..0xFFFFFFFFAE,    0xFFFFFFFFB0,                  0xFFFFFFFFB2,                  0xFFFFFFFFB5..0xFFFFFFFFB7,	undef,
+	0xFFFFFFFFBA,                0xFFFFFFFFBD,                0xFFFFFFFFC1..0xFFFFFFFFC5,    0xFFFFFFFFC9..0xFFFFFFFFCA,    0xFFFFFFFFD0..0xFFFFFFFFD1,	undef,
+	0xFFFFFFFFD4..0xFFFFFFFFD5,  0xFFFFFFFFD9..0xFFFFFFFFDA,  0xFFFFFFFFDE,                  0xFFFFFFFFE0,                  0xFFFFFFFFE2..0xFFFFFFFFE3,    0xFFFFFFFFE5,                  0xFFFFFFFFE8,	undef,
+#	0xFFFFFFFFED,                0xFFFFFFFFEF,                0xFFFFFFFFF1,                  0xFFFFFFFFF6..0xFFFFFFFFF9,    0xFFFFFFFFFC..0x10000000000,   0x10000000004..0x10000000005,  0x10000000007,	undef,
+#	0x1000000000A,               0x1000000000C..0x10000000010,0x10000000012,                 0x10000000015..0x10000000019,  0x1000000001B..0x1000000001C,  0x10000000021..0x10000000026,	undef,
+	0x10000000028,               0x1000000002A..0x10000000030,0x10000000033,                 0x10000000035,	undef,
+	0x10000000037,               0x10000000039,               0x1000000003B..0x1000000003C,  0x1000000003F,	undef,
+	0x10000000045..0x1000000004C,0x1000000004E..0x1000000004F,0x10000000051..0x10000000057,	undef,
+	0x1000000005B..0x10000000063,0x10000000066,               0x10000000068,                 0x1000000006C,	undef,
+#	0x1000000006E,               0x10000000070,               0x10000000072..0x10000000073,  0x10000000075..0x10000000078,	undef,
+#	0x1000000007A,               0x1000000007D,               0x1000000007F,                 0x10000000081..0x10000000084,  0x10000000086..0x10000000088,	undef,
+#	0x1000000008A..0x10000000091,0x10000000093..0x10000000096,0x10000000098,                 0x1000000009A..0x1000000009F,  0x100000000A1..0x100000000A3,  0x100000000A6,	undef,
+#	0x100000000AA,               0x100000000AC,               0x100000000AE..0x100000000AF,  0x100000000B1,	undef,
+#	0x100000000B6..0x100000000BA,0x100000000BE..0x100000000BF,0x100000000C2,                 0x100000000C5,                 0x100000000C7..0x100000000C8,  0x100000000CA,	undef,
+#	0x100000000CD..0x100000000D6,0x100000000D8..0x100000000DA,0x100000000DC..0x100000000DE,  0x100000000E2,                 0x100000000E4..0x100000000E5,  0x100000000E7,	undef,
+#	0x100000000EA..0x100000000EB,0x100000000ED,               0x100000000F0..0x100000000F1,  0x100000000F6..0x100000000F7,  0x100000000F9,                 0x100000000FC..0x100000000FE,	undef,
+#	0x10000000102..0x10000000103,0x10000000106,               0x10000000108..0x10000000109,  0x1000000010B,                 0x10000000110,                 0x10000000113..0x10000000116,	undef,
+#	0x1000000011B..0x1000000011D,0x1000000011F,               0x10000000123..0x10000000124,  0x10000000126,                 0x10000000129,                 0x1000000012B,                 0x1000000012F,                 0x10000000132,	undef,
+#	0x10000000135..0x10000000137,0x1000000013A,               0x1000000013C,                 0x10000000140,                 0x10000000143,	undef,
+#	0x10000000145..0x10000000147,0x1000000014B,               0x1000000014D..0x1000000014E,  0x10000000150,                 0x10000000155..0x10000000156,	undef,
+#	0x1000000015B,               0x1000000015F,               0x10000000161,                 0x10000000168..0x10000000169,  0x1000000016D..0x1000000016E,  0x10000000172,                 0x10000000174,	undef,
+#	0x10000000176,               0x1000000017B..0x1000000017C,0x1000000017F,                 0x10000000182,                 0x10000000185..0x10000000186,  0x10000000189..0x1000000018A,  0x1000000018D..0x10000000190,	undef,
+#	0x10000000192..0x10000000193,0x10000000196,               0x10000000198..0x1000000019C,  0x1000000019E..0x100000001A5,  0x100000001A7,	undef,
+	0x100000001AB..0x100000001AD,0x100000001AF..0x100000001B0,0x100000001B2,                 0x100000001B6,                 0x100000001B9..0x100000001BB,  0x100000001BF..0x100000001C1,	undef,
 
+	],      [1099511627270, 1099511627271, 1099511627279, 1099511627280, 1099511627283, 1099511627288, 1099511627291, 1099511627292, 1099511627295, 1099511627297, 1099511627300, 1099511627304, 1099511627307, 1099511627310, 1099511627312, 1099511627317, 1099511627319, 1099511627327, 1099511627330, 1099511627332, 1099511627333, 1099511627338, 1099511627340, 1099511627346, 1099511627347, 1099511627356, 1099511627361, 1099511627368, 1099511627370, 1099511627384, 1099511627385, 1099511627390, 1099511627396, 1099511627404, 1099511627405, 1099511627409, 1099511627410, 1099511627413, 1099511627414, 1099511627415, 1099511627418, 1099511627419, 1099511627423, 1099511627432, 1099511627433, 1099511627437, 1099511627451, 1099511627454, 1099511627459, 1099511627464, 1099511627465, 1099511627468, 1099511627471, 1099511627472, 1099511627475, 1099511627477, 1099511627481, 1099511627484, 1099511627490, 1099511627497, 1099511627500, 1099511627502, 1099511627504, 1099511627505, 1099511627506, 1099511627510, 1099511627514, 1099511627520, 1099511627523, 1099511627541, 1099511627542, 1099511627553, 1099511627555, 1099511627560, 1099511627561, 1099511627563, 1099511627566, 1099511627588, 1099511627593, 1099511627594, 1099511627599, 1099511627601, 1099511627602, 1099511627620, 1099511627625, 1099511627630, 1099511627635, 1099511627637, 1099511627642, 1099511627650, 1099511627654, 1099511627657, 1099511627659, 1099511627663, 1099511627664, 1099511627667, 1099511627671, 1099511627676, 1099511627680, 1099511627682, 1099511627687, 1099511627689, 1099511627694, 1099511627702, 1099511627708, 1099511627712, 1099511627716, 1099511627722, 1099511627730, 1099511627737, 1099511627739, 1099511627743, 1099511627746, 1099511627747, 1099511627750, 1099511627752, 1099511627755, 1099511627759, 1099511627770, 1099511627775, 1099511627778, 1099511627780, 1099511627781, 1099511627785, 1099511627786, 1099511627787, 1099511627797, 1099511627804, 1099511627811, 1099511627821, 1099511627823, 1099511627828, 1099511627830, 1099511627838, 1099511627853, 1099511627856,
+	 1099511627857, 1099511627860, 1099511627861, 1099511627864, 1099511627865, 1099511627866, 1099511627869, 1099511627870, 1099511627874, 1099511627882, 1099511627887, 1099511627891, 1099511627905, 1099511627906, 1099511627910, 1099511627919, 1099511627921, 1099511627925, 1099511627935, 1099511627937, 1099511627942, 1099511627946, 1099511627950, 1099511627959, 1099511627964, 1099511627965, 1099511627972, 1099511627987, 1099511627988, 1099511627990, 1099511627995, 1099511628002, 1099511628005, 1099511628007, 1099511628009, 1099511628013, 1099511628015, 1099511628018, 1099511628019, 1099511628020, 1099511628022, 1099511628023, 1099511628024, 1099511628036, 1099511628041, 1099511628046, 1099511628051, 1099511628059, 1099511628061, 1099511628065, 1099511628077, 1099511628081, 1099511628089, 1099511628091, 1099511628095, 1099511628099, 1099511628104, 1099511628105, 1099511628109, 1099511628114, 1099511628116, 1099511628117, 1099511628118, 1099511628119, 1099511628125, 1099511628130, 1099511628131, 1099511628132, 1099511628133, 1099511628143, 1099511628155, 1099511628159, 1099511628160, 1099511628161, 1099511628163, 1099511628168, 1099511628191, 1099511628196, 1099511628200, 1099511628202, 1099511628204, 1099511628209, 1099511628210, 1099511628212, 1099511628215, 1099511628217, 1099511628218, 1099511628222, 1099511628226, 1099511628230, 1099511628231, 1099511628232, 1099511628236, 1099511628244, 1099511628247, 1099511628249, 1099511628251, 1099511628254, 1099511628255, 1099511628257, 1099511628265, 1099511628273, 1099511628281, 1099511628282],
+#	);@precursors=(
+	[
+	0xFFFFFFFFF800,                  0xFFFFFFFFF803..0xFFFFFFFFF807, undef,
+	0xFFFFFFFFF809..0xFFFFFFFFF811,  0xFFFFFFFFF813,                    0xFFFFFFFFF815..0xFFFFFFFFF81C,    0xFFFFFFFFF81F,                    0xFFFFFFFFF821..0xFFFFFFFFF823, undef,
+	0xFFFFFFFFF825..0xFFFFFFFFF82F,  0xFFFFFFFFF831..0xFFFFFFFFF836, undef,
+	0xFFFFFFFFF838..0xFFFFFFFFF83E, undef,
+	0xFFFFFFFFF840..0xFFFFFFFFF849,  0xFFFFFFFFF84C..0xFFFFFFFFF84D,    0xFFFFFFFFF850..0xFFFFFFFFF851,    0xFFFFFFFFF856..0xFFFFFFFFF85B, undef,
+	0xFFFFFFFFF85D..0xFFFFFFFFF85F,  0xFFFFFFFFF861..0xFFFFFFFFF862,    0xFFFFFFFFF864,                    0xFFFFFFFFF868..0xFFFFFFFFF86B,    0xFFFFFFFFF86D..0xFFFFFFFFF874, undef,
+	0xFFFFFFFFF876..0xFFFFFFFFF879,  0xFFFFFFFFF87B..0xFFFFFFFFF880, undef,
+	0xFFFFFFFFF882..0xFFFFFFFFF884,  0xFFFFFFFFF886..0xFFFFFFFFF889,    0xFFFFFFFFF88C..0xFFFFFFFFF88D,    0xFFFFFFFFF88F,                    0xFFFFFFFFF894,                    0xFFFFFFFFF896..0xFFFFFFFFF898, undef,
+	0xFFFFFFFFF89A..0xFFFFFFFFF8A9, undef,
+	0xFFFFFFFFF8AB..0xFFFFFFFFF8B0,  0xFFFFFFFFF8B2,                    0xFFFFFFFFF8B4,                    0xFFFFFFFFF8B6..0xFFFFFFFFF8B8, undef,
+	0xFFFFFFFFF8BA,                  0xFFFFFFFFF8BD..0xFFFFFFFFF8BF,    0xFFFFFFFFF8C1,                    0xFFFFFFFFF8C3,                    0xFFFFFFFFF8C5, undef,
+	0xFFFFFFFFF8C7..0xFFFFFFFFF8CE,  0xFFFFFFFFF8D1..0xFFFFFFFFF8D5, undef,
+	0xFFFFFFFFF8D9..0xFFFFFFFFF8E5,  0xFFFFFFFFF8E7..0xFFFFFFFFF8E9,    0xFFFFFFFFF8EB,                    0xFFFFFFFFF8ED,                    0xFFFFFFFFF8EF,                    0xFFFFFFFFF8F2,                    0xFFFFFFFFF8F4..0xFFFFFFFFF8F5, undef,
+	0xFFFFFFFFF8F7,                  0xFFFFFFFFF8FA..0xFFFFFFFFF900,    0xFFFFFFFFF903, undef,
+	0xFFFFFFFFF905..0xFFFFFFFFF909,  0xFFFFFFFFF90B..0xFFFFFFFFF910,    0xFFFFFFFFF912..0xFFFFFFFFF913, undef,
+	0xFFFFFFFFF915..0xFFFFFFFFF918,  0xFFFFFFFFF91A..0xFFFFFFFFF91B,    0xFFFFFFFFF91D..0xFFFFFFFFF91E,    0xFFFFFFFFF920..0xFFFFFFFFF923,    0xFFFFFFFFF925,                    0xFFFFFFFFF927..0xFFFFFFFFF929, undef,
+	0xFFFFFFFFF92C..0xFFFFFFFFF93B,  0xFFFFFFFFF93D..0xFFFFFFFFF93F,    0xFFFFFFFFF941..0xFFFFFFFFF943, undef,
+	0xFFFFFFFFF945..0xFFFFFFFFF94A,  0xFFFFFFFFF94D,                    0xFFFFFFFFF951,                    0xFFFFFFFFF954..0xFFFFFFFFF955,    0xFFFFFFFFF957,                    0xFFFFFFFFF95A..0xFFFFFFFFF95C,    0xFFFFFFFFF95E, undef,
+	0xFFFFFFFFF960..0xFFFFFFFFF964,  0xFFFFFFFFF967,                    0xFFFFFFFFF969..0xFFFFFFFFF96A,    0xFFFFFFFFF96C, undef,
+	0xFFFFFFFFF96E..0xFFFFFFFFF973,  0xFFFFFFFFF975..0xFFFFFFFFF976,    0xFFFFFFFFF97A..0xFFFFFFFFF97B,    0xFFFFFFFFF97E..0xFFFFFFFFF987,    0xFFFFFFFFF98B..0xFFFFFFFFF98C,    0xFFFFFFFFF98F..0xFFFFFFFFF992, undef,
+	0xFFFFFFFFF994,                  0xFFFFFFFFF996,                    0xFFFFFFFFF998..0xFFFFFFFFF99B, undef,
+	0xFFFFFFFFF99D..0xFFFFFFFFF9A9,  0xFFFFFFFFF9AB..0xFFFFFFFFF9AC,    0xFFFFFFFFF9AE..0xFFFFFFFFF9AF, undef,
+	0xFFFFFFFFF9B1..0xFFFFFFFFF9B4,  0xFFFFFFFFF9B6..0xFFFFFFFFF9B8,    0xFFFFFFFFF9BA..0xFFFFFFFFF9BD, undef,
+	0xFFFFFFFFF9C0,                  0xFFFFFFFFF9C2..0xFFFFFFFFF9C3,    0xFFFFFFFFF9C5..0xFFFFFFFFF9C7,    0xFFFFFFFFF9C9,                    0xFFFFFFFFF9CB,                    0xFFFFFFFFF9CD..0xFFFFFFFFF9CF, undef,
+	0xFFFFFFFFF9D1..0xFFFFFFFFF9DD,  0xFFFFFFFFF9DF..0xFFFFFFFFF9E3,    0xFFFFFFFFF9E5,                    0xFFFFFFFFF9E7..0xFFFFFFFFF9E8,    0xFFFFFFFFF9EA..0xFFFFFFFFF9EC, undef,
+	0xFFFFFFFFF9EE..0xFFFFFFFFF9F3,  0xFFFFFFFFF9F5, undef,
+	0xFFFFFFFFF9F8,                  0xFFFFFFFFF9FA..0xFFFFFFFFF9FC,    0xFFFFFFFFF9FE,                    0xFFFFFFFFFA00..0xFFFFFFFFFA01, undef,
+	0xFFFFFFFFFA03..0xFFFFFFFFFA0C,  0xFFFFFFFFFA0E..0xFFFFFFFFFA13,    0xFFFFFFFFFA15..0xFFFFFFFFFA1A, undef,
+	0xFFFFFFFFFA1C..0xFFFFFFFFFA1F,  0xFFFFFFFFFA21..0xFFFFFFFFFA22,    0xFFFFFFFFFA24..0xFFFFFFFFFA27,    0xFFFFFFFFFA29,                    0xFFFFFFFFFA2B..0xFFFFFFFFFA2F,    0xFFFFFFFFFA32, undef,
+	0xFFFFFFFFFA34,                  0xFFFFFFFFFA37..0xFFFFFFFFFA3D, undef,
+	0xFFFFFFFFFA3F..0xFFFFFFFFFA41,  0xFFFFFFFFFA43..0xFFFFFFFFFA46,    0xFFFFFFFFFA4A,                    0xFFFFFFFFFA4C..0xFFFFFFFFFA4E, undef,
+	0xFFFFFFFFFA50..0xFFFFFFFFFA57,  0xFFFFFFFFFA5A,                    0xFFFFFFFFFA5C..0xFFFFFFFFFA5D,    0xFFFFFFFFFA5F..0xFFFFFFFFFA60, undef,
+	0xFFFFFFFFFA63..0xFFFFFFFFFA66,  0xFFFFFFFFFA68..0xFFFFFFFFFA73,    0xFFFFFFFFFA75,                    0xFFFFFFFFFA77..0xFFFFFFFFFA78,    0xFFFFFFFFFA7A..0xFFFFFFFFFA7E, undef,
+	0xFFFFFFFFFA80..0xFFFFFFFFFA83,  0xFFFFFFFFFA86..0xFFFFFFFFFA8D,    0xFFFFFFFFFA8F..0xFFFFFFFFFA92,    0xFFFFFFFFFA94..0xFFFFFFFFFA98, undef,
+	0xFFFFFFFFFA9B,                  0xFFFFFFFFFA9D,                    0xFFFFFFFFFAA0,                    0xFFFFFFFFFAA2,                    0xFFFFFFFFFAA5..0xFFFFFFFFFAA8, undef,
+	0xFFFFFFFFFAAB..0xFFFFFFFFFAB2,  0xFFFFFFFFFAB4,                    0xFFFFFFFFFAB6..0xFFFFFFFFFABF,    0xFFFFFFFFFAC3..0xFFFFFFFFFAC4,    0xFFFFFFFFFAC6..0xFFFFFFFFFAC7,    0xFFFFFFFFFAC9..0xFFFFFFFFFACA,    0xFFFFFFFFFACC..0xFFFFFFFFFACD,    0xFFFFFFFFFACF, undef,
+	0xFFFFFFFFFAD1..0xFFFFFFFFFAD2,  0xFFFFFFFFFAD6..0xFFFFFFFFFAD8,    0xFFFFFFFFFADA..0xFFFFFFFFFADE,    0xFFFFFFFFFAE0, undef,
+	0xFFFFFFFFFAE2..0xFFFFFFFFFAE3,  0xFFFFFFFFFAE5..0xFFFFFFFFFAE9,    0xFFFFFFFFFAEB..0xFFFFFFFFFAEC, undef,
+	0xFFFFFFFFFAEF..0xFFFFFFFFFAF0,  0xFFFFFFFFFAF2..0xFFFFFFFFFAF4,    0xFFFFFFFFFAF6..0xFFFFFFFFFAF7,    0xFFFFFFFFFAF9..0xFFFFFFFFFB00,    0xFFFFFFFFFB02..0xFFFFFFFFFB06, undef,
+	0xFFFFFFFFFB08..0xFFFFFFFFFB09,  0xFFFFFFFFFB0C..0xFFFFFFFFFB17, undef,
+	0xFFFFFFFFFB19,                  0xFFFFFFFFFB1F..0xFFFFFFFFFB21,    0xFFFFFFFFFB24..0xFFFFFFFFFB27,    0xFFFFFFFFFB29..0xFFFFFFFFFB2C, undef,
+	0xFFFFFFFFFB2E..0xFFFFFFFFFB30,  0xFFFFFFFFFB32..0xFFFFFFFFFB35,    0xFFFFFFFFFB37..0xFFFFFFFFFB3A, undef,
+	0xFFFFFFFFFB3C..0xFFFFFFFFFB3E,  0xFFFFFFFFFB42..0xFFFFFFFFFB43,    0xFFFFFFFFFB45..0xFFFFFFFFFB47, undef,
+	0xFFFFFFFFFB49..0xFFFFFFFFFB4C,  0xFFFFFFFFFB4E..0xFFFFFFFFFB52,    0xFFFFFFFFFB54..0xFFFFFFFFFB57, undef,
+	0xFFFFFFFFFB59..0xFFFFFFFFFB5A,  0xFFFFFFFFFB5C..0xFFFFFFFFFB62,    0xFFFFFFFFFB65,                    0xFFFFFFFFFB67..0xFFFFFFFFFB68, undef,
+	0xFFFFFFFFFB6A,                  0xFFFFFFFFFB6C..0xFFFFFFFFFB6D,    0xFFFFFFFFFB6F..0xFFFFFFFFFB72,    0xFFFFFFFFFB74..0xFFFFFFFFFB75,    0xFFFFFFFFFB78..0xFFFFFFFFFB79, undef,
+	0xFFFFFFFFFB7B,                  0xFFFFFFFFFB7D..0xFFFFFFFFFB7E,    0xFFFFFFFFFB80,                    0xFFFFFFFFFB85, undef,
+	0xFFFFFFFFFB87..0xFFFFFFFFFB8E,  0xFFFFFFFFFB90..0xFFFFFFFFFB91,    0xFFFFFFFFFB93..0xFFFFFFFFFB95,    0xFFFFFFFFFB97, undef,
+	0xFFFFFFFFFB9A..0xFFFFFFFFFBA2,  0xFFFFFFFFFBA4, undef,
+	0xFFFFFFFFFBA6..0xFFFFFFFFFBAE,  0xFFFFFFFFFBB1..0xFFFFFFFFFBB2,    0xFFFFFFFFFBB4,                    0xFFFFFFFFFBB6,                    0xFFFFFFFFFBB8,                    0xFFFFFFFFFBBA..0xFFFFFFFFFBBB,    0xFFFFFFFFFBBE,                    0xFFFFFFFFFBC0..0xFFFFFFFFFBC2, undef,
+	0xFFFFFFFFFBC4..0xFFFFFFFFFBCD,  0xFFFFFFFFFBCF..0xFFFFFFFFFBD3,    0xFFFFFFFFFBD5..0xFFFFFFFFFBD6,    0xFFFFFFFFFBD8..0xFFFFFFFFFBDA, undef,
+	0xFFFFFFFFFBDD..0xFFFFFFFFFBDF,  0xFFFFFFFFFBE1..0xFFFFFFFFFBE2,    0xFFFFFFFFFBE4..0xFFFFFFFFFBE7,    0xFFFFFFFFFBE9..0xFFFFFFFFFBFB, undef,
+	0xFFFFFFFFFBFD..0xFFFFFFFFFC03,  0xFFFFFFFFFC06, undef,
+	0xFFFFFFFFFC08..0xFFFFFFFFFC0D,  0xFFFFFFFFFC0F..0xFFFFFFFFFC12,    0xFFFFFFFFFC15..0xFFFFFFFFFC16,    0xFFFFFFFFFC18..0xFFFFFFFFFC1A, undef,
+	0xFFFFFFFFFC1C..0xFFFFFFFFFC1D,  0xFFFFFFFFFC1F,                    0xFFFFFFFFFC21..0xFFFFFFFFFC22,    0xFFFFFFFFFC26..0xFFFFFFFFFC28,    0xFFFFFFFFFC2A,                    0xFFFFFFFFFC2C..0xFFFFFFFFFC2D, undef,
+	0xFFFFFFFFFC2F..0xFFFFFFFFFC34,  0xFFFFFFFFFC36..0xFFFFFFFFFC3A,    0xFFFFFFFFFC3C..0xFFFFFFFFFC3E,    0xFFFFFFFFFC40..0xFFFFFFFFFC41,    0xFFFFFFFFFC44,                    0xFFFFFFFFFC46..0xFFFFFFFFFC4A, undef,
+	0xFFFFFFFFFC4C..0xFFFFFFFFFC53,  0xFFFFFFFFFC55..0xFFFFFFFFFC56,    0xFFFFFFFFFC58,                    0xFFFFFFFFFC5A..0xFFFFFFFFFC5D, undef,
+	0xFFFFFFFFFC60..0xFFFFFFFFFC61,  0xFFFFFFFFFC63..0xFFFFFFFFFC64,    0xFFFFFFFFFC66..0xFFFFFFFFFC68,    0xFFFFFFFFFC6A..0xFFFFFFFFFC6C, undef,
+	0xFFFFFFFFFC6E..0xFFFFFFFFFC71,  0xFFFFFFFFFC73..0xFFFFFFFFFC74,    0xFFFFFFFFFC76..0xFFFFFFFFFC77,    0xFFFFFFFFFC79..0xFFFFFFFFFC7B,    0xFFFFFFFFFC7D, undef,
+	0xFFFFFFFFFC7F..0xFFFFFFFFFC8E,  0xFFFFFFFFFC90..0xFFFFFFFFFC93,    0xFFFFFFFFFC95..0xFFFFFFFFFC96, undef,
+	0xFFFFFFFFFC98..0xFFFFFFFFFC9A,  0xFFFFFFFFFCA0..0xFFFFFFFFFCA1,    0xFFFFFFFFFCA3..0xFFFFFFFFFCA6,    0xFFFFFFFFFCA8..0xFFFFFFFFFCAA,    0xFFFFFFFFFCAD..0xFFFFFFFFFCB0, undef,
+	0xFFFFFFFFFCB2..0xFFFFFFFFFCB8,  0xFFFFFFFFFCBA..0xFFFFFFFFFCBD, undef,
+	0xFFFFFFFFFCBF..0xFFFFFFFFFCC7,  0xFFFFFFFFFCCA..0xFFFFFFFFFCCB,    0xFFFFFFFFFCCD..0xFFFFFFFFFCD4, undef,
+	0xFFFFFFFFFCD6..0xFFFFFFFFFCDF,  0xFFFFFFFFFCE2..0xFFFFFFFFFCE3, undef,
+	0xFFFFFFFFFCE6..0xFFFFFFFFFCE8,  0xFFFFFFFFFCEA..0xFFFFFFFFFCEC,    0xFFFFFFFFFCEE..0xFFFFFFFFFCF1, undef,
+	0xFFFFFFFFFCF3..0xFFFFFFFFFCFC,  0xFFFFFFFFFCFE..0xFFFFFFFFFD02,    0xFFFFFFFFFD04..0xFFFFFFFFFD07, undef,
+	0xFFFFFFFFFD09,                  0xFFFFFFFFFD0B..0xFFFFFFFFFD0C,    0xFFFFFFFFFD0F,                    0xFFFFFFFFFD11..0xFFFFFFFFFD12,    0xFFFFFFFFFD14..0xFFFFFFFFFD1A,    0xFFFFFFFFFD1C..0xFFFFFFFFFD20, undef,
+	0xFFFFFFFFFD22..0xFFFFFFFFFD26,  0xFFFFFFFFFD29..0xFFFFFFFFFD2B,    0xFFFFFFFFFD2D..0xFFFFFFFFFD31, undef,
+	0xFFFFFFFFFD34..0xFFFFFFFFFD38,  0xFFFFFFFFFD3A, undef,
+	0xFFFFFFFFFD3C..0xFFFFFFFFFD40,  0xFFFFFFFFFD42..0xFFFFFFFFFD43,    0xFFFFFFFFFD45,                    0xFFFFFFFFFD47..0xFFFFFFFFFD4F,    0xFFFFFFFFFD51..0xFFFFFFFFFD56, undef,
+	0xFFFFFFFFFD59..0xFFFFFFFFFD5A,  0xFFFFFFFFFD5C..0xFFFFFFFFFD5D,    0xFFFFFFFFFD61..0xFFFFFFFFFD63,    0xFFFFFFFFFD65,                    0xFFFFFFFFFD67..0xFFFFFFFFFD68,    0xFFFFFFFFFD6A..0xFFFFFFFFFD6B,    0xFFFFFFFFFD6D..0xFFFFFFFFFD6E, undef,
+	0xFFFFFFFFFD70..0xFFFFFFFFFD72,  0xFFFFFFFFFD74..0xFFFFFFFFFD75,    0xFFFFFFFFFD77,                    0xFFFFFFFFFD79..0xFFFFFFFFFD7A,    0xFFFFFFFFFD7D..0xFFFFFFFFFD80, undef,
+	0xFFFFFFFFFD82..0xFFFFFFFFFD88,  0xFFFFFFFFFD8A, undef,
+	0xFFFFFFFFFD8C..0xFFFFFFFFFD8F,  0xFFFFFFFFFD91..0xFFFFFFFFFD96,    0xFFFFFFFFFD99..0xFFFFFFFFFD9A,    0xFFFFFFFFFD9C..0xFFFFFFFFFDA0,    0xFFFFFFFFFDA4..0xFFFFFFFFFDA6,    0xFFFFFFFFFDA8..0xFFFFFFFFFDAA, undef,
+	0xFFFFFFFFFDAD..0xFFFFFFFFFDB3, undef,
+	0xFFFFFFFFFDB5..0xFFFFFFFFFDBD,  0xFFFFFFFFFDC0..0xFFFFFFFFFDC1,    0xFFFFFFFFFDC4,                    0xFFFFFFFFFDC6..0xFFFFFFFFFDC8, undef,
+	0xFFFFFFFFFDCB,                  0xFFFFFFFFFDCD,                    0xFFFFFFFFFDD0..0xFFFFFFFFFDD3,    0xFFFFFFFFFDD5,                    0xFFFFFFFFFDD7..0xFFFFFFFFFDDD, undef,
+	0xFFFFFFFFFDDF,                  0xFFFFFFFFFDE1..0xFFFFFFFFFDE2,    0xFFFFFFFFFDE5,                    0xFFFFFFFFFDE7..0xFFFFFFFFFDF2,    0xFFFFFFFFFDF4..0xFFFFFFFFFDF7, undef,
+	0xFFFFFFFFFDF9..0xFFFFFFFFFDFA,  0xFFFFFFFFFDFC,                    0xFFFFFFFFFDFF,                    0xFFFFFFFFFE02..0xFFFFFFFFFE06, undef,
+	0xFFFFFFFFFE08..0xFFFFFFFFFE0B,  0xFFFFFFFFFE0D,                    0xFFFFFFFFFE0F..0xFFFFFFFFFE11,    0xFFFFFFFFFE13,                    0xFFFFFFFFFE15..0xFFFFFFFFFE16, undef,
+	0xFFFFFFFFFE18,                  0xFFFFFFFFFE1A..0xFFFFFFFFFE1F,    0xFFFFFFFFFE21..0xFFFFFFFFFE22,    0xFFFFFFFFFE24..0xFFFFFFFFFE25,    0xFFFFFFFFFE27, undef,
+	0xFFFFFFFFFE29..0xFFFFFFFFFE32, undef,
+	0xFFFFFFFFFE34..0xFFFFFFFFFE38,  0xFFFFFFFFFE3A..0xFFFFFFFFFE3E,    0xFFFFFFFFFE40,                    0xFFFFFFFFFE42..0xFFFFFFFFFE43, undef,
+	0xFFFFFFFFFE45,                  0xFFFFFFFFFE47..0xFFFFFFFFFE48,    0xFFFFFFFFFE4B..0xFFFFFFFFFE52,    0xFFFFFFFFFE54..0xFFFFFFFFFE56,    0xFFFFFFFFFE58..0xFFFFFFFFFE59, undef,
+	0xFFFFFFFFFE5D..0xFFFFFFFFFE5F,  0xFFFFFFFFFE61..0xFFFFFFFFFE64, undef,
+	0xFFFFFFFFFE66..0xFFFFFFFFFE6D,  0xFFFFFFFFFE6F..0xFFFFFFFFFE70,    0xFFFFFFFFFE75..0xFFFFFFFFFE76,    0xFFFFFFFFFE79..0xFFFFFFFFFE7A, undef,
+	0xFFFFFFFFFE7D..0xFFFFFFFFFE81,  0xFFFFFFFFFE83..0xFFFFFFFFFE85,    0xFFFFFFFFFE87,                    0xFFFFFFFFFE89..0xFFFFFFFFFE91, undef,
+	0xFFFFFFFFFE94..0xFFFFFFFFFE96,  0xFFFFFFFFFE98,                    0xFFFFFFFFFE9A..0xFFFFFFFFFE9C,    0xFFFFFFFFFE9E..0xFFFFFFFFFEAE, undef,
+	0xFFFFFFFFFEB0..0xFFFFFFFFFEB5,  0xFFFFFFFFFEB7..0xFFFFFFFFFEB8,    0xFFFFFFFFFEBC..0xFFFFFFFFFEBE, undef,
+	0xFFFFFFFFFEC0..0xFFFFFFFFFEC3,  0xFFFFFFFFFEC5..0xFFFFFFFFFEC6,    0xFFFFFFFFFEC9..0xFFFFFFFFFECC, undef,
+	0xFFFFFFFFFECE,                  0xFFFFFFFFFED1..0xFFFFFFFFFED3,    0xFFFFFFFFFED5..0xFFFFFFFFFED6,    0xFFFFFFFFFED8..0xFFFFFFFFFEDB,    0xFFFFFFFFFEDD, undef,
+	0xFFFFFFFFFEDF..0xFFFFFFFFFEE4,  0xFFFFFFFFFEE6,                    0xFFFFFFFFFEE9..0xFFFFFFFFFEF0,    0xFFFFFFFFFEF3..0xFFFFFFFFFEF5,    0xFFFFFFFFFEF7..0xFFFFFFFFFEF8,    0xFFFFFFFFFEFA..0xFFFFFFFFFEFB, undef,
+	0xFFFFFFFFFEFD..0xFFFFFFFFFF01,  0xFFFFFFFFFF03,                    0xFFFFFFFFFF05..0xFFFFFFFFFF07,    0xFFFFFFFFFF0A..0xFFFFFFFFFF0D, undef,
+	0xFFFFFFFFFF0F..0xFFFFFFFFFF11,  0xFFFFFFFFFF14..0xFFFFFFFFFF16,    0xFFFFFFFFFF18,                    0xFFFFFFFFFF1A..0xFFFFFFFFFF1B,    0xFFFFFFFFFF1D..0xFFFFFFFFFF20, undef,
+	0xFFFFFFFFFF22..0xFFFFFFFFFF27,  0xFFFFFFFFFF29..0xFFFFFFFFFF2E,    0xFFFFFFFFFF30..0xFFFFFFFFFF37, undef,
+	0xFFFFFFFFFF3A..0xFFFFFFFFFF3C,  0xFFFFFFFFFF3E..0xFFFFFFFFFF42,    0xFFFFFFFFFF44..0xFFFFFFFFFF4F, undef,
+	0xFFFFFFFFFF52..0xFFFFFFFFFF59, undef,
+	0xFFFFFFFFFF5B..0xFFFFFFFFFF67,  0xFFFFFFFFFF69,                    0xFFFFFFFFFF6B,                    0xFFFFFFFFFF6D..0xFFFFFFFFFF6E,    0xFFFFFFFFFF70..0xFFFFFFFFFF73,    0xFFFFFFFFFF75..0xFFFFFFFFFF78, undef,
+	0xFFFFFFFFFF7B,                  0xFFFFFFFFFF7F..0xFFFFFFFFFF81,    0xFFFFFFFFFF87..0xFFFFFFFFFF8B,    0xFFFFFFFFFF8D..0xFFFFFFFFFF94,    0xFFFFFFFFFF96..0xFFFFFFFFFF97, undef,
+	0xFFFFFFFFFF99,                  0xFFFFFFFFFF9B..0xFFFFFFFFFFA1,    0xFFFFFFFFFFA4,                    0xFFFFFFFFFFA6,                    0xFFFFFFFFFFA8..0xFFFFFFFFFFA9,    0xFFFFFFFFFFAB..0xFFFFFFFFFFAD, undef,
+	0xFFFFFFFFFFAF..0xFFFFFFFFFFBC, undef,
+	0xFFFFFFFFFFBE..0xFFFFFFFFFFCB,  0xFFFFFFFFFFCF..0xFFFFFFFFFFD3,    0xFFFFFFFFFFD5,                    0xFFFFFFFFFFD7..0xFFFFFFFFFFDA,    0xFFFFFFFFFFDD..0xFFFFFFFFFFDF,    0xFFFFFFFFFFE1, undef,
+	0xFFFFFFFFFFE4..0xFFFFFFFFFFE9,  0xFFFFFFFFFFEB..0xFFFFFFFFFFEC,    0xFFFFFFFFFFEE..0xFFFFFFFFFFF2,    0xFFFFFFFFFFF4..0xFFFFFFFFFFF8, undef,
+	0xFFFFFFFFFFFA,                  0xFFFFFFFFFFFC,                    0xFFFFFFFFFFFE..0x1000000000003, undef,
+	0x1000000000006..0x1000000000014,0x1000000000017..0x100000000001B,  0x100000000001D, undef,
+	0x1000000000020,                 0x1000000000022,                   0x1000000000025,                   0x1000000000027,                   0x1000000000029,                   0x100000000002B..0x100000000002D,  0x100000000002F, undef,
+	0x1000000000031..0x1000000000038, undef,
+	0x100000000003B..0x1000000000046,0x1000000000048..0x100000000004E, undef,
+	0x1000000000051,                 0x1000000000053..0x1000000000056,  0x1000000000058..0x100000000005A,  0x100000000005C..0x1000000000060, undef,
+	0x1000000000062..0x1000000000065,0x1000000000068..0x1000000000069,  0x100000000006C..0x100000000006F,  0x1000000000071..0x1000000000072,  0x1000000000074..0x100000000007D, undef,
+	0x100000000007F..0x1000000000082,0x1000000000084..0x1000000000085,  0x1000000000087..0x1000000000088,  0x100000000008B,                   0x100000000008D..0x1000000000093,  0x1000000000095..0x1000000000096, undef,
+	0x1000000000098..0x10000000000A0,0x10000000000A2..0x10000000000A7,  0x10000000000AA,                   0x10000000000AC..0x10000000000AE, undef,
+	0x10000000000B0..0x10000000000B6,0x10000000000B8..0x10000000000B9,  0x10000000000BC..0x10000000000CA, undef,
+	0x10000000000CD..0x10000000000D3,0x10000000000D7,                   0x10000000000D9..0x10000000000DB,  0x10000000000DD..0x10000000000E3, undef,
+	0x10000000000E5..0x10000000000EA,0x10000000000EC..0x10000000000F0,  0x10000000000F2..0x10000000000F8,  0x10000000000FA..0x10000000000FB, undef,
+	0x10000000000FE..0x1000000000100,0x1000000000102..0x1000000000104,  0x1000000000106,                   0x1000000000108..0x100000000010A, undef,
+	0x100000000010D..0x1000000000110,0x1000000000112..0x1000000000113,  0x1000000000116,                   0x1000000000119,                   0x100000000011C..0x1000000000120,  0x1000000000122..0x1000000000126, undef,
+	0x1000000000128..0x100000000012A,0x100000000012D..0x1000000000131, undef,
+	0x1000000000133..0x100000000013C,0x100000000013E..0x1000000000141,  0x1000000000143..0x1000000000146,  0x1000000000148..0x100000000014B, undef,
+	0x100000000014D..0x1000000000150,0x1000000000152..0x1000000000154, undef,
+	0x1000000000156..0x100000000015F,0x1000000000161..0x1000000000166,  0x1000000000168..0x1000000000169,  0x100000000016B..0x100000000016C, undef,
+	0x100000000016E..0x1000000000177,0x1000000000179..0x100000000017B, undef,
+	0x100000000017D..0x1000000000183,0x1000000000185..0x1000000000187,  0x100000000018A..0x100000000018D,  0x100000000018F..0x1000000000190, undef,
+	0x1000000000193..0x1000000000194,0x1000000000196,                   0x1000000000198..0x100000000019B, undef,
+	0x100000000019D..0x100000000019E,0x10000000001A0..0x10000000001A2,  0x10000000001A4..0x10000000001B3, undef,
+	0x10000000001B5..0x10000000001B6,0x10000000001BA,                   0x10000000001BC..0x10000000001BE,  0x10000000001C0,                   0x10000000001C2, undef,
+	0x10000000001C4..0x10000000001D0,0x10000000001D3..0x10000000001D8, undef,
+	0x10000000001DA..0x10000000001E1,0x10000000001E4..0x10000000001E5,  0x10000000001E8..0x10000000001EA,  0x10000000001ED..0x10000000001EE, undef,
+	0x10000000001F4,                 0x10000000001F7..0x10000000001FC,  0x10000000001FF,                   0x1000000000201,                   0x1000000000203,                   0x1000000000205..0x1000000000209,  0x100000000020B..0x100000000020D, undef,
+	0x100000000020F..0x1000000000214,0x1000000000216,                   0x1000000000218..0x1000000000219,  0x100000000021B..0x100000000021D,  0x100000000021F..0x1000000000223, undef,
+	0x1000000000225..0x1000000000227,0x100000000022B..0x100000000022E,  0x1000000000230,                   0x1000000000232..0x1000000000233, undef,
+	0x1000000000235..0x1000000000238,0x100000000023A..0x100000000023D,  0x100000000023F..0x1000000000241,  0x1000000000243..0x100000000024B, undef,
+	0x100000000024F..0x1000000000252,0x1000000000254,                   0x1000000000256..0x1000000000257,  0x1000000000259, undef,
+	0x100000000025F..0x1000000000262,0x1000000000264..0x100000000026C,  0x100000000026F..0x1000000000274, undef,
+	0x1000000000276,                 0x1000000000278..0x100000000027D,  0x100000000027F..0x1000000000280,  0x1000000000282..0x1000000000283,  0x1000000000285..0x1000000000289, undef,
+	0x100000000028B..0x1000000000293,0x1000000000295..0x100000000029B,  0x100000000029D..0x10000000002A0, undef,
+	0x10000000002A2..0x10000000002A4,0x10000000002A7..0x10000000002AD,  0x10000000002AF..0x10000000002B0, undef,
+	0x10000000002B2..0x10000000002BA,0x10000000002BD,                   0x10000000002BF,                   0x10000000002C3..0x10000000002D1, undef,
+	0x10000000002D4..0x10000000002D7,0x10000000002D9..0x10000000002DA, undef,
+	0x10000000002DC..0x10000000002E1,0x10000000002E3..0x10000000002EA,  0x10000000002ED,                   0x10000000002EF..0x10000000002F0, undef,
+	0x10000000002F3..0x10000000002F4,0x10000000002F6..0x10000000002FF, undef,
+	0x1000000000301..0x1000000000306,0x1000000000308..0x100000000030A,  0x100000000030D,                   0x1000000000314..0x1000000000318,  0x100000000031A, undef,
+	0x100000000031C..0x1000000000323,0x1000000000325..0x1000000000327,  0x100000000032A..0x100000000032B,  0x100000000032D..0x100000000032E,  0x1000000000330..0x1000000000331, undef,
+	0x1000000000334..0x1000000000336,0x1000000000339..0x100000000033D,  0x100000000033F..0x1000000000341, undef,
+	0x1000000000343..0x1000000000345,0x1000000000347..0x100000000034A, undef,
+	0x100000000034C..0x1000000000353,0x1000000000357,                   0x1000000000359..0x100000000035A,  0x100000000035C..0x100000000035F, undef,
+	0x1000000000361..0x1000000000363,0x1000000000365..0x1000000000367,  0x1000000000369,                   0x100000000036C..0x100000000036D,  0x100000000036F..0x1000000000373,  0x1000000000375..0x100000000037A, undef,
+	0x100000000037C..0x100000000037E, undef,
+	0x1000000000380..0x1000000000391,0x1000000000394..0x1000000000397,  0x1000000000399..0x100000000039A,  0x100000000039D..0x100000000039F,  0x10000000003A1, undef,
+	0x10000000003A4..0x10000000003B0,0x10000000003B2..0x10000000003B3,  0x10000000003B7,                   0x10000000003B9,                   0x10000000003BB,                   0x10000000003BD,                   0x10000000003BF, undef,
+	0x10000000003C1..0x10000000003C6,0x10000000003C8..0x10000000003D0, undef,
+	0x10000000003D3..0x10000000003D9,0x10000000003DB..0x10000000003DD,  0x10000000003DF..0x10000000003E0, undef,
+	0x10000000003E2..0x10000000003ED,0x10000000003EF..0x10000000003F2,  0x10000000003F4..0x10000000003F6,  0x10000000003FA..0x10000000003FC,  0x10000000003FE..0x10000000003FF, undef,
+	0x1000000000401,                 0x1000000000403,                   0x1000000000405..0x1000000000406,  0x1000000000409..0x100000000040F, undef,
+	0x1000000000411..0x1000000000412,0x1000000000414..0x1000000000415,  0x1000000000418..0x100000000041A,  0x100000000041C..0x100000000041D,  0x100000000041F..0x1000000000420,  0x1000000000423..0x1000000000426, undef,
+	0x1000000000428..0x100000000042A, undef,
+	0x100000000042D..0x1000000000438,0x100000000043D..0x100000000043F,  0x1000000000441..0x1000000000445,  0x1000000000448,                   0x100000000044A..0x100000000044C, undef,
+	0x100000000044E,                 0x1000000000450..0x1000000000454,  0x1000000000456..0x1000000000457,  0x100000000045A,                   0x100000000045D..0x100000000045E,  0x1000000000460..0x1000000000461, undef,
+	0x1000000000463,                 0x1000000000466,                   0x1000000000468..0x100000000046A,  0x100000000046C..0x100000000046D, undef,
+	0x1000000000470..0x1000000000472,0x1000000000474..0x100000000047A,  0x100000000047C..0x100000000047F,  0x1000000000482..0x1000000000484, undef,
+	0x1000000000486..0x100000000048C,0x100000000048E..0x1000000000494,  0x1000000000498..0x100000000049C,  0x100000000049F..0x10000000004A4,  0x10000000004A6..0x10000000004A7, undef,
+	0x10000000004A9..0x10000000004AA,0x10000000004AD, undef,
+	0x10000000004B1..0x10000000004BC,0x10000000004BF..0x10000000004C3,  0x10000000004C5..0x10000000004C8, undef,
+	0x10000000004CA,                 0x10000000004CC..0x10000000004CF,  0x10000000004D1..0x10000000004D2,  0x10000000004D5,                   0x10000000004D7..0x10000000004D9,  0x10000000004DB..0x10000000004DD, undef,
+	0x10000000004DF..0x10000000004E0,0x10000000004E2..0x10000000004E3,  0x10000000004E5,                   0x10000000004E7..0x10000000004E8, undef,
+	0x10000000004EA..0x10000000004F6,0x10000000004F8,                   0x10000000004FA..0x10000000004FD,  0x10000000004FF..0x1000000000500, undef,
+	0x1000000000502..0x1000000000507,0x1000000000509,                   0x100000000050B..0x100000000050C, undef,
+	0x100000000050F,                 0x1000000000511..0x1000000000516,  0x1000000000518..0x1000000000519,  0x100000000051C,                   0x100000000051E, undef,
+	0x1000000000521..0x1000000000524,0x1000000000526..0x1000000000528,  0x100000000052B..0x100000000052C,  0x100000000052E..0x100000000052F,  0x1000000000532..0x1000000000534, undef,
+	0x1000000000536..0x100000000053C,0x100000000053F,                   0x1000000000542,                   0x1000000000545..0x1000000000546,  0x1000000000548..0x100000000054A, undef,
+	0x100000000054C..0x1000000000555,0x1000000000557, undef,
+	0x100000000055A..0x1000000000569,0x100000000056B..0x100000000056E,  0x1000000000570..0x1000000000572,  0x1000000000575..0x1000000000576,  0x1000000000578..0x1000000000579,  0x100000000057B..0x100000000057E, undef,
+	0x1000000000580, undef,
+	0x1000000000582..0x1000000000596, undef,
+	0x1000000000598..0x100000000059D,0x10000000005A0,                   0x10000000005A2,                   0x10000000005A5..0x10000000005A8,  0x10000000005AA,                   0x10000000005AF,                   0x10000000005B1..0x10000000005B2,  0x10000000005B4..0x10000000005B5, undef,
+	0x10000000005B7,                 0x10000000005B9..0x10000000005BB,  0x10000000005BE..0x10000000005C4, undef,
+	0x10000000005C8..0x10000000005CB,0x10000000005CD..0x10000000005D1,  0x10000000005D3..0x10000000005D5,  0x10000000005D7,                   0x10000000005D9..0x10000000005DB, undef,
+	0x10000000005DD..0x10000000005E0,0x10000000005E2..0x10000000005E5,  0x10000000005E7..0x10000000005E8,  0x10000000005EA,                   0x10000000005EC..0x10000000005F1, undef,
+	0x10000000005F3..0x10000000005F4,0x10000000005F6,                   0x10000000005F8..0x1000000000600, undef,
+	0x1000000000602..0x1000000000605,0x1000000000607,                   0x1000000000609..0x100000000060C, undef,
+	0x100000000060E..0x1000000000612,0x1000000000616,                   0x1000000000618..0x100000000061A,  0x100000000061D,                   0x1000000000620..0x1000000000621,  0x1000000000623..0x1000000000628, undef,
+	0x100000000062B..0x100000000062C,0x100000000062E..0x100000000062F,  0x1000000000632..0x1000000000637,  0x1000000000639..0x100000000063B,  0x100000000063D,                   0x100000000063F,                   0x1000000000641..0x1000000000644, undef,
+	0x1000000000646..0x100000000064A,0x100000000064D..0x1000000000650,  0x1000000000652..0x1000000000654,  0x1000000000656..0x1000000000659, undef,
+	0x100000000065C..0x1000000000665,0x1000000000667,                   0x1000000000669,                   0x100000000066B..0x100000000066C, undef,
+	0x100000000066F,                 0x1000000000671..0x1000000000673,  0x1000000000675..0x1000000000679, undef,
+	#0x100000000067B..0x1000000000681,0x1000000000683,                   0x1000000000685..0x1000000000687,  0x1000000000689..0x100000000068D,  0x100000000068F..0x1000000000697, undef,
+	#0x1000000000699..0x10000000006A7,0x10000000006A9..0x10000000006AF,  0x10000000006B1,                   0x10000000006B4..0x10000000006B5, undef,
+	#0x10000000006B8,                 0x10000000006BA..0x10000000006BD,  0x10000000006C0..0x10000000006C4, undef,
+	#0x10000000006C6,                 0x10000000006C8,                   0x10000000006CA..0x10000000006CF,  0x10000000006D1..0x10000000006D6,  0x10000000006D8..0x10000000006DB, undef,
+	#0x10000000006DD..0x10000000006DE,0x10000000006E0..0x10000000006EB, undef,
+	#0x10000000006ED..0x10000000006F0,0x10000000006F2..0x10000000006F3,  0x10000000006F5..0x10000000006FC,  0x10000000006FE..0x1000000000700, undef,
+	#0x1000000000702..0x1000000000706,0x1000000000708..0x1000000000709,  0x100000000070C..0x1000000000713,  0x1000000000715..0x1000000000716,  0x1000000000718..0x100000000071C, undef,
+	#0x100000000071E..0x1000000000720,0x1000000000722..0x1000000000729,  0x100000000072B..0x100000000072F, undef,
+	#0x1000000000731..0x1000000000736,0x1000000000739,                   0x100000000073C..0x100000000073F,  0x1000000000741..0x1000000000742,  0x1000000000744..0x1000000000747, undef,
+	#0x1000000000749..0x100000000074B,0x100000000074F,                   0x1000000000753,                   0x1000000000755..0x1000000000756,  0x1000000000758..0x100000000075B, undef,
+	#0x100000000075D..0x1000000000761,0x1000000000764,                   0x1000000000767..0x100000000076A,  0x100000000076C..0x1000000000775, undef,
+	#0x1000000000777,                 0x1000000000779..0x100000000077A,  0x100000000077E..0x1000000000780,  0x1000000000782..0x1000000000788, undef,
+	#0x100000000078A..0x100000000079A,0x100000000079C..0x10000000007A6,  0x10000000007A9, undef,
+	#0x10000000007AB..0x10000000007B1,0x10000000007B3..0x10000000007B5,  0x10000000007B7..0x10000000007B9,  0x10000000007BB..0x10000000007BF, undef,
+	#0x10000000007C1,                 0x10000000007C3,                   0x10000000007C5..0x10000000007CA,  0x10000000007CC, undef,
+	#0x10000000007CF..0x10000000007D0,0x10000000007D2..0x10000000007D6,  0x10000000007D8..0x10000000007D9,  0x10000000007DB,                   0x10000000007DD, undef,
+	#0x10000000007E0..0x10000000007E3,0x10000000007E6,                   0x10000000007E8, undef,
+	#0x10000000007EA..0x10000000007EF,0x10000000007F1..0x10000000007F7, undef,
+	#0x10000000007F9,                 0x10000000007FD..0x10000000007FF,
+
+	],      [281474976708637, 281474976708648, 281474976708656, 281474976708660, 281474976708701, 281474976708720, 281474976708742, 281474976708745, 281474976708779, 281474976708780, 281474976708800, 281474976708842, 281474976708859, 
+	#281474976708862, 281474976708871, 281474976708874, 281474976708903, 281474976708941, 281474976708950, 281474976709017, 
+	#281474976709021, 281474976709025, 281474976709033, 281474976709037, 281474976709039, 281474976709053, 281474976709081, 
+	#281474976709102, 281474976709103, 281474976709105, 281474976709108, 281474976709155, 281474976709183, 281474976709201, 
+	#281474976709205, 281474976709258, 281474976709262, 281474976709263, 281474976709271, 281474976709285, 281474976709294, 
+	281474976709313, 281474976709324, 281474976709344, 281474976709365, 281474976709366, 281474976709398, 281474976709410, 
+	#281474976709416, 281474976709417, 281474976709493, 281474976709521, 281474976709522, 281474976709524, 281474976709526, 
+	#281474976709540, 281474976709560, 281474976709583, 281474976709585, 281474976709601, 281474976709607, 281474976709614, 
+	#281474976709643, 281474976709684, 281474976709692, 281474976709693, 281474976709704, 281474976709720, 281474976709744, 
+	#281474976709752, 281474976709754, 281474976709756, 281474976709788, 281474976709819, 281474976709866, 281474976709891, 
+	#281474976709911, 281474976709926, 281474976709970, 281474976710030, 281474976710059, 281474976710071, 281474976710095, 
+	#281474976710120, 281474976710163, 281474976710170, 281474976710200, 281474976710205, 281474976710210, 281474976710219, 
+	#281474976710236, 281474976710241, 281474976710246, 281474976710255, 281474976710256, 281474976710277, 281474976710280, 
+	#281474976710303, 281474976710311, 281474976710321, 281474976710348, 281474976710362, 281474976710384, 281474976710413, 
+	#281474976710417, 281474976710421, 281474976710435, 281474976710447, 281474976710448, 281474976710465, 281474976710468, 
+	#281474976710469, 281474976710474, 281474976710476, 281474976710482, 281474976710484, 281474976710504, 281474976710513, 
+	#281474976710534, 281474976710544,
+	#281474976710568, 281474976710585, 281474976710592, 281474976710612, 281474976710624, 281474976710645, 281474976710664,
+	#281474976710670, 281474976710726, 281474976710753, 281474976710782, 281474976710811, 281474976710814, 281474976710834, 
+	#281474976710858, 281474976710942, 281474976710944, 281474976710954, 281474976710965, 281474976710976, 281474976711027, 
+	281474976711029, 281474976711032, 281474976711074, 281474976711076, 281474976711077, 281474976711088, 281474976711107, 
+	281474976711185, 281474976711220, 281474976711245, 281474976711272, 281474976711276, 281474976711287, 281474976711300, 
+	281474976711309, 281474976711318, 281474976711322, 281474976711355, 281474976711368, 281474976711373, 281474976711398, 
+	281474976711409, 281474976711483, 281474976711485, 281474976711509, 281474976711549, 281474976711581, 281474976711612, 
+	281474976711621, 281474976711696, 281474976711715, 281474976711728, 281474976711735, 281474976711801, 281474976711872, 
+	281474976711873, 281474976711880, 281474976711889, 281474976711899, 281474976711912, 281474976711935, 281474976711939, 
+	281474976711956, 281474976712013, 281474976712045, 281474976712065, 281474976712082, 281474976712087, 281474976712104, 
+	281474976712109, 281474976712127, 281474976712135, 281474976712155, 281474976712165, 281474976712168, 281474976712172, 
+	#281474976712189, 281474976712220, 281474976712231, 281474976712234, 281474976712235, 281474976712251, 281474976712269, 
+	#281474976712281, 281474976712330, 281474976712338, 281474976712348, 281474976712349, 281474976712350, 281474976712380,
+	#281474976712388, 281474976712391, 281474976712402, 281474976712404, 281474976712434, 281474976712440, 281474976712447,
+	#281474976712451, 281474976712457, 281474976712474, 281474976712479, 281474976712488, 281474976712536, 281474976712542,
+	# 281474976712543, 281474976712546, 281474976712555, 281474976712556, 281474976712578, 281474976712579, 281474976712605,
+	# 281474976712610, 281474976712630, 281474976712634, 281474976712653, 281474976712683, 281474976712687, 281474976712692,
+	# 281474976712700
+		],
 	);
 
-#	test_precursors();
+#		test_set_precursors();
+
+#		test_unset_precursors();
+
 #	test_prompt();
 
 #	test_strikes(1<<16);
 
-#	test_clears(1<<16);
+#	test_3ps_excludes(1<<16);
 
 
 #	test_set( 0,	0xFFFFFFFFFFFFFFFF,	1 );	# 64-bit NS	crashes ;/
