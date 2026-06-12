@@ -1,4 +1,4 @@
-/*	Copyright 2026 Peter Arlen Schmidt
+/*Copyright 2026 Peter Arlen Schmidt
 
 	Licensed under the Apache License, Version 2.0 (the "License");
 	you may not use this file except in compliance with the License.
@@ -31,13 +31,33 @@
 #include "XSUB.h"
 #include "dBUG.h"
 #include "ICEPack.h"
-
+const char	* const cube_err[]={	"#	ICEPack::%s: array index #%lld is NULL	at %s line %lld.\n",											//0
+								"#	ICEPack::%s: SV* at array index #%lld is NULL	 at %s line %lld\n",									//1
+								"#	ICEPack::%s: <%s> at array index #%lld is not a scalar (!SvOK) (&*0x%llX)	 at %s line %lld\n",				//2
+								"#	ICEPack::%s: <%s> at array index #%lld is not a string (!SvPOK) (&*0x%llX)	 at %s line %lld\n",				//3
+								"#	ICEPack::%s: string at array index #%lld is less-than 16 bytes (cube size: %lld byte[s])	 at %s line %lld\n",		//4
+								"#	ICEPack::%s: cube at array index #%lld contains no keybytes (cube size: %lld byte[s])	 at %s line %lld\n",	//5
+								"#	ICEPack::%s: cube at array index #%lld contains corrupt data (keybyte #%d overrun)	 at %s line %lld\n",		//6
+								"#	ICEPack::%s: searching for arg %d (%lld)  past end of cube #%lld *Epsilon(%lld) 	 at %s line %lld\n",		//7
+								"#	ICEPack::%s: cube #%lld checksum error *Epsilon computed vs. stored: %lld / %lld 	 at %s line %lld\n",		//8
+								},
+			* const svtype_err	=	"#!	ICEPack::%s: unknown Perl type constant (%d)	at %s %s line %s\n",
+			* const malloc_err	=	"#	ICEPack::%s: could not [re]allocate buffer space at %s line %s\n",
+			* const usage_err[]	={	"#!	ICEPack::%s:	arg[0] must be an arrayref <ICEPack>.\n",
+									},
+			* const arg_err[]	={	"#!	ICEPack::%s( <%s> ): arg[%d] must be an arrayref <ICEPack Object>.\n\t",
+								"#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be an arrayref <ICEPack Object>.\n\t",
+								"#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be a positive / unsigned integer.\n\t",
+								"#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be a packed quad.\n\t",
+								"#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be an arrayref <Integer Array>.\n\t",
+								"#!	ICEPack::%s( <%s> ): arg[%d] must be an arrayref <Integer Array>.\n\t",
+								};
 const char* const svtype_names[] = {
 	/* [SVt_NULL]: */		"SVt_NULL",		/*	0	undefined								*/
 	/* [SVt_IV]: */			"SVt_IV",			/*	1	integer									*/
 	/* [SVt_NV]: */		"SVt_NV",		/*	2	double/number							*/
-	/* [SVt_PV]: */			"SVt_PV",		/*	3	string (PV)								*/
-	/* [SVt_INVLIST]: */		"SVt_INVLIST",	/*	4	internal invlist (implemented as PV)			*/
+	/* [SVt_PV]: */		"SVt_PV",		/*	3	string (PV)								*/
+	/* [SVt_INVLIST]: */	"SVt_INVLIST",	/*	4	internal invlist (implemented as PV)			*/
 	/* [SVt_PVIV]: */		"SVt_PVIV",		/*	5	PV that also holds an IV						*/
 	/* [SVt_PVNV]: */		"SVt_PVNV",		/*	6	PV that also holds an NV					*/
 	/* [SVt_PVMG]: */		"SVt_PVMG",		/*	7	normal scalar (may be magical/blessed)		*/
@@ -55,8 +75,8 @@ const char* const svtype_names_ref[] = {
 	/* [SVt_NULL]: */		"ref/SVt_NULL",		/*	0	undefined								*/
 	/* [SVt_IV]: */			"ref/SVt_IV",			/*	1	integer									*/
 	/* [SVt_NV]: */		"ref/SVt_NV",			/*	2	double/number							*/
-	/* [SVt_PV]: */			"ref/SVt_PV",			/*	3	string (PV)								*/
-	/* [SVt_INVLIST]: */		"ref/SVt_INVLIST",		/*	4	internal invlist (implemented as PV)			*/
+	/* [SVt_PV]: */		"ref/SVt_PV",			/*	3	string (PV)								*/
+	/* [SVt_INVLIST]: */	"ref/SVt_INVLIST",		/*	4	internal invlist (implemented as PV)			*/
 	/* [SVt_PVIV]: */		"ref/SVt_PVIV",		/*	5	PV that also holds an IV						*/
 	/* [SVt_PVNV]: */		"ref/SVt_PVNV",		/*	6	PV that also holds an NV					*/
 	/* [SVt_PVMG]: */		"ref/SVt_PVMG",		/*	7	normal scalar (may be magical/blessed)		*/
@@ -176,32 +196,28 @@ SV*	fills(			SV*	rvICE,	SV* svMIN, SV* svRUN	){		// matches object to given run 
 	return &PL_sv_no;
 	}
 SV*	toText(		SV* rvICE	){
-	const char	*	arg_err	= "\r!       ICEPack::toText( <%s> ): arg[0] must be an arrayref <ICEPack>.\n\t";
-					avOut = newAV();
-					rvOut = newRV_inc( (SV*) avOut );
-	svtype			svt = SvTYPE( rvICE );
+	svtype		rt0;
+	svtype const 	t0 = SvTYPE(	rvICE );
+	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err[0], __FUNCTION__, t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
+	avICE	= (AV*) SvRV(    	rvICE );
+		rt0 = SvTYPE( avICE );
+	if(	rt0 != SVt_PVAV ){				printf( arg_err[0], __FUNCTION__, rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
+	avOut = newAV();
+	rvOut = newRV_inc( (SV*) avOut );
 	STRLEN			L;
-
-	if( ! SvROK( rvICE) ){	L =sprintf( aString, arg_err,	svt< svtype_cnt? svtype_names[svt ]: "UNKNOWN" );		av_push( avOut, newSVpvn( aString, L ) );	return rvOut; }
-	avICE	= (AV*) SvRV(	rvICE	);	/*	dereference argument									*/
-
-	svt= SvTYPE(avICE);				/*	check type of supposed perl object at dereferenced address	*/
-	if( svt != SVt_PVAV ){	L =sprintf( aString, arg_err,	svt< svtype_cnt? svtype_names_ref[svt ]: "UNKNOWN" );	av_push( avOut, newSVpvn( aString, L ) );	return rvOut; }
 	if( AvFILLp( avICE ) !=-1) _toText();
 	return rvOut;
 	}
 SV*	toTextX(		SV* rvICE	){
-	const char	*	arg_err	= "\r!       ICEPack::toTextX( <%s> ): arg[0] must be an arrayref <ICEPack>.\n\t";
-					avOut = newAV();
-					rvOut = newRV_inc( (SV*) avOut );
-	svtype			svt = SvTYPE( rvICE );
+	svtype		rt0;
+	svtype const 	t0 = SvTYPE(	rvICE );
+	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err[0], __FUNCTION__, t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
+	avICE	= (AV*) SvRV(    	rvICE );
+		rt0 = SvTYPE( avICE );
+	if(	rt0 != SVt_PVAV ){				printf( arg_err[0], __FUNCTION__, rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
+	avOut = newAV();
+	rvOut = newRV_inc( (SV*) avOut );
 	STRLEN			L;
-
-	if( ! SvROK( rvICE) ){	L =sprintf( aString, arg_err,	svt< svtype_cnt? svtype_names[svt ]: "UNKNOWN" );		av_push( avOut, newSVpvn( aString, L ) );	return rvOut; }
-	avICE	= (AV*) SvRV(	rvICE	);	/*	dereference argument									*/
-
-	svt= SvTYPE(avICE);				/*	check type of supposed perl object at dereferenced address	*/
-	if( svt != SVt_PVAV ){	L =sprintf( aString, arg_err,	svt< svtype_cnt? svtype_names_ref[svt ]: "UNKNOWN" );	av_push( avOut, newSVpvn( aString, L ) );	return rvOut; }
 	if( AvFILLp( avICE ) !=-1) _toTextX();
 	return rvOut;
 	}
@@ -210,8 +226,8 @@ SV*	upsortQ(		SV* rvArg,	SV* svQx	){
 				*	arg1_err	= "\r!       ICEPack::upsortQ( <%s>, <%s> ): arg[1] must be a packed quad.\n\t";
 	svtype			t0 = SvTYPE( rvArg ),
 					t1 = SvTYPE( svQx	);
-	if( t0 != SVt_RV || !SvROK(	rvArg	) ){	printf( arg0_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );		return &PL_sv_yes; }
-	if( t1 != SVt_PV || !SvOK(	svQx	) ){	printf( arg1_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );		return &PL_sv_yes; }
+	if( t0 != SVt_RV || !SvROK(	rvArg	) ){	printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );		return &PL_sv_yes; }
+	if( t1 != SVt_PV || !SvOK(	svQx	) ){	printf( arg_err[2], __FUNCTION__, 1,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );		return &PL_sv_yes; }
 	avArg	= (AV*) SvRV(    	rvArg );	t0 = SvTYPE( avArg );
 	if( t0 != SVt_PVAV ){					printf( arg0_err,  t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );		return &PL_sv_yes; }
 
@@ -236,16 +252,14 @@ SV*	upsortQ(		SV* rvArg,	SV* svQx	){
 	return &PL_sv_yes; 	// return true: given packed quad is already present in sorted array
 	}
 SV*	insortIV(		SV* rvArg,	SV* svX		){
-	const char	*	arg0_err	= "\r!       ICEPack::insortIV( <%s>, <%s> ): arg[0] must be an arrayref.\n\t",
-				*	arg1_err	= "\r!       ICEPack::insortIV( <%s>, <%s> ): arg[1] must be a positive / unsigned integer.	SvTYPE( svX )==%d; SVt_IV==%d\n\t";
 	svtype			t0 = SvTYPE(	rvArg ),
 					t1 = SvTYPE(	svX	);
-	if(	t0 != SVt_RV		|| !SvROK(	rvArg	) ){	printf( arg0_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_yes; }
+	if(	t0 != SVt_RV		|| !SvROK(	rvArg	) ){	printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_yes; }
 	if( (	t1 != SVt_IV &&
-		t1 != SVt_PVIV )	|| !SvIOK(	svX		) ){	printf( arg1_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", SvTYPE( svX), SVt_IV );		return &PL_sv_yes; }
+		t1 != SVt_PVIV )	|| !SvIOK(	svX		) ){	printf( arg_err[3], __FUNCTION__, 1,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", SvTYPE( svX), SVt_IV );		return &PL_sv_yes; }
 	avArg = (AV*)	SvRV(	rvArg );
 	t0 = SvTYPE(			avArg );
-	if( t0 != SVt_PVAV ){							printf( arg0_err,  t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_yes; }
+	if( t0 != SVt_PVAV ){							printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_yes; }
 
 	const long long	x	= SvIVX( svX );
 	SSize_t			displacement;
@@ -263,125 +277,90 @@ SV*	insortIV(		SV* rvArg,	SV* svX		){
 		}
 	return &PL_sv_yes; 	// return true: given integer is already present in sorted array
 	}
+SV*	inIV(			SV* rvArg,	SV* svX		){
+	svtype			t0 = SvTYPE(	rvArg ),
+					t1 = SvTYPE(	svX	);
+	if(	t0 != SVt_RV		|| !SvROK(	rvArg	) ){	printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_yes; }
+	if( (	t1 != SVt_IV &&
+		t1 != SVt_PVIV )	|| !SvIOK(	svX		) ){	printf( arg_err[3], __FUNCTION__, 1,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", SvTYPE( svX), SVt_IV );		return &PL_sv_yes; }
+	avArg = (AV*)	SvRV(	rvArg );
+	t0 = SvTYPE(			avArg );
+	if( t0 != SVt_PVAV ){							printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_yes; }
+
+	const long long	x	= SvIVX( svX );
+	SSize_t			displacement;
+	long long int		lb	= 0,
+					ub	= AvFILLp( avArg )+1,	i= ub >>1;			if( ub==0	){			return &PL_sv_no;	}
+
+	SV				**	src,
+					**	dst,
+					**	svA0= AvARRAY( avArg ),
+					*	svA	= *(svA0 +i );
+	while(	x !=	SvIVX(	svA ) ){
+		if(	x >	SvIVX(	svA ) ){		lb=i;			i=( i +ub	)>>1;	if( i==lb	){/* ++i;*/	return &PL_sv_no;  }
+		}else{						ub=i;		i=( lb + i	)>>1;	if( i==ub	){			return &PL_sv_no;  }
+			}			svA	= *(svA0 +i );
+		}
+	return &PL_sv_yes; 	// return true: given integer is already present in sorted array
+	}
 SV*	addsUp(		SV* rvICE	){
-	svtype	rt0,	t0 = SvTYPE( rvICE );
-	const char	*	arg_err	= "\r!       ICEPack::checks( <%s> ): arg[%d] must be an arrayref <ICEPack>.\n\t";
-	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
+	svtype		rt0;
+	svtype const 	t0 = SvTYPE(	rvICE );
+	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err[0], __FUNCTION__, t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
 	avICE	= (AV*) SvRV(    	rvICE );
 		rt0 = SvTYPE( avICE );
-	if(	rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
+	if(	rt0 != SVt_PVAV ){				printf( arg_err[0], __FUNCTION__, rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
 	bool err=_addsUp();
 	return err? &PL_sv_yes: &PL_sv_no;
 	}
 SV*	has(			SV* rvICE,	SV* rvArg	){ //	count matches in avArgs.	best for large objects with few args.	return true = total inclusivity.
-	const char *	arg_err	= "\r!       ICEPack::has( <%s>, <%s> ): arg[%d] must be an arrayref.\n\t";
 	svtype		rt0, rt1;
-
 	svtype const 	t0 = SvTYPE(	rvICE ),
 				t1 = SvTYPE(	rvArg );
-
-	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-
+	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err[1], __FUNCTION__, t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
+	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err[4], __FUNCTION__, t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
 	avICE	= (AV*) SvRV(    	rvICE );	rt0 = SvTYPE( avICE );
 	avArg	= (AV*) SvRV(    	rvArg );	rt1 = SvTYPE( avArg );
+	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err[1], __FUNCTION__, t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names_ref[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
+	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err[4], __FUNCTION__, t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names_ref[t1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
 
-	if( rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-	if( rt1 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-
-	return _has() ? &PL_sv_yes: &PL_sv_no;
+	SV* svH=newSViv( _has() );
+	return svH;
 	}
-SV*	clears(		SV* rvICE,	SV* rvArg	){ //	cut matches from avArgs.	best for large objects with few args.	return true = total inclusivity.
-	const char *	arg_err	= "\r!       ICEPack::clears( <%s>, <%s> ): arg[%d] must be an arrayref.\n\t";
-	svtype		rt0, rt1;
+#define BOILERPLATE_3PS						\
+	svtype		rt0, rt1;				\
+	svtype const 	t0 = SvTYPE(	rvICE ),	\
+				t1 = SvTYPE(	rvArg );	\
+	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err[1], __FUNCTION__, t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }	\
+	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err[4], __FUNCTION__, t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }	\
+	avICE	= (AV*) SvRV(    	rvICE );	rt0 = SvTYPE( avICE );	\
+	avArg	= (AV*) SvRV(    	rvArg );	rt1 = SvTYPE( avArg );	\
+	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err[1], __FUNCTION__, t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names_ref[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }	\
+	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err[4], __FUNCTION__, t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names_ref[t1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
 
-	svtype const 	t0 = SvTYPE(	rvICE ),
-				t1 = SvTYPE(	rvArg );
-
-	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-
-	avICE	= (AV*) SvRV(    	rvICE );	rt0 = SvTYPE( avICE );
-	avArg	= (AV*) SvRV(    	rvArg );	rt1 = SvTYPE( avArg );
-
-	if( rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-	if( rt1 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-
-	return _clears()? &PL_sv_yes: &PL_sv_no;
+SV*	includes(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS; //	cut non-matches from avArgs.	best for large objects with few args.	return true = total inclusivity.
+	return _includes()? &PL_sv_yes: &PL_sv_no;
 	}
-SV*	fits(			SV* rvICE,	SV* rvArg	){ //	count matches in avArgs.	best for small objects with many args.	return true = total inclusivity.
-	const char *	arg_err	= "\r!       ICEPack::fits( <%s>, <%s> ): arg[%d] must be an arrayref.\n\t";
-	svtype		rt0, rt1;
-
-	svtype const 	t0 = SvTYPE(	rvICE ),
-				t1 = SvTYPE(	rvArg );
-
-	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-
-	avICE	= (AV*) SvRV(    	rvICE );	rt0 = SvTYPE( avICE );
-	avArg	= (AV*) SvRV(    	rvArg );	rt1 = SvTYPE( avArg );
-
-	if( rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-	if( rt1 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-
+SV*	excludes(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	cut matches from avArgs.	best for large objects with few args.	return true = total inclusivity.
+	return _excludes()? &PL_sv_yes: &PL_sv_no;
+	}
+SV*	fits(			SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	count matches in avArgs.	best for small objects with many args.	return true = total inclusivity.
 	return _fits()? &PL_sv_yes: &PL_sv_no;
 	}
-SV*	strikes(		SV* rvICE,	SV* rvArg	){ //	cut matches from avArgs.	best for small objects with many args.	return true = total inclusivity.
-	const char *	arg_err	= "\r!       ICEPack::strikes( <%s>, <%s> ): arg[%d] must be an arrayref.\n\t";
-	svtype		rt0, rt1;
-
-	svtype const 	t0 = SvTYPE(	rvICE ),
-				t1 = SvTYPE(	rvArg );
-
-	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-
-	avICE	= (AV*) SvRV(    	rvICE );	rt0 = SvTYPE( avICE );
-	avArg	= (AV*) SvRV(    	rvArg );	rt1 = SvTYPE( avArg );
-
-	if( rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-	if( rt1 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-
+SV*	hits(			SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	count matches in avArgs.	best for small objects with many args.	return true = total inclusivity.
+	SV* svH=newSViv( _hits() );
+	return svH;
+	}
+SV*	strikes(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	 //	cut matches from avArgs.	best for small objects with many args.	return true = total inclusivity.
 	return _strikes()? &PL_sv_yes: &PL_sv_no;
 	}
-SV*	set(			SV* rvICE,	SV* rvArg	){
-
-	svtype	rt0, rt1,	t0 = SvTYPE( rvICE ),
-					t1 = SvTYPE( rvArg );
-	const char	*	arg_err	= "\r!       ICEPack::set( <%s>, <%s> ): arg[%d] must be an arrayref.\n\t";
-
-	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-
-	avICE	= (AV*) SvRV(    	rvICE );	rt0 = SvTYPE( avICE );
-	avArg	= (AV*) SvRV(    	rvArg );	rt1 = SvTYPE( avArg );
-
-	if( rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-	if( rt1 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-
+SV*	set(			SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;
 	_set240();
-
 	return newSViv( za +1 -hit );
 	}
-SV*	unset(		SV* rvICE,	SV* rvArg	){
-
-	svtype	rt0, rt1,	t0 = SvTYPE( rvICE ),
-					t1 = SvTYPE( rvArg );
-	const char	*	arg_err	= "\r!       ICEPack::unset( <%s>, <%s> ): arg[%d] must be an arrayref.\n\t";
-
-	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-	if( t1 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", 0 );  return &PL_sv_no; }
-
-	avICE	= (AV*) SvRV(    	rvICE );	rt0 = SvTYPE( avICE );
-	avArg	= (AV*) SvRV(    	rvArg );	rt1 = SvTYPE( avArg );
-
-	if( rt0 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-	if( rt1 != SVt_PVAV ){				printf( arg_err,  rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN",  	rt1< svtype_cnt? svtype_names_ref[rt1 ]: "UNKNOWN", 1 );  return &PL_sv_no; }
-
+SV*	unset(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;
 	_unset();
-
-	return newSViv( za +1 -hit );
+	return newSViv( za +1 -miss );
 	}
 SV*	av2ICE(		SV* rvArg	){
 	SV	*	svA,
@@ -390,12 +369,12 @@ SV*	av2ICE(		SV* rvArg	){
 	ui64		x, Ac, Bc, Ec, E_;
 	char		zc, ic;
 	ui08		*pk, *pq;
-	const char	*	arg0_err	= "\r!       ICEPack::av2ICE( <%s> ): arg[0] must be an arrayref containing a sorted list of unsigned integers.\n\t";
+	svtype		rt0;
+	svtype const 	t0 = SvTYPE(	rvArg );
+	if( t0 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err[5], __FUNCTION__, t0< svtype_cnt?	svtype_names[t0 ]: 	"UNKNOWN", 0 );	 return &PL_sv_undef; }
+	avArg	= (AV*) SvRV(    	rvArg );	rt0 = SvTYPE( avArg );
+	if( t0 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err[5], __FUNCTION__, rt0< svtype_cnt?	svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	 return &PL_sv_undef; }
 
-	if(	SvTYPE(		rvArg ) !=		SVt_RV	||!	SvROK(	rvArg ) ){
-															printf( arg0_err,  svtype_names[		SvTYPE( avArg ) ] );		return &PL_sv_no; }
-					avArg = (AV*)	SvRV(				rvArg );
-	if(	SvTYPE(		avArg ) !=	SVt_PVAV ){					printf( arg0_err,  svtype_names_ref[	SvTYPE( avArg ) ] );	return &PL_sv_no; }
 					avICE = newAV_alloc_x( 1 );
 	pSv0=AvARRAY(	avICE );
 		za=  AvFILLp(	avArg);
@@ -409,17 +388,14 @@ SV*	av2ICE(		SV* rvArg	){
 	sv_bless(	svA,					hvICE );
 	return	svA;
 	}
-void snapshot(		SV*	rvICE	){	// —Stores one single copy of any given <ICE> object in global AV* avICE_.
-	SV			*	sv,				// designed for memory efficiency while being called from within an indefinite loop
-				*	sv_;
-	const char	*	arg_err	= "\r!       ICEPack::snapshot( <%s> ): arg[%d] must be an arrayref <ICEPack>.\n\t";
-	svtype const		t 		= SvTYPE(		rvICE );
+void snapshot(	SV*	rvICE	){	// —Stores one single copy of any given <ICE> object in global AV* avICE_.
+	svtype		rt0;
+	svtype const 	t0 = SvTYPE(	rvICE );
+	if( t0 != SVt_RV || !SvROK(	rvICE) ){	printf( arg_err[0], __FUNCTION__, t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN", 0 );	return; }
+	avICE	= (AV*) SvRV(    	rvICE );
+		rt0 = SvTYPE( avICE );
+	if(	rt0 != SVt_PVAV ){				printf( arg_err[0], __FUNCTION__, rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	return; }
 
-
-	if( t != SVt_RV || !	SvROK(					rvICE ) ){	printf( arg_err,  t< svtype_cnt? svtype_names[t ]: "UNKNOWN",	0 );	return;	}
-	AV			*	avICE = (AV*)	SvRV(		rvICE );
-	if(	SvTYPE(		avICE ) !=	SVt_PVAV ){			printf( arg_err,  svtype_names_ref[	SvTYPE( avICE ) ] );	return; }
-	SV			**	pSvC0	=	AvARRAY(	avICE );
 
 	long long unsigned	Ec		=0;
 	long long int		iC		=0,
@@ -434,8 +410,10 @@ void snapshot(		SV*	rvICE	){	// —Stores one single copy of any given <ICE> obj
 					av_extend(	avICE_, zC		);
 					AvFILLp(		avICE_			) =	zC;
 		}			}
-
-	SV			**	pSvC0_	=	AvARRAY(	avICE_		);
+	SV			*	sv,				// designed for memory efficiency while being called from within an indefinite loop
+				*	sv_,
+				**	pSvC0	=	AvARRAY(	avICE		),
+				**	pSvC0_	=	AvARRAY(	avICE_		);
 	if( zC_ > zC ) zC_=zC;
 
 	for(;	iC<= zC_;	++iC ){	sv =*( pSvC0 +iC );
@@ -602,6 +580,11 @@ insortIV (rvArg, svX)
 	SV *	svX
 
 SV *
+inIV (rvArg, svX)
+	SV *	rvArg
+	SV *	svX
+
+SV *
 addsUp (rvICE)
 	SV *	rvICE
 
@@ -611,12 +594,22 @@ has (rvICE, rvArg)
 	SV *	rvArg
 
 SV *
-clears (rvICE, rvArg)
+includes (rvICE, rvArg)
+	SV *	rvICE
+	SV *	rvArg
+
+SV *
+excludes (rvICE, rvArg)
 	SV *	rvICE
 	SV *	rvArg
 
 SV *
 fits (rvICE, rvArg)
+	SV *	rvICE
+	SV *	rvArg
+
+SV *
+hits (rvICE, rvArg)
 	SV *	rvICE
 	SV *	rvArg
 
@@ -636,6 +629,17 @@ unset (rvICE, rvArg)
 	SV *	rvArg
 
 SV *
+exitCode ()
+	CODE:
+	{	SV* svEX = newSViv( exit_code );
+		printf("\nexit code: %d\n", exit_code);
+		RETVAL	=	svEX;
+		}
+	OUTPUT:
+	RETVAL
+
+SV *
 av2ICE (rvArg)
 	SV *	rvArg
+
 
