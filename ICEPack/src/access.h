@@ -25,48 +25,38 @@
 	#include	"_AvMOD.h"
 	#include	"_AvSEQ.h"	/*	function-like macros for array "resequencing"	*/	
 
-
 extern	void	_av_commit(),
 			_sv_commit(),
+			_sv_commitx(),
 			_print_mx( unsigned char mx_max, short ix1, short izZ ),
 			_init_mx();
 
 #ifdef DEBUG_SvCOMMIT_L1
-	#define dBUG_MkIn(	$caller )	cS=sprintf( aString, "\r^MkIn(   	caller: %4d )	ixM: %d	iCI: %lld	icI: %d\n", $caller, u, iCI, icI );	AvDBUG_PUSH( aString, cS );
-	#define dBUG_MkOut(	$caller )	cS=sprintf( aString, "\r^MkOut(   	caller: %4d )	izM: %d	iCO: %lld	icO: %d\n", $caller, u, iCO, icO );	AvDBUG_PUSH( aString, cS );
+	#define dBUG_MkIn	cS=sprintf( aString, "\r^MkIn  	line: %lld	ixM: %d	iCI: %lld	icI: %d\n",	__LINE__, u, iCI, icI );	AvDBUG_PUSH( aString, cS );
+	#define dBUG_MkOut	cS=sprintf( aString, "\r^MkOut 	line: %lld	izM: %d	iCO: %lld	icO: %d\n",	__LINE__, u, iCO, icO );	AvDBUG_PUSH( aString, cS );
+	#define dBUG_MkOutx	cS=sprintf( aString, "\r^MkOutx 	line: %lld	izM: %d	iCO: %lld	icO: %d\n",	__LINE__, u, iCO, icO );	AvDBUG_PUSH( aString, cS );
 #else
-	#define dBUG_MkIn(	$caller )
-	#define dBUG_MkOut(	$caller )	
+	#define dBUG_MkIn
+	#define dBUG_MkOut
+	#define dBUG_MkOutx
 #endif
 
-#define MkIn(		$caller )	ixM	= u;														dBUG_MkIn(		$caller );
-#define MkOut(	$caller )/*izM	= u;	*/							icO	= ic;			iCO = iC;	dBUG_MkOut(	$caller );	\
-						if( RW[ u ]==del){	izM=u-1;	inM=u;	printf("\n inM has been retarded\n");	\
-						}else{			izM=u;	inM=v;	}	\
-					/*	inM = RW[ v ]==del? u: v;*/	ixH	= v;	/*	icH	= ic +1;	*/
-
-
-
-#if defined( DEBUG_MOD_L3 )
-	#define 	dBUG_ReICE($SUFFIX, $u )	if( O[ $u ]==0 ){ cS= sprintf( aString, "\n!	ReICE%s( ... ): mx step u does not seem to have been read-in (O[%d]==0)\n\n", $SUFFIX, $u );	AvDBUG_PUSH( aString, cS );	}
-#else
-	#define 	dBUG_ReICE($SUFFIX, $u )
-#endif
-
-
+#define MkIn		ixM	= u;														dBUG_MkIn;
+#define MkOut	izM=u;	inM=v;	ixH=v; /*	icH=ic+1;	*/	icO = ic;			iCO = iC;	dBUG_MkOut;
+#define MkOutx	izM=u-1;	inM=u;	ixH=v; /*	icH=ic+1;	*/	icO = ic;			iCO = iC;	dBUG_MkOutx;
 #ifdef		DEBUG_ACCESS_L2
 	#ifdef	DEBUG_ACCESS_L3
 
-		#define	dBUG_xINTRALOC( $MACRO_NAME)	cS=	sprintf( aString, "\r........%16s:	cube %3lld  		x( %5llu )		cube E( %5llu )		CS: %lld	sv( %llx )\n\t",		\
-															$MACRO_NAME,		iC,				x,			*( (ui64*) cube+1),	CS,		&*sv		);	AvDBUG_PUSH( aString, cS );	\
+		#define	dBUG_xINTRALOC( $MACRO_NAME)	cS=	sprintf( aString, "\r........%16s line %lld:	*Epsilon( cube%lld ): %-5llu ( 0x%llX) 		x: %5llu ( 0x%llX )			CS: %lld	sv( %llx )\n\t",		\
+															$MACRO_NAME,	__LINE__,	iC,	*Epsilon( cube ),*Epsilon( cube ),		x,		x,				CS,		&*sv		);	AvDBUG_PUSH( aString, cS );	\
 				if( zc !=	zcOf(	cube ) )	{	cS =	sprintf( aString, "\r!	%s: zc (was) out of sync with (char*) cube.\n", $MACRO_NAME);							AvDBUG_PUSH( aString, cS );	\
 					zc =	zcOf(	cube ); 	}
 	#else
-		#define	dBUG_xINTRALOC( $MACRO_NAME)	cS =	sprintf( aString, "\r........%16s:	cube %3lld  		x( %5llu )		cube E( %5llu )		CS: %lld	sv( %llx )\n\t",		\
-															$MACRO_NAME,		iC,				x,			*( (ui64*) cube+1),	CS,		&*sv		);	AvDBUG_PUSH( aString, cS );
+		#define	dBUG_xINTRALOC( $MACRO_NAME)	cS =	sprintf( aString, "\r........%16s line %lld:	*Epsilon( cube%lld ): %-5llu ( 0x%llX) 		x: %5llu ( 0x%llX )			CS: %lld	sv( %llx )\n\t",		\
+															$MACRO_NAME, __LINE__,	iC,	*Epsilon( cube ),*Epsilon( cube ),		x,		x,				CS,		&*sv		);	AvDBUG_PUSH( aString, cS );
 	#endif
-	#define		dBUG_xINTERLOC(	$MACRO_NAME )	cS=	sprintf( aString, "\r........%16s:	cubes %3lld..%-3lld\t\tx( %5llu )\t	cube E( %5llu )		CS: %lld	sv( %llx )		cube_E( %5llu )	CSZ: %lld	svZ( %llx )	\n\t",			\
-															$MACRO_NAME,		iC,	iC+1,		x,			*( (ui64*) cube+1),	CS,		&*sv,	*( (ui64*) cubeZ+1),	CSZ,	&*svZ		);	AvDBUG_PUSH( aString, cS );
+	#define		dBUG_xINTERLOC(	$MACRO_NAME )	cS=	sprintf( aString, "\r........%16s line %lld:	cubes %3lld..%-3lld\t\tx( %5llu )\t	cube E( %5llu )		CS: %lld	sv( %llx )		cube_E( %5llu )	CSZ: %lld	svZ( %llx )	\n\t",			\
+															$MACRO_NAME,  __LINE__,	iC,	iC+1,		x,			*( (ui64*) cube+1),	CS,		&*sv,	*( (ui64*) cubeZ+1),	CSZ,	&*svZ		);	AvDBUG_PUSH( aString, cS );
 #else
 	#define		dBUG_xINTERLOC(	$MACRO_NAME )
 	#ifdef		DEBUG_ACCESS_L3
@@ -96,24 +86,22 @@ extern	void	_av_commit(),
 
 /*		INTRALOC			Vectors (U, V) scan cube iC					tracking reset							*/
 #define	INTRALOC		/*	Vectors (U, V) intralocate mod scope of x as cycla (ic-1, ic) in cube iC						*/	\
-	iCI	=	iC;					CS=SvCUR( sv );			svZ=*( AvARRAY( avICE) +( iC -1 ) );						\
-					cubeZ= SvPVbyte(	svZ, CSZ );			zcZ=zcOf(	cubeZ );									dBUG_xINTRALOC("INTRALOC");	\
+							CS=SvCUR( sv );	svZ=*( AvARRAY( avICE) +( iC -1 ) );									\
+		iCI = iC;	cubeZ= SvPVbyte(	svZ, CSZ );												zcZ=zcOf( cubeZ );		dBUG_xINTRALOC("INTRALOC");	\
 
 
 /*		INTRALOC1Up		Vectors (U, V) intralocate mod scope of x as cycla (ic-1, ic) in cube iC+1					*/
 #define	INTRALOC1Up	/*	Vectors (U, V) intralocate mod scope of x as cycla (ic-1, ic) in cube iC+1					*/	\
-	iCI	=	iC;					\
-	if( zC  ==	iC){					CS =SvCUR(	sv );			E_ = 	*( (ui64*) cube +1);				goto	_epiloc;	\
-	}else{ svZ=sv;		cubeZ=cube;	CSZ=SvCUR(	sv );			cube = SvPVbyte( 	sv =*( pSv0 + ++iC ), CS );				\
-		 zcZ=zcOf(	cubeZ );	}																				dBUG_xINTRALOC("INTRALOC1Up");
+	if( zC  !=	iC ){	cubeZ=cube;	CSZ=SvCUR(	sv );	svZ=sv;	cube = SvPVbyte( sv =*( pSv0 + ++iC ), CS );	zcZ=zcOf( cubeZ );		\
+	}else{					CS =SvCUR(	sv );			E_ = 	*( (ui64*) cube +1);				goto	_epiloc;		\
+		} iCI = iC;																								dBUG_xINTRALOC("INTRALOC1Up");
 
 /*		INTRALOC1Up_EX		Vectors (U, V) intralocate mod scope of x as cycla (ic-1, ic) in cube iC+1  (exclusion op ver.)	*/
 #define	INTRALOC1Up_EX	/*	Vectors (U, V) intralocate mod scope of x as cycla (ic-1, ic) in cube iC+1  (exclusion op ver.)	*/	\
-	iCI	=	iC;					\
-	if( zC  ==	iC){					CS =SvCUR(	sv );			miss+=1+za-a;						goto	_exit_1;	\
-	}else{ svZ=sv;		cubeZ=cube;	CSZ=SvCUR(	sv );			cube = SvPVbyte( 	sv =*( pSv0 + ++iC ), CS );				\
-		 zcZ=zcOf(	cubeZ );	}																				dBUG_xINTRALOC("INTRALOC1Up_EX");
-		
+	if( zC !=	iC ){	cubeZ=cube;	CSZ=SvCUR(	sv );	svZ=sv;	cube = SvPVbyte( sv =*( pSv0 + ++iC ), CS );	zcZ=zcOf( cubeZ );		\
+	}else{					CS =SvCUR(	sv );			miss+=1+za-a;					E1	goto	_exit_2;		\
+		}  iCI = iC;																							dBUG_xINTRALOC("INTRALOC1Up_EX");
+
 
 
 
@@ -134,31 +122,31 @@ extern	void	_av_commit(),
 
 
 
-/*		CoINTRaLOC				Vectors (U, V) intralocate mod scope of next x as cycla (ic-1, ic) in current cube (iC)		*/
-#define	CoINTRaLOC			/*	Vectors (U, V) intralocate mod scope of next x as cycla (ic-1, ic) in current cube (iC)		*/	dBUG_xINTRALOC("CoINTRaLOC");	\
-	if(							x >E[ u ]	){																	\
+/*		CoINTRaLOC($x)			Vectors (U, V) intralocate mod scope of next x as cycla (ic-1, ic) in current cube (iC)		*/
+#define	CoINTRaLOC($x)		/*	Vectors (U, V) intralocate mod scope of next x as cycla (ic-1, ic) in current cube (iC)		*/	dBUG_xINTRALOC("CoINTRaLOC");	\
+	if(							$x >E[ u ]	){																	\
 /* mod range starts.	*/																						\
 		if( ixM == 0xFF){																						\
-			if(		RW[ v ] >ok ){	MkIn(8);		ReICEuO(	u, v );										u=v++;	\
-				if(				x >E[ u ] ){	ReICEuOx(	u, v );					deIceV_KEI();			u=v++;	\
-					while(		x >E[ u ] ){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
+			if(		RW[ v ] >ok ){	MkIn;		ReICEuO(	u, v );										u=v++;	\
+				if(				$x >E[ u ] ){	ReICEuOx(	u, v );					deIceV_KEI();			u=v++;	\
+					while(		$x >E[ u ] ){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
 					}\
-			}else if(	RW[ u ] >ok ){	MkIn(9);		ReICEuO(	u, v );	if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
-				while(			x >E[ u ] ){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
+			}else if(	RW[ u ] >ok ){	MkIn;		ReICEuO(	u, v );	if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
+				while(			$x >E[ u ] ){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
 \
 /* nvm. */	}else{						 /*	Ox[v]=Ox[u]+Q[u];*/	if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
-				while(			x >E[ u ] ){ /*	Ox[v]=Ox[u]+Q[u];*/					DeICEv_KEI( u, v );		u=v++; }	icI =ic; \
+				while(			$x >E[ u ] ){ /*	Ox[v]=Ox[u]+Q[u];*/					DeICEv_KEI( u, v );		u=v++; }	icI =ic; \
 				}																							\
 /* mod range continues.	*/																					\
 		}else if(		RW[ v ] >ok ){				ReICEuOx(	u, v );										u=v++;	\
-				if(				x >E[ u ] ){	ReICEuOx(	u, v );					deIceV_KEI();			u=v++;	\
-					while(		x >E[ u ] ){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
+				if(				$x >E[ u ] ){	ReICEuOx(	u, v );					deIceV_KEI();			u=v++;	\
+					while(		$x >E[ u ] ){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
 					}\
 		}else if(		RW[ u ] >ok ){				ReICEuOx(	u, v );	if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
-				while (			x >E[ u ] ){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
+				while (			$x >E[ u ] ){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
 \
 		}else							{	Ox[v]=Ox[u]+Q[u];		if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
-				while (			x >E[ u ] )	{	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
+				while (			$x >E[ u ] ){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI( u, v );		u=v++; }	\
 		}								}																
 
 
@@ -168,21 +156,21 @@ extern	void	_av_commit(),
 	if(							ic< zc	){																	\
 		/* mod range starts.	*/																				\
 		if( ixM == 0xFF){																						iCI=iC;	\
-			if(		RW[ v ] >ok ){ MkIn(16);	ReICEuO(	u, v );										u=v++;	\
+			if(		RW[ v ] >ok ){	MkIn;		ReICEuO(	u, v );										u=v++;	\
 				if(				ic< zc	){	ReICEuOx(	u, v );					deIceV_KEI();			u=v++;	\
 					while(		ic< zc	){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI(	u, v );	u=v++; }	\
 					}\
-			}else if(	RW[ u ] >ok	){ MkIn(17);	ReICEuO(	u, v );	if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
+			}else if(	RW[ u ] >ok ){	MkIn; 	  	ReICEuO(	u, v );	if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
 				while(			ic< zc	){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI(	u, v );	u=v++; }	\
 \
 			}else	/* false start.	*/	{	I[ tena_zc ] =I[u] +( tena_zc-u); v=( u=tena_zc )+1;	DeICEzu_KE(	u, v );	icI =zc;	\
 									}																	\
 		/* mod range continues.	*/\
-		}else if(		RW[ v ] >ok ){			ReICEuOx(	u, v );										u=v++;	\
+		}else if(		RW[ v ] >ok ){				ReICEuOx(	u, v );										u=v++;	\
 				if(				ic< zc	){	ReICEuOx(	u, v );					deIceV_KEI();			u=v++;	\
 					while(		ic< zc	){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI(	u, v );	u=v++; }	\
 					}\
-		}else if(		RW[ u ] >ok	){			ReICEuOx(	u, v );	if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
+		}else if(		RW[ u ] >ok ){				ReICEuOx(	u, v );	if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
 				while(			ic< zc	){	Ox[v]=Ox[u]+Q[u];						DeICEv_KEI(	u, v );	u=v++; }	\
 \
 		}else							{	Ox[v]=Ox[u]+Q[u];		if( RW[ v ] == null )	deIceV_KEI();			u=v++;	\
@@ -194,12 +182,12 @@ extern	void	_av_commit(),
 
 
 #define _EPILOC	/* printf("\nEPILOC	ixM: %d	izM: %d	icI: %d	icO: %d\n", ixM, izM, icI, icO );	*/\
-		if( ixM == 0xFF){		MkIn(32);			}															\
+		if( ixM == 0xFF){		MkIn;			}															\
 		do	{	if(	x ==	E[ u ] )	{				++	B[ u ];	  ++	E[ u ];		}							\
 				else		{	uMOD;	A[ v ] =x -E[ u ];	B[ v ]=1;		E[ v ] =x+1;	ReICEuOx( u, v );	u=v++;	}	\
 				if(	za == a )	break;																		\
 					x =	ARG( ++	a );	\
-			} while( 1 );		MkOut( 7 );										ReICEuOx( u, v );
+			} while( 1 );		MkOut;											ReICEuOx( u, v );
 
 
 
@@ -227,13 +215,40 @@ extern	void	_av_commit(),
 /*		SvCOMMIT				Mark-out the modification range and call _sv_commit() to re-encode the SV[s]					*/
 #define	SvCOMMIT			/*	Mark-out the modification range and call _sv_commit() to re-encode the SV[s]					*/	dBUG_xINTRALOC( "SvCOMMIT" );	\
 	if( ixM == 0xFF ){	/* envelope not marked in yet 	*/															\
-		if(		RW[ v ] >ok	)	{	MkIn( 1 );			ReICEuO( u, v );	u=v++; ReICEuOx( u, v );	MkOut( 1 );	_sv_commit();	\
-		}else if(	RW[ u ] >ok	)	{	MkIn( 2 );			ReICEuO( u, v );							MkOut( 2 );	_sv_commit();	\
+		if(		RW[ v ] >ok	)	{	MkIn;			ReICEuO( u, v );	u=v++; ReICEuOx( u, v );	MkOut;	_sv_commit();	\
+		}else if(	RW[ u ] >ok	)	{	MkIn;			ReICEuO( u, v );							MkOut;	_sv_commit();	\
 		}else		/* no mods */	{ /* shunt pointers	*/	cubeZ= cube; CSZ=CS; svZ=sv; zcZ= zc;		/* nothing to commit */		\
 								}					\
-	}else if(		RW[ v ] >ok	 )	{					ReICEuOx( u, v );	u=v++; ReICEuOx( u, v );	MkOut( 4 );	_sv_commit();	\
-	}else if(		RW[ u ] >ok	 )	{					ReICEuOx( u, v );							MkOut( 5 );	_sv_commit();	\
-	}else						{					Ox[v]=Ox[u] +Q[u];							MkOut( 6 );	_sv_commit();	\
+	}else if(		RW[ v ] >ok	 )	{					ReICEuOx( u, v );	u=v++; ReICEuOx( u, v );	MkOut;	_sv_commit();	\
+	}else if(		RW[ u ] >ok	 )	{					ReICEuOx( u, v );							MkOut;	_sv_commit();	\
+	}else						{					Ox[v]=Ox[u] +Q[u];							MkOut;	_sv_commit();	\
 								}
 
 
+
+
+/*		SvCOMMITx				Mark-out the modification range and call _sv_commit() to re-encode the SV[s]					*/
+#define	SvCOMMITx			/*	Mark-out the modification range and call _sv_commit() to re-encode the SV[s]					*/	dBUG_xINTRALOC( "SvCOMMITx" );	\
+	if( ixM == 0xFF ){	/* envelope not marked in yet 	*/															\
+		if(		RW[ v ] >ok	)	{	MkIn;			ReICEuO( u, v );	u=v++; ReICEuOx( u, v );	MkOut;		_sv_commit();	\
+		}else if(	RW[ v ]==del	)	{	MkIn;			ReICEuO( u, v );	u=v++; Ox[v]=Ox[u];		MkOutx;		_sv_commitx();	\
+		}else if(	RW[ u ] >ok	)	{	MkIn;			ReICEuO( u, v );							MkOut;		_sv_commit();	\
+		}else if(	RW[ u ]==del	)	{	MkIn;			Ox[v]=Ox[u]=O[u];							MkOutx;		_sv_commitx();	\
+		}else		/* no mods */	{ /* shunt pointers	*/	cubeZ= cube; CSZ=CS; svZ=sv; zcZ= zc;		/* nothing to commit */		\
+								}					\
+	}else if(		RW[ v ] >ok	 )	{					ReICEuOx( u, v );	u=v++; ReICEuOx( u, v );	MkOut;		_sv_commit();	\
+	}else if(		RW[ v ]==del	 )	{					ReICEuOx( u, v );	u=v++; Ox[v]=Ox[u];		MkOutx;		_sv_commitx();	\
+	}else if(		RW[ u ] >ok	 )	{					ReICEuOx( u, v );							MkOut;		_sv_commit();	\
+	}else if(		RW[ u ]==del	 )	{					Ox[v]=Ox[u]=O[u];							MkOutx;		_sv_commitx();	\
+	}else						{					Ox[v]=Ox[u] +Q[u];							MkOut;		_sv_commit();	\
+								}
+/*
+	_sv_commitx will require
+		SwCASE_XXOVER_00K	(done)
+		SwCASE_XXOVER_00T
+		SwCASE_LOWPASS_1IS	(done)
+		SwCASE_LPXOVER_00Y
+		SwCASE_XXOVER_00Y
+		SwCASE_XXOVER_00W
+		
+*/

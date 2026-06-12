@@ -24,11 +24,11 @@ extern char unsigned	u, v, w,	/*	matrix indeces		iterate		the modification range
 //char unsigned	q,	q0,	q1;		/*	q-field lengths			total		the q-data length			of any given cyclum			*/
 char			ic, 				/*	cyclum index			iterates		the read position			in	char *	cube			*/
 			icI,	icO,			/*	cyclum indeces		mark in/out	the Modification range		in	char *	cube			*/
-			zc,	zcZ,			/*	cyclum index 			identifies		the zeta cyclum			of	char *	cube / cubeZ		*/
-			tena_zc;			/*	cyclum index			identifies		the tentative zeta cyclum	of	char *	cube			*/
+			zc,	zcZ;			/*	cyclum index 			identifies		the zeta cyclum			of	char *	cube / cubeZ		*/
+short		tena_zc;			/*	cyclum index			identifies		the tentative zeta cyclum	of	char *	cube			*/
 
 extern char *	opStat[];
-extern enum	opStat{	null, ok, mod, new, del }
+extern enum	opStat{	null, del, ok, mod, new}
 			RW[	256 ];			/* read/write status enumerator			*/
 
 extern ui64	A[	256 ],	Ac,		/* relative coord.s	define	each negative cyclum phase		in	matrix { A[], B[], E[], Q[] }	*/
@@ -50,7 +50,7 @@ extern long long int	rSeq_iR[	256	], iR,	// source index of rSeq_SV 				(for eac
 				rSeqCut[	256	],	// the number of leading SVs to remove 	(for each control point)
 				rSeqSrc[	256	],	// source index						(for each control point)
 				rSeqDst[	256	],	// destination index						(for each control point)
-				rel_zC, 	dsc,  asc, zsc, juke, jmp,
+				rel_zC, 	dsc,  asc, zsc, juke, pmo,
 				rack_iC;			// running control point iterator
 
 extern char *		aString[8448];

@@ -5,6 +5,7 @@
 #define	si64	long long			int 
 #define	ui64	long long	unsigned	int 
 #define	ui64	long long	unsigned	int 
+#define Epsilon(	$cube) ( 	(ui64*) $cube+1)
 
 	#include	"dBUG.h"
 	#include	"SwCASE.h"	
@@ -29,6 +30,7 @@ extern SV	**	src,
 extern STRLEN	cS, CS, CSZ;
 extern ui08	*	cube,				/*	unsigned char * cube data (of index iC )					*/
 			*	cubeZ,				/*	unsigned char * cube data (of index iC -1)					*/
+				nube[16],				/*	null cube / new cube									*/
 				*pk,		*pq,
 			/*	*pkz, */	*pqz,
 				*pk_,	*pq_,	
@@ -39,10 +41,11 @@ extern ui08	*	cube,				/*	unsigned char * cube data (of index iC )					*/
 		ixM, izM, inM,  	ixH; 	/*	matrix indeces		define		the Modification & Highpass ranges	in	matrix { A[], B[], E[], Q[] }	*/
 extern char	*	lightning;
 extern char		aString[],
+				exit_code,
 				ic, 				/*	cyclum index			iterates		the read position					in	char *	cube			*/
 				icI,	icO,	icN,		/*	cyclum indeces		mark in/out	the destination range				in	char *	cube				*/
-				zc,	zcZ,			/*	cyclum index 			identifies		the zeta cyclum					of	char *	cube / cubeZ		*/
-				tena_zc;			/*	cyclum index			identifies		the tentative zeta cyclum			of	char *	cube			*/
+				zc,	zcZ;			/*	cyclum index 			identifies		the zeta cyclum					of	char *	cube / cubeZ		*/
+extern short		tena_zc;			/*	cyclum index			identifies		the tentative zeta cyclum			of	char *	cube			*/
 extern void		deIceV_KEI(),
 				_print_mx( unsigned char mx_max, short ix1, short izZ ),
 				_init_mx();
@@ -53,11 +56,6 @@ extern ui64		x, y, z,				/*	common method arguments													*/
 				Ac, Bc, Ec, E_,
 				skip, hit, miss;			/*	the number of misses or collissions counted as a method processes arguments  		*/
 
-	char 	subcase,
-			subcase1F4=0,
-			subcase1F4_=0;
-	char		trace[]	={ 0, 0, 0, 0, 0, 0, 0, 0 },
-			trace_[]	={ 0, 0, 0, 0, 0, 0, 0, 0 };
 
 	#ifdef DEBUG_SvCOMMIT_L4
 		#define dBUG_SUBc1F4x1	subcase1F4|=1;
@@ -138,7 +136,7 @@ trace[0]
 
 //extern char *	opStat[];
 
-extern enum	opStat{	null, ok, mod, new, del }
+extern enum	opStat{	null, del, ok, mod, new}
 			RW[	256 ];			/* read/write status enumerator			*/
 
 extern ui64	A[	256 ],	Ac,		/* relative coord.s	which define	each negative cyclum phase	in	matrix { A[], B[], E[], Q[] }	*/
@@ -209,7 +207,6 @@ extern ui08 	I[	256 ],			/* cycla indeces	which align	pre/post op keybytes		in	c
 	#define dBUG_1F3_SUBc1MH	subcase|=4;
 	#define dBUG_1F3_SUBc1M		subcase|=6;
 	#define dBUG_1F3_SUBcZMH	subcase|=8;
-	size_t	avdbuginx_dmarkcase;
 	static char *	subCaseCodes[]={
 	/*	0	*/	"LLMHH",		//			"0-L   	1-LxMxH 	2-H   ",
 	/*		*/	"xLMMHHx",		//impossible	"0-LxM	1-LxMxH		2-H   ",		//impossible
@@ -426,8 +423,8 @@ extern ui08 	I[	256 ],			/* cycla indeces	which align	pre/post op keybytes		in	c
 		#define dBUG_XLOAD_1F4M_hpZ
 	#endif
 	#ifdef DEBUG_SvCOMMIT_L3		//	paranoid integrity checks which are silent until there's a problem
-		#define dBUG_1F3_TENA_ZC							if( ixM >= iz1){	printf( lightning );	printf("!	ixM( %d ) must be less-than iz1( %d ).  invalid value for tena_zc: %d\n",		ixM,	iz1,	tena_zc );	}	\
-														if( izM <= ix1){	printf( lightning );	printf("!	izM( %d ) must be greater-than ix1( %d ).  invalid value for tena_zc: %d\n",	izM,	ix1,	tena_zc );	}
+		#define dBUG_1F3_TENA_ZC							if( ixM >= iz1){	printf( lightning );	printf("!	ixM( %d ) must be less-than iz1( %d ).  invalid value for tena_zc (%d) within subcase 1F3 of %s: %s line %lld \n",		ixM,	iz1,	tena_zc, __FUNCTION__, __FILE__, __LINE__ );	}	\
+														if( izM <= ix1){	printf( lightning );	printf("!	izM( %d ) must be greater-than ix1( %d ).  invalid value for tena_zc (%d) within subcase 1F3 of %s: %s line %lld \n",	izM,	ix1,	tena_zc, __FUNCTION__, __FILE__, __LINE__ );	}	\
 
 		#define dBUGmxB4( $X )	_print_mx( $X,	ix1, izZ );	
 		#define dBUGmxEO( $X )	_print_mx( $X,	ix1, izZ );/*	_init_mx(); NO */
@@ -448,3 +445,60 @@ extern ui08 	I[	256 ],			/* cycla indeces	which align	pre/post op keybytes		in	c
 		#define dBUG_SvCUR($CS, $VARNAME )
 		#define dBUGrackCALL($FRAG_LEV)
 	#endif
+// the following(4) macros are fragment-generating code blocks shared within _sv_commit() by main cases 1F2S, 1F3 and 1F4.
+
+/*######	CREATE:	HIGH CUBE [iC+1] 	######		(CASE 1F3)		######							*/
+		/*	[iC+Z]:	HIGH CUBE		SUBCASE 1: 	HIGHPASS				*/
+#define NEW_CUBE_Z_AS_HIGHPASS(		$dBUG_XLOAD)				hpZ_q=CS-O[ ixZ ];					\
+														CSZ=16+	hpZ_q;								\
+			pqZ=( cubeZ	= SvPVbyte_nolen(	svZ = newSVpvz(	CSZ |0x6 ) ) )+16;	SvCUR_set( svZ, CSZ );			dBUG_SvCUR(	CSZ,	"CSZ"	);	\
+																									*( (ui64*) cubeZ+1 ) = *( (ui64*) cube +1 );	/* set Epsilon of high cube	(there is a displacement, so Epsilon of pre-op cube is conserved)	*/\
+			switch(	zcZ		){		SwCASE_LOWPASS_1I(	*( (ui64*)( cube +I[	ixZ ] ) ),						*( (ui64*) cubeZ )	);	 }			\
+								/*	^inline lowpass		^high passthrough src							^lowpass output	*/				\
+			if(		hpZ_q )	{		XLOAD(	pqZ,	O[ ixZ ],	hpZ_q,									$dBUG_XLOAD );					dBUG_TRACE4x4;	\
+							}	/*	^crossload (hpZ_q) high-pass bytes from *(cube+O[ ixZ ] ) to *pqZ		*/
+
+
+		/*	[iC+Z]:	HIGH CUBE		SUBCASE 2: 	MODS x HIGHPASS		*/
+#define NEW_CUBE_Z_AS_MODSxHPASS(	$dBUG_hiCAST, $dBUG_hiCAST_i,			$dBUG_XLOAD	)	\
+																hpZ_q=CS-O[ ixH ];						\
+			postZ_q	=	Ox[	inM ]	-	Ox[	ixZ ];		CSZ=16+	hpZ_q + postZ_q;						\
+			pqZ=( cubeZ	= SvPVbyte_nolen(	svZ = newSVpvz(	CSZ |0x6 ) ) )+16;	SvCUR_set( svZ, CSZ );			dBUG_SvCUR(	CSZ,	"CSZ"	);	\
+			postZ_xc	= 		izM		-		ixZ;			\
+			preZ_xc	= 		icO		-	I[	ixZ ];		\
+			relZ_c	= 		postZ_xc	-		preZ_xc;		\
+		/*	hpZ_i	=	I[	ixZ ] 	-		relZ_c;	*/	\
+			hpZ_c	=		zc		-		icO;			\
+			\
+			if( hpZ_c ){	enXhp	=	postZ_xc| ( hpZ_c<< 3 );					hpZ_i = I[ ixZ ] -relZ_c;								*( (ui64*) cubeZ+1 ) = *( (ui64*) cube +1 );	/* Epsilon of [iC] is conserved */	\
+				switch(	enXhp	){	SwCASE_LPXOVER_10Y( *( (ui64*)( cube +	hpZ_i ) ), 	*( (ui64*)( H +ixZ ) ),	*( (ui64*) cubeZ )  )  	}			dBUG_TRACE4x1		\
+			}else{				/*	^lowpass crossover wye	 ^high passthrough, shifted	^low inclusion src		^wye output		*/	*( (ui64*) cubeZ+1 ) = E[ izM ];			/* Epsilon changed			*/	\
+				switch(	postZ_xc ){	SwCASE_LOWPASS_1I(							*( (ui64*)( H +ixZ ) ),	*( (ui64*) cubeZ )	)	}			\
+				}				/*	^lowpass inline assignment						^definitive src			^low passthrough	*/	\
+			if(		postZ_q )	{		iCEpACK( pqZ,	ixZ, izM, inM,										$dBUG_hiCAST, $dBUG_hiCAST_i );	dBUG_TRACE4x2;	\
+							}	/*	^re-pack modified q-data vectors ixZ..izM to cubeZ[ 16..16+postZ_q-1 ]	*/									\
+			if(		hpZ_q )	{		XLOAD(	pqZ,	O[ ixH ],		hpZ_q,								$dBUG_XLOAD );					dBUG_TRACE4x4;	\
+							}	/*	^crossload (hpZ_q) high-pass bytes from *(cube+O[ ixH ] ) to *pqZ		*/
+
+
+/*######	UPDATE:	LOW CUBE [iC+0] 	######		(CASE 1F3)		######							*/
+		/*	[iC+0]:	LOW CUBE		SUBCASE 1: 	LOWPASS				*/
+#define MOD_CUBE_0_AS_LPASS( 		ix$ )	/*	if( ixM >zc0 ){	*/\
+				switch(		zc0 ){	SwCASE_LOWPASS_1IS(	*( (ui64*) cube0 )	)		}					\
+				if( CS != O[	ix$ ] ){			SvCUR_set(	sv,	O[	ix$ ] );	cube0[	O[	ix$ ] ]=0;			dBUG_SvCUR(	O[	ix$], sprintf( "O[%s]", #ix$) );	}\
+		/*	} */
+
+
+		/*	[iC+0]:	LOW CUBE		SUBCASE 2: 	LOWPASS x MODS			*/
+#define MOD_CUBE_0_AS_LPASSxMODS( ix$,		$dBUG_hiCAST, $dBUG_hiCAST_i	)	\
+				if( CS <  Ox[	ix$ ] ){ cube0  =	SvGROW(	sv,	Ox[	ix$ ] +1 );							\
+											SvCUR_set(	sv,	Ox[	ix$ ] );	cube0[	Ox[	ix$ ] ]=0;			dBUG_SvCUR(	Ox[	ix$ ], sprintf( "O[%s]", #ix$)	);	}	\
+			else	if( CS != Ox[	ix$ ] ){			SvCUR_set(	sv,	Ox[	ix$ ] );	cube0[	Ox[	ix$ ] ]=0;			dBUG_SvCUR(	Ox[	ix$ ], sprintf( "O[%s]", #ix$)	);	}	\
+			\
+			pq0 =cube0 +O[	ixM	];			post0_xc	= zc0 - ixM;										\
+						lpXen	=	icI |(	post0_xc<< 3 );											\
+			switch(		lpXen	){	SwCASE_LPXOVER_01T( *( (ui64*) H ),									*( (ui64*) cube0)  );  }							\
+								/*	^lowpass crossover tee	^high inclusion src								^low passthrough / tee output	*/				\
+					post0_q		=	Ox[	ix$	]	-	Ox[ 	ixM	];																					\
+			if(		post0_q )	{		iCEPACK( pq0, 	ixM, zc0, ix$,										$dBUG_hiCAST, $dBUG_hiCAST_i );	dBUG_TRACE0x1;	\
+							}	/*	^re-pack modified q-data vectors ixM..zc0 to cube0[ O[ ixM ]..O[ zc0 ] ]	*/

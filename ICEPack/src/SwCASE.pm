@@ -10,12 +10,13 @@ system('cls');
 #	_test_lpxover_01T();
 #	_test_lpxover_10T();
 #	_test_lpxover_01Y();
-	_test_lpxover_10Y();
+#	_test_lpxover_10Y();
 #	_test_lpxover_10Yabs();
 #	_test_xxover_01T();
 #	_test_xxover_01Y();
+#	_test_xxover_00K();
 #	_test_xxover_01K();
-#	_test_xxover_01W();
+	_test_xxover_01W();
 #	_test_xshelf_00T();
 #	_test_xshelf_01T();
 #	_test_xshelf_01IS();
@@ -240,6 +241,24 @@ void _test_xxover_01Y(){
 		for(	i=0;    	i<=7;	++i ){
 					opCode = i |( w<< 3 );
 			switch(	opCode ){	SwCASE_XXOVER_01Y(		A,	B,	C );	}
+			printf("\rcase: 0x%02X	width x index: %2d x %-2d  %016llX\n", opCode, w, i,	C );
+			}
+		printf("\n");
+		}
+	printf("\n");
+	}
+void _test_xxover_00K(){
+	printf("_test_xxover_00K\n");
+				unsigned	char	i,
+							w,
+							opCode;
+
+	long long		unsigned	int	C,	head, body, tail;
+
+	for(		w=0;    	w<=7;	++w ){
+		for(	i=0;    	i<=7;	++i ){
+					opCode = i |( w<< 3 );							C	= 0xCCCCCCCCCCCCCCCC;
+			switch(	opCode ){	SwCASE_XXOVER_00K(		A,	B,	C );	}
 			printf("\rcase: 0x%02X	width x index: %2d x %-2d  %016llX\n", opCode, w, i,	C );
 			}
 		printf("\n");

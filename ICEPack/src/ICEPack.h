@@ -24,7 +24,8 @@ extern ui08		*pk,		*pq,
 				q, q0, q1,		/*	q-field lengths, used generically	*/
 				buf[];
 extern const ui08	nube[16];		/*	null cube / new cube			*/
-extern char		aString[],	ic, zc;
+extern char		aString[],	ic, zc,
+				exit_code;
 extern void		_icepack_init(),
 				_toText(),
 				_toTextX(),
@@ -34,8 +35,10 @@ extern void		_icepack_init(),
 extern	SV	*	toHex(		SV* rvICE);
 extern bool		_addsUp(),
 				_has(),
-				_clears(),
+				_includes(),
+				_excludes(),
 				_fits(),
+				_hits(),
 				_strikes();
 extern ui64		x, y, z,				/*	common method arguments													*/
 				Ac, Bc, Ec, E_,

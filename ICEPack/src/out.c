@@ -27,17 +27,7 @@
 	#include "SwCASE_IC2XE_inc.h"
 
 #define __ToTEXT_ROW_ALLOC	224
-const char	* const	cube_err[] =	{	"#	ICEPack::%s: array index #%lld is NULL.\n",											//0
-									"#	ICEPack::%s: SV* at array index #%lld is NULL.\n",									//1
-									"#	ICEPack::%s: XV at array index #%lld is not a scalar (!SvOK)	(&*%llX).\n",				//2
-									"#	ICEPack::%s: scalar at array index #%lld is not a string (!SvPOK)	(&*%llX).\n",				//3
-									"#	ICEPack::%s: string at array index #%lld is less-than 16 bytes (cube size: %lld byte[s]).\n",		//4
-									"#	ICEPack::%s: cube at array index #%lld contains no keybytes (cube size: %lld byte[s]) .\n",	//5
-								},
-			* const	svtype_err	=	"#!	unknown Perl type constant (%d) at %s line %s\n",
-			* const	malloc_err	=	"#	ICEPack::%s: could not [re]allocate buffer space at %s line %s\n",
-			* const	usage_err[]	={	"#!	ICEPack::%s:	arg[0] must be an arrayref <ICEPack>.\n",
-								};
+
 void _toText(){
 	av_push(		avOut,	newSVpvn(	"\n\n", 2 ) );
 	STRLEN		pvS, CS, nCS, lenRowID, metaLen, EOLLen;
@@ -60,9 +50,9 @@ void _toText(){
 			*	sviC=*( pSv0	+zC );
 
 	ui08		*	cube,	pos,
-				edge, wipe, r0,	r1,	vecS, cellS, rowLen, oddLineLen, evnLineLen, avSize, avSizeDigs,
+				edge, wipe, r0,	r1,	vecS, cellS, rowLen, oddLineLen, evnLineLen,  avSizeDigs,
 				Kc, Qc, ic=0, zc;
-	ui64			Ac, Bc, Xc, Ec,	EC,		EzC;
+	ui64			Ac, Bc, Xc, Ec,	EC,		EzC,									avSize;
 	long double	log;
 				log = log10l( (long double)	nC );
 	nCS	= ceil(	log );
@@ -79,11 +69,9 @@ void _toText(){
 		}	}
 	//sum total byte length of all SV* allocations in AV* avICE
 	for( iC=zC; iC >=0; --iC ){	sviC = *( pSv0 +iC );
-		if( NULL !=	sviC
-		&& SvOK(	sviC )
-		&& SvTYPE(	sviC )==3
-		&& SvPVbyte(	sviC,  CS )!=NULL ) avSize += CS;
-		}
+			if( NULL !=	sviC
+			&& SvPOK(	sviC ) )	avSize += SvCUR( sviC );
+			}
 					log = log10l( (long double)	avSize );
 	avSizeDigs=ceil(	log );
 
@@ -220,32 +208,32 @@ void _toTextX(){
 			*	sviC=*( pSv0	+zC );
 
 	ui08		*	cube,	pos,
-				edge, wipe, r0,	r1,	vecS, cellS, rowLen, oddLineLen, evnLineLen, avSize, avSizeDigs,
+				edge, wipe, r0,	r1,	vecS, cellS, rowLen, oddLineLen, evnLineLen,  avSizeDigs,
 				Kc, Qc, ic=0, zc;
-	ui64			Ac, Bc, Xc, Ec,	EC,		EzC;
+	ui64			Ac, Bc, Xc, Ec,	EC,		EzC,									avSize;
 	long double	log;
 				log = log10l( (long double)	nC );
 	nCS	= ceil(	log );
 
-	//find the decimal-represented string length of (what should be) the largest number in the whole structure: epsilon of [iCO]
+	//find the decimal-represented string length of (what should be) the largest number in the whole structure: epsilon of [zC]
 	if(		NULL==	sviC
 	||		!SvOK(	sviC )
-	||		SvTYPE(	sviC )!=3 )				{	EzC=0; vecS=12; cellS=14;	avSize=0;
+	||		SvTYPE(	sviC )!=3 )				{	EzC=0; vecS=18; cellS=20;	avSize=0;
 	}else{	cube = SvPVbyte( sviC, CS);
-		if(	cube==NULL )						{	EzC=0; vecS=12; cellS=14;	avSize=0;
+		if(	cube==NULL )						{	EzC=0; vecS=18; cellS=20;	avSize=0;
 		}else								{	EzC=*( (ui64*) cube +1 );	avSize=CS;
-						log = log10l( (long double)	EzC );	/* "Epsilon" of cube zC (minus one) will be the largest number encoded	*/
-			vecS=ceil(	log );	cellS =vecS +2;
+		//				log = log10l( (long double)	EzC );	/* "Epsilon" of cube zC (minus one) will be the largest number encoded	*/
+		//	vecS=ceil(	log );				cellS =vecS +2;
+
+			vecS=18-(__builtin_clzll( EzC ) >>2);	cellS =vecS +2;
 		}	}
 	//sum total byte length of all SV* allocations in AV* avICE
 	for( iC=zC; iC >=0; --iC ){	sviC = *( pSv0 +iC );
 		if( NULL !=	sviC
-		&& SvOK(	sviC )
-		&& SvTYPE(	sviC )==3
-		&& SvPVbyte(	sviC,  CS )!=NULL ) avSize += CS;
+		&& SvPOK(	sviC ) )	avSize += SvCUR( sviC );
 		}
 					log = log10l( (long double)	avSize );
-	avSizeDigs=ceil(	log );
+	avSizeDigs=1+ceil(	log );
 
 /*	format the format strings to set the cell and line number sizes		if you change these, make sure the row allocations are good */
 	sprintf( fsHeadID,		"(%c%dllu)  ",					37, nCS			);	// top-left	cell at col [0-1] 	row [0-1]
@@ -419,12 +407,15 @@ SV* toHex(		SV*	rvICE		){
 	ui64			Xc,	Ec;
 	long long int	iC,	zC, nC;
 	STRLEN			L, CS, rowL;
+#ifdef DEBUG
+	STRLEN		cS;
+#endif
 	avOut	= newAV_alloc_x( nC +1 );
 	rvOut	= newRV_inc( (SV*) avOut );
-	svtype			type= SvTYPE(	rvICE );					if(	type >= svtype_cnt )				{ printf( svtype_err, type, __FILE__, __LINE__ );	type=0;	}
-															if(	type != SVt_RV || ! SvROK(	rvICE ) )	{ printf( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names[		type ]: "UNKNOWN"  );			return rvOut;	}
+	svtype			type= SvTYPE(	rvICE );					if(	type >= svtype_cnt )				{ dBUG_4A( svtype_err,	__FUNCTION__, (ui08) type, __FILE__, __LINE__ );	type=0;	}
+															if(	type != SVt_RV || ! SvROK(	rvICE ) )	{ dBUG_2A( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names[		type ]: "UNKNOWN"  );			return rvOut;	}
 					avICE=(AV*) SvRV(	rvICE );
-					type = SvTYPE(	avICE );					if(	type != SVt_PVAV )					{ printf( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names_ref[ 	type ]: "UNKNOWN" );			return rvOut; 	}
+					type = SvTYPE(	avICE );					if(	type != SVt_PVAV )					{ dBUG_2A( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names_ref[ 	type ]: "UNKNOWN" );			return rvOut; 	}
 	nC=( zC= AvFILLp(	avICE ) ) +1;								if(	nC==0 )							return rvOut;
 
 	if( MZ< nC ){
@@ -434,20 +425,20 @@ SV* toHex(		SV*	rvICE		){
 		if( Mzc==NULL|| Mpq==NULL||Mpk==NULL)	{ printf( malloc_err, __FUNCTION__, __FILE__, __LINE__ );	return rvOut;	}
 		MZ=nC;
 		}
-	pSv0	= AvARRAY(	avICE );								if( pSv0==NULL)	{ printf( cube_err[0], __FUNCTION__, 	svtype_names_ref[ 	type ], 0		);				return rvOut; }
-									SvC	=*	pSv0;			if(SvC==NULL)		{ printf( cube_err[1], __FUNCTION__, 	svtype_names_ref[ 	type ], 0		);	Mzc[0]=-1;	goto _continue; }
-															if(!SvOK( SvC ) )	{ printf( cube_err[2], __FUNCTION__, 	svtype_names_ref[ 	type ], 0, &*SvC );	Mzc[0]=-1;	goto _continue; }
-															if(!SvPOK( SvC ) )	{ printf( cube_err[3], __FUNCTION__, 	svtype_names_ref[ 	type ], 0, &*SvC );	Mzc[0]=-1;	goto _continue; }
-	Mpk[	0 ] = SvPVbyte( 			SvC, CS );				if(CS<16 )		{ printf( cube_err[4], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	Mzc[0]=-1;	goto _continue; }
-	Mzc[	0 ] = zcOf( Mpk[0] );								if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	}
+	pSv0	= AvARRAY(	avICE );								if( pSv0==NULL)	{ dBUG_4A( cube_err[0], __FUNCTION__,							0, 			__FILE__, __LINE__ );				return rvOut; }
+									SvC	=*	pSv0;			if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							0, 			__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+					type = SvTYPE(	SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+	Mpk[	0 ] = SvPVbyte( 			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+	Mzc[	0 ] = zcOf( Mpk[0] );								if(Mzc[ 0 ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	}
 	Mpq[	0 ] = Mpk[ 0 ]+16;									/*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*/	_continue:
 
 
-	for(	iC=zC;	iC>0;	--iC ){		SvC	=*(	pSv0 +iC );		if(SvC==NULL)		{ printf( cube_err[1], __FUNCTION__, 	svtype_names_ref[ 	type ], iC		);	Mzc[iC]=-1;		continue; }
-															if(!SvOK( SvC ) )	{ printf( cube_err[2], __FUNCTION__, 	svtype_names_ref[ 	type ], iC, &*SvC );	Mzc[iC]=-1;		continue; }
-															if(!SvPOK( SvC ) )	{ printf( cube_err[3], __FUNCTION__, 	svtype_names_ref[ 	type ], iC, &*SvC );	Mzc[iC]=-1;		continue; }
-		Mpk[ iC] = SvPVbyte(		SvC, CS );					if(CS<16 )		{ printf( cube_err[4], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
-		Mzc[ iC]= zcOf( Mpk[ iC ] );								if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
+	for(	iC=zC;	iC>0;	--iC ){		SvC	=*(	pSv0 +iC );		if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							iC,			__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+					type = SvTYPE(	SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+		Mpk[ iC] = SvPVbyte(			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+		Mzc[ iC]= zcOf( Mpk[ iC ] );								if(Mzc[ 0 ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
 		Mpq[ iC]= Mpk[ iC ]+16;
 		}
 	Xc=Ec=0;
@@ -490,6 +481,9 @@ void _printHex(	AV*	avICE		){
 	ui64			Xc,	Ec;
 	long long int	iC,	zC, nC;
 	STRLEN			L, CS, rowL;
+#ifdef DEBUG
+	STRLEN		cS;
+#endif
 
 	svtype		type = SvTYPE(	avICE );						if(	type != SVt_PVAV )					{ printf( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names_ref[ 	type ]: "UNKNOWN" );			return; 	}
 	nC=( zC= AvFILLp(	avICE ) ) +1;								if(	nC==0 )							return;
@@ -500,20 +494,20 @@ void _printHex(	AV*	avICE		){
 	if( Mzc==NULL|| Mpq==NULL||Mpk==NULL)	{ printf( malloc_err, __FUNCTION__, __FILE__, __LINE__ );	return;	}
 
 
-	pSv0	= AvARRAY(	avICE );								if( pSv0==NULL)	{ printf( cube_err[0], __FUNCTION__, 	svtype_names_ref[ 	type ], 0		);				return; }
-									SvC	=*	pSv0;			if(SvC==NULL)		{ printf( cube_err[1], __FUNCTION__, 	svtype_names_ref[ 	type ], 0		);	Mzc[0]=-1;	goto _continue; }
-															if(!SvOK( SvC ) )	{ printf( cube_err[2], __FUNCTION__, 	svtype_names_ref[ 	type ], 0, &*SvC );	Mzc[0]=-1;	goto _continue; }
-															if(!SvPOK( SvC ) )	{ printf( cube_err[3], __FUNCTION__, 	svtype_names_ref[ 	type ], 0, &*SvC );	Mzc[0]=-1;	goto _continue; }
-	Mpk[	0 ] = SvPVbyte( 			SvC, CS );				if(CS<16 )		{ printf( cube_err[4], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	Mzc[0]=-1;	goto _continue; }
-	Mzc[	0 ] = zcOf( Mpk[0] );								if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], 0,  CS	 );	}
+	pSv0	= AvARRAY(	avICE );								if( pSv0==NULL)	{ dBUG_4A( cube_err[0], __FUNCTION__,							0, 			__FILE__, __LINE__ );				return; }
+									SvC	=*	pSv0;			if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							0, 			__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+				type = SvTYPE(		SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+	Mpk[	0 ] = SvPVbyte( 			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+	Mzc[	0 ] = zcOf( Mpk[0] );								if(Mzc[ 0 ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	}
 	Mpq[	0 ] = Mpk[ 0 ]+16;									/*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*/	_continue:
 
 
-	for(	iC=zC;	iC>0;	--iC ){		SvC	=*(	pSv0 +iC );		if(SvC==NULL)		{ printf( cube_err[1], __FUNCTION__, 	svtype_names_ref[ 	type ], iC		);	Mzc[iC]=-1;		continue; }
-															if(!SvOK( SvC ) )	{ printf( cube_err[2], __FUNCTION__, 	svtype_names_ref[ 	type ], iC, &*SvC );	Mzc[iC]=-1;		continue; }
-															if(!SvPOK( SvC ) )	{ printf( cube_err[3], __FUNCTION__, 	svtype_names_ref[ 	type ], iC, &*SvC );	Mzc[iC]=-1;		continue; }
-		Mpk[ iC] = SvPVbyte(		SvC, CS );					if(CS<16 )		{ printf( cube_err[4], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
-		Mzc[ iC]= zcOf( Mpk[ iC ] );								if(Mzc[ 0 ]==-1 )	{ printf( cube_err[5], __FUNCTION__, 	svtype_names_ref[ 	type ], iC,  CS	 );	Mzc[iC]=-1;		continue; }
+	for(	iC=zC;	iC>0;	--iC ){		SvC	=*(	pSv0 +iC );		if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							iC,			__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+				type = SvTYPE(		SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+		Mpk[ iC] = SvPVbyte(		SvC, CS );					if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+		Mzc[ iC]= zcOf( Mpk[ iC ] );								if(Mzc[ 0 ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
 		Mpq[ iC]= Mpk[ iC ]+16;
 		}
 	Xc=Ec=0;

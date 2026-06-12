@@ -11,6 +11,10 @@
 #define	ARG( $a )	SvIVX( *(	pSvA0 + $a )	)
 #define	ARG0		SvIVX( *	pSvA0		)
 
+extern char	* const cube_err[],
+			* const svtype_err,
+			* const malloc_err,
+			* const usage_err[];
 
 extern AV	*	avOut,
 			*	avDBUG,
@@ -23,7 +27,8 @@ extern const char	*svtype_names[],
 extern ui08		svtype_cnt;
 
 extern char *	opStat[];
-extern enum	opStat{	null, ok, mod, new, del }
+extern enum	opStat{	null, del, ok, mod, new}
+
 			RW[	256 ];			/* read/write status enumerator			*/
 
 extern ui64	A[	256 ],	Ac,		/* relative coord.s	define	each negative cyclum phase		in	matrix { A[], B[], E[], Q[] }	*/
