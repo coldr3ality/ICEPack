@@ -14,7 +14,7 @@
 #	limitations under the License.
 package ICEPack;	 use strict; use warnings;no warnings 'portable';	++$|;	#system('cls');  
 use POSIX qw( log2 floor ceil );
-our $VERSION=0.2.0;
+our $VERSION=0.3.0;
 use lib "blib/arch/auto/ICEPack";
 require DynaLoader;
 our @ISA = qw(DynaLoader);	bootstrap ICEPack;
@@ -468,10 +468,10 @@ sub test_set_recursively($$$){	my($start_bits, $end_bits, $saturation)=@_;	my $s
 sub tug_a_war(){
 	my $Ct=0;	my $hits;	my @args_B4; my @ICE; my @ICE_B4;
 	my $ICE=bless( \@ICE, 'ICEPack');	my @args; my $args=\@args;	my $ICE_B4=\@ICE_B4;
-	my $fail=0;	my $T;	my $W=0xFFFF; my $Wx100=$W/1000; my $pct=0; my $_pct=0;
+	my $fail=0;	my $T;	my $W=0xFFF; my $Wx100=$W/1000; my $pct=0; my $_pct=0;
 	while( 1 ){	$T=0;
 	#	@ICE=();
-	#We	print("\nset\n");
+	#	print("\nset\n");
 		while($Ct< $W){	++$T;
 			@args=();
 			while($#args< 32){ insortIV( $args, int( rand( $W ) ) );	}
@@ -479,11 +479,12 @@ sub tug_a_war(){
 	#		ICEPack::snapshot($ICE);
 			$Ct +=	ICEPack::set( $ICE, $args );
 		#	printAvDBUG();
-			if(	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
-		 	or	not	$ICE->excludes( \@args )
-		#	or	exitCode()
-				){		# excludes()  only reads relevant cycla in relevant cubes, and does not check epsilon
-		#		){
+#			if(	0	){
+			if(	not	$ICE->ex( \@args	) ){
+#			if(	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+#		 	or	not	$ICE->excludes( \@args )
+#			or	exitCode()
+#				){		# excludes()  only reads relevant cycla in relevant cubes, and does not check epsilon
 				$ICE_B4=ICEPack::getSnapshot();	print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
 				++$fail;							print("\n\ntest $T failed	 ", scalar localtime(), "\n");
 				printf("\naudit:\n\n");				printAvDBUG();	print("\n\n\n\n\n\n");
@@ -503,18 +504,20 @@ sub tug_a_war(){
 			$pct=int( $Ct/$Wx100 )/10;	if( $pct != $_pct ){	printf("\r<< %2.2f    ", $pct );	$_pct=$pct;	}
 			}
 		@args_B4=@args;		$T=0;
-#		print("\nunset\n");
+	#	print("\nunset\n");
 		while( $Ct >0 ){	++$T;
 			@args=();
 			while($#args< 32){ insortIV( $args, int( rand( $W ) ) );	}
 			@args_B4=@args;
 	#		ICEPack::snapshot($ICE);				
 			$Ct -=	ICEPack::unset(	$ICE, $args );
-
-			if(	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
-				or	$ICE->includes( \@args )
-		#		or	exitCode()
-				){		# includes() only reads relevant cubes for specific keys; it doesn't verify overall integrity.
+			$ICE->in( \@args );
+			if( 0 ){
+#			if(		$ICE->in( \@args )	){
+#			if(	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+#				or	$ICE->includes( \@args )
+#				or	exitCode()
+#				){		# includes() only reads relevant cubes for specific keys; it doesn't verify overall integrity.
 				print("\r!	", scalar( @args ), " of ", scalar( @args_B4 ), " flags were not unset:\n	",#	join(',	', @args), "\n	", join(',	', @args_B4), "\n\n");
 																						join(",", map { sprintf("0x%X", $_) }	@args		),
 																				, "\n	",	join(', ',  map { sprintf("0x%X", $_) }	@args_B4	),	"\n\n");
