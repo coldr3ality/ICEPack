@@ -207,6 +207,18 @@ extern	void	_av_commit(),
 	AvEXT(  avICE,	buf,			pk,		pq,		avArg,	a, za,	$E0		);
 
 
+#define EPIGLOT	printf("\n		EPIGLOT\n");	\
+	if( RW[u]< 1 ){	printf("\n!	EPIGLOT: vector u is not populated!\n");	}			\
+	else if( a<=za){				if( RW[ v ] ){		u=v++;	printf("\n!	EPIGLOT: advancing mx cursor\n"); }\
+		while( ic< zc ){				DeICEv_E( u, v );	u=v++; }				\
+		if( ixM == 0xFF){	MkIn; }	\
+		do	{	if(		x >E[u] )	{ ++	tena_zc;	vMOD;	A[ v ] =x -E[ u ];	B[ v ] =1;	E[ v ] =x +1;	ReICEuOx( u, v );	u=v++;	}	\
+				else if(	x==E[u] )	{							 	 ++	B[ u ]; ++	E[ u ];		} \
+				if( za!=a)	x =ARG( ++a );	else break;	\
+			} while( 1 );	MkOut;															ReICEuOx( u, v );	\
+		_print_mx(tena_zc+4, ixM, izM);	\
+		}
+
 
 
 

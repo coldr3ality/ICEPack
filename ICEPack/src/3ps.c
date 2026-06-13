@@ -128,14 +128,17 @@ ui64 _has(	/* avArgs */ 	){ //	count matches in avArgs.	return number of hits.		
 
 
 #define	_INTRALOC					/* Initialize Ec with *Epsilon of the cube before the current cube.		*/\
+									cubeZ= SvPVbyte( *( psvC0 +iC-1), CSZ );		if(		CSZ< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC-1, CSZ,	__FILE__, __LINE__ );if( iC!=zC){ ++iC; continue; } else {	off=1+za-a;								NX;	goto _none_x;	}	}
+#define	_nINTRALOC					/* Initialize Ec with *Epsilon of the cube before the current cube.		*/\
 									cubeZ= SvPVbyte( *( psvC0 +iC-1), CSZ );		if(		CSZ< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC-1, CSZ,	__FILE__, __LINE__ );if( iC!=zC){ ++iC; continue; } else {	off=1+za-a; SvREFCNT_dec( *( dst = psvA0 +a ) ); NX;	goto _none_x;	}	}
+
 #define	_INTRALOC1Up(	$CUBE_MISS )/* Initialize Ec with *Epsilon of current cube, then move one cube up.	*/\
 						if(	iC!=zC ){	cubeZ=cube;								\
 									cube = SvPVbyte( *(++iC +psvC0 ), CS );		if(		CS< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC,	CS,	__FILE__, __LINE__ );	\
 																								goto $CUBE_MISS;	}	\
 						}else		{											NX;	goto _none_x;	}
 
-#define	_nINTRALOC1Up				/* Initialize Ec with *Epsilon of current cube, then move one cube up.	*/\
+#define	_xa_nINTRALOC1Up			/* Initialize Ec with *Epsilon of current cube, then move one cube up.	*/\
 						if(	iC!=zC ){	cubeZ=cube;								\
 									cube = SvPVbyte( *(++iC +psvC0 ), CS );		if(		CS< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC,	CS,	__FILE__, __LINE__ );	\
 																								goto _cube_miss;	}	\
@@ -151,12 +154,17 @@ ui64 _has(	/* avArgs */ 	){ //	count matches in avArgs.	return number of hits.		
 																								goto _x0_cube_miss;	}	\
 						}else		{ off =1+za-a;	SvREFCNT_dec( *(	dst = psvA0 +a ) );	NX;	goto _none_x;	}
 
+#define _nINTRALOC1Up(	$CUBE_MISS	)/* Initialize Ec with *Epsilon of current cube, then move one cube up.	*/\
+						if(	iC!=zC ){	cubeZ=cube;								\
+									cube = SvPVbyte( *(++iC +psvC0 ), CS );		if(		CS< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC,	CS,	__FILE__, __LINE__ );	\
+																								goto $CUBE_MISS;	}	\
+						}else		{ off +=1+za-a;								NX;	goto _none_x;	}
 
 
 //bool _retains?
 
 //	#define CR printf("	returns at line %lld (AvFILLp( avArg ) ==%lld)\n", __LINE__, AvFILLp( avArg ) );
-//	#define NX printf("	goto _none_x at line %lld\n", __LINE__ );	
+//	#define NX printf("	goto _none_x at line %lld\n", __LINE__ );
 //	#define FM printf("	first miss at line %lld\n", __LINE__ );
 //	#define BS printf("	break dwell loop at line %lld\n",	__LINE__ );
 //	#define UP printf("	goto _intraloc1up at line %lld\n", 	__LINE__ );
@@ -172,7 +180,7 @@ ui64 _has(	/* avArgs */ 	){ //	count matches in avArgs.	return number of hits.		
 //	"xMatchingOf"
 //	"includes"
 bool _includes(			/* avArgs */	){ //	cut non-matches from avArgs.	return true if any match.	Searches ICEPack;	iterates args. 		Best for large objects with few args.	
-//	printf("\n_holds(): \n");
+/*	!!		there's a memory leak that really hits when unset() is trying to kill the last 0.1%		*/
 	ui08			Qc,
 			*	cube,
 			*	cubeZ,
@@ -180,7 +188,7 @@ bool _includes(			/* avArgs */	){ //	cut non-matches from avArgs.	return true if
 	STRLEN		CS, CSZ;
 
 	long long int				za = AvFILLp(	avArg ),	a=0, a_;						if( za==-1	){	dBUG3ps_NOARG;		{CR;					return 0;	}	}
-	long long int	lb,		ub,	zC = AvFILLp(	avICE ),	iC;/*=0;*/					if( zC==-1 ){	dBUG3ps_NOCUBE;	{CR; av_clear( avArg )	;return 0;	}	}
+	long long int	lb,		ub,	zC = AvFILLp(	avICE ),	iC;/*=0;*/					if( zC==-1 ){	dBUG3ps_NOCUBE;	{CR; av_clear( avArg );	return 0;	}	}
 	char			zcZ,			zc,					ic=0;
 
 	ui64			Ac, Bc, Ec, x,
@@ -297,7 +305,7 @@ _C0_next_x:		if( a!=za )	x = ARG( ++a );	else /* return...	*	*	*	*	*	*	*	*/	{	NX
 _x0_intraloc: 	*/						cubeZ= SvPVbyte( *( psvC0 +iC-1), CSZ );		if(		CSZ< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC-1, CSZ,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {	off+=1+za-a;	SvREFCNT_dec( *(	dst = psvA0 +a ) );	NX;	goto _none_x;	}	}
 																								goto _intra;		}
 		}else if(			x == *Epsilon(	cube ) || (	iC=( ( lb	= iC )+ub	)>>1 )==lb ){	_intraloc1up:
-																			_nINTRALOC1Up;
+																			_xa_nINTRALOC1Up;
 _intra:		ic=0;			zc=zcOf(	cube );
 			if(				zc!=-1 ){	deICE0(				Qc, Ac, Bc );  	Ec = Ac+Bc+ *Epsilon( cubeZ );	
 			   do	{ while(	x >Ec )	{
@@ -500,6 +508,303 @@ _none_x:
 			AvFILLp( avArg ) -=off;
 	return	AvFILLp( avArg ) ==-1? 1: 0;/* np. */
 	}
+
+
+bool _in(				/* avArgs */	){ //	cut non-matches from avArgs.	return true if any match.	Searches ICEPack;	iterates args. 		Best for large objects with few args.	
+	ui08			Qc,
+			*	cube,
+			*	cubeZ,
+			*	pq;
+	STRLEN		CS, CSZ;
+
+	long long int				za = AvFILLp(	avArg ),	a=0, a_;						if( za==-1	){	dBUG3ps_NOARG;		{CR;					return 0;	}	}
+	long long int	lb,		ub,	zC = AvFILLp(	avICE ),	iC;/*=0;*/					if( zC==-1 ){	dBUG3ps_NOCUBE;	{CR; av_clear( avArg );	return 0;	}	}
+	char			zcZ,			zc,					ic=0;
+
+	ui64			Ac, Bc, Ec, x,
+				off=0;	/* running shift offset								*/
+	SV		**	psvA0 =	AvARRAY( avArg ),
+			**	psvC0 =	AvARRAY( avICE ),				*svC=*psvC0;				if(		svC 	== NULL	){	dBUG_5A( cube_err[1], __FUNCTION__, "", iC,		__FILE__, __LINE__ );	if( zC) goto _x0_search;	else{CR; av_clear( avArg ); return 0;	}	}
+																			else if(	!SvOK( 	svC)	){	dBUG_6A( cube_err[2], __FUNCTION__, "", iC, &*svC,	__FILE__, __LINE__ );	if( zC) goto _x0_search;	else{CR; av_clear( avArg ); return 0;	}	}
+																			else if(	!SvPOK( 	svC)	){	dBUG_6A( cube_err[3], __FUNCTION__, "", iC, &*svC,	__FILE__, __LINE__ );	if( zC) goto _x0_search;	else{CR; av_clear( avArg ); return 0;	}	}
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										BLOCK  1										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*					FIND THE FIRST MATCH TO MARK-IN ARRAY SHIFT RANGE					*/
+/*			The conditional statements commented "x0 miss?" mark-in each AV shift range.			*/
+/*			It is to isolate these cases implicitly that the search loop code is differentiated 4x here—		*/
+/*			that, and to initialize *Epsilon of cube 0 specially, so to eliminate a branch.					*/
+
+						x = ARG( 0 );	cube = SvPVbyte(	svC, CS );				if(		CS< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC,	CS,	__FILE__, __LINE__ );	if( zC) goto _x0_search;	else{CR; av_clear( avArg ); return 0;	}	}
+	if(					x <  *Epsilon(	cube ) ){
+							zc=zcOf(	cube );
+					if(		zc!=-1 ){	deICE0(				Qc, Ac, Bc );  	Ec=	Ac +Bc;
+/*cube 0 err	*/		}else{																			dBUG_6A( cube_err[8], __FUNCTION__, iC, Ec, *Epsilon( cube),	__FILE__, __LINE__ );
+												iC=0;											goto _x0_cube_miss;
+						}						ic=0;
+			do	{ while( x >Ec )	{
+					if(		ic!=zc ){	deICE( cube[	++ic ],	Qc, Ac, Bc );  	Ec+=Ac +Bc;
+/*cube 0 err	*/		}else{						iC=0;												dBUG_6A( cube_err[8], __FUNCTION__, iC, Ec, *Epsilon( cube),	__FILE__, __LINE__ );
+																								goto _x0_cube_miss;
+					}	}
+/* x0 miss?	*/	if(		x ==	Ec
+				||		x < Ec-Bc ){	off =1;													FM;	goto _C0_next_x;	}
+
+				if( a!=za )	x = ARG( ++a );										else					{CR;return 1;}
+				} while(	x < *Epsilon(	cube ) );
+			}
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										BLOCK  2										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/* 	######		1ST MATCH NOT FOUND IN CUBE 0;		SEARCHING CUBES >0		######		*/
+
+_x0_search:					lb =1;	ub =zC +1;	iC= ub >>1;
+	do	{											svC=*( psvC0 +iC ); 		if(		svC 	== NULL	){	dBUG_5A( cube_err[1], __FUNCTION__, "", iC,		__FILE__, __LINE__ ); if( iC!=zC){ ++iC; continue; } else {	off=1+za-a;	NX;	goto _none_x;	}	}
+																			else if(	!SvOK( 	svC)	){	dBUG_6A( cube_err[2], __FUNCTION__, "", iC,&*svC,	__FILE__, __LINE__ ); if( iC!=zC){ ++iC; continue; } else {	off=1+za-a;	NX;	goto _none_x;	}	}
+																			else if(	!SvPOK( 	svC)	){	dBUG_6A( cube_err[3], __FUNCTION__, "", iC,&*svC,	__FILE__, __LINE__ ); if( iC!=zC){ ++iC; continue; } else {	off=1+za-a;	NX;	goto _none_x;	}	}
+									cube = SvPVbyte(	svC, CS );				if(		CS< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC,	CS,	__FILE__, __LINE__ ); if( iC!=zC){ ++iC; continue; } else {	off=1+za-a;	NX;	goto _none_x;	}	}
+		/* Now that we have verified cube iC, we are clear to read *Epsilon( cube ).		*/
+		if(				x <	*Epsilon(	cube ) ){ if( (	iC=( ( ub	= iC )+lb	)>>1 )==ub ){	/*
+_x0_intraloc: 	*/						cubeZ= SvPVbyte( *( psvC0 +iC-1), CSZ );		if(		CSZ< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC-1, CSZ,	__FILE__, __LINE__ ); if( iC!=zC){ ++iC; continue; } else {	off=1+za-a;	NX;	goto _none_x;	}	}
+																								goto _x0_intra;	}
+		}else if(			x == *Epsilon(	cube ) || (	iC=( ( lb	= iC )+ub	)>>1 )==lb ){	_x0_intraloc1up:
+																			_nINTRALOC1Up( _x0_cube_miss );
+_x0_intra:	ic=0;  			zc=zcOf(	cube );
+			if(				zc!=-1 ){	deICE0(				Qc, Ac, Bc );  	Ec = Ac+Bc+ *Epsilon( cubeZ );
+			   do	{ while(	x >Ec ){
+					if(		zc!=ic ){	deICE( cube[	++ic ],	Qc, Ac, Bc );  	Ec += Ac+Bc;
+/*cube iC err	*/		}else{																			dBUG_6A( cube_err[8], __FUNCTION__, iC, Ec, *Epsilon( cube),	__FILE__, __LINE__ );
+																								goto _x0_cube_miss;
+					}	}
+/* x0 miss?	*/	if(		x ==	Ec
+				||		x < Ec-Bc ){	off =1;													FM;	goto _next_x;			}
+
+/* all args hit?	*/	if( a!=za )	x = ARG( ++a );	else return 1;	/* all args hit; none were cut from avArg */
+				if(		x >	*Epsilon(	cube ) )	{	if( iC!= zC) break;
+												else{ 							off=1+za-a;	NX;	goto _none_x;	}		}
+				if(		x == *Epsilon(	cube ) )	{												Up;	goto _x0_intraloc1up;	}
+				} while( 1 );	lb =iC+1;	/*
+_x0_search:	*/						ub =zC +1;	iC=( lb+ub )>>1;
+			}else		{/*cube iC empty; many miss.*/
+_x0_cube_miss: 																						dBUG_6A( cube_err[5], __FUNCTION__, "", iC-1, CSZ,	__FILE__, __LINE__ );
+_x0_cube_overrun: 		if(	iC!=zC )	{	a_=a;						
+									do	{ if(a!=za)	x = ARG( ++a );				else{  off =1+za-a; NX;	goto _none_x;	}
+										} while(	x < *Epsilon( cube ) );
+/* all cube iC args miss	*/				  off=a-a_;	lb=iC+1;									FM;		goto _search;
+/* remaining args miss	*/	}else		{ off=1+za-a;											FM;	NX;	goto _none_x;
+			}			}			}
+		} while( 1 );	/* search	*/
+
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										BLOCK  3										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*	######		STILL IN CUBE 0:	FIRST MISMATCH HAS BEEN FOUND ( *dst )		######		*/
+/*	######	ALL SUBSEQUENT [MIS]MATCHES MARK-OUT AN ARRAY SHIFT RANGE		######		*/
+			do	{ while(	x >Ec ){
+					if(		zc!=	ic ){	deICE( cube[	++ic ],	Qc, Ac, Bc );  	Ec += Ac+Bc; }else{	iC=0;		goto _cube_miss; }
+					}
+/* next miss?	*/	if(		x ==	Ec
+				||		x <  Ec-Bc )	++off;
+
+_C0_next_x:		if( a!=za )	x = ARG( ++a );	else /* return...	*	*	*	*	*	*	*	*/	{	NX;	goto _none_x;	}
+				} while(	x < *Epsilon(	cube ) );
+
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										BLOCK  4										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*	######			SPECIAL CASES HANDLED;	SEARCH AND SHIFT NORMALLY		######		*/
+/*	Special cases to initialize the first shift range and *Epsilon of cube 0 were handled in blocks 1-3. 		*/
+
+							lb =1;	ub =zC +1;	iC= ub >>1;
+	do	{											svC=*( psvC0 +iC ); 		if(		svC 	== NULL	){	dBUG_5A( cube_err[1], __FUNCTION__, "", iC,		__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {	off+=1+za-a;	NX;	goto _none_x;	}	}
+																			else if(	!SvOK( 	svC)	){	dBUG_6A( cube_err[2], __FUNCTION__, "", iC, &*svC,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {	off+=1+za-a;	NX;	goto _none_x;	}	}
+																			else if(	!SvPOK( 	svC)	){	dBUG_6A( cube_err[3], __FUNCTION__, "", iC, &*svC,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {	off+=1+za-a;	NX;	goto _none_x;	}	}
+									cube = SvPVbyte(	svC, CS );				if(		CS< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC,  CS,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {	off+=1+za-a;	NX;	goto _none_x;	}	}
+		if(				x <	*Epsilon(	cube ) ){ if( (	iC=( ( ub	= iC )+lb	)>>1 )==ub ){	/*
+_x0_intraloc: 	*/						cubeZ= SvPVbyte( *( psvC0 +iC-1), CSZ );		if(		CSZ< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC-1, CSZ,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {	off+=1+za-a;	NX;	goto _none_x;	}	}
+																								goto _intra;		}
+		}else if(			x == *Epsilon(	cube ) || (	iC=( ( lb	= iC )+ub	)>>1 )==lb ){	_intraloc1up:
+																			_nINTRALOC1Up( _cube_miss );
+_intra:		ic=0;			zc=zcOf(	cube );
+			if(				zc!=-1 ){	deICE0(				Qc, Ac, Bc );  	Ec = Ac+Bc+ *Epsilon( cubeZ );	
+			   do	{ while(	x >Ec )	{
+					if(		zc!=	ic ){	deICE( cube[	++ic ],	Qc, Ac, Bc );  	Ec += Ac+Bc;
+					}else{																			dBUG_6A( cube_err[8], __FUNCTION__, iC, Ec, *Epsilon( cube),	__FILE__, __LINE__ );
+																								goto _cube_overrun;
+					}	}
+/* miss?		*/	if(		x ==	Ec
+				||		x <  Ec-Bc )				++off;
+
+_next_x:  		if( a!=za )	x = ARG( ++a );	else /* return...	*	*	*	*	*	*	*	*/	{	NX;	goto _none_x;	}
+				if(		x >	*Epsilon(	cube ) ){	if( iC!= zC ){	BS;	break;}
+											else{ off +=1+za-a;									NX;	goto _none_x;	}	}
+				if(		x == *Epsilon(	cube ) )	{												UP;	goto _intraloc1up;	}
+				} while( 1 );			lb =iC+1;
+_search:								ub =zC +1;	iC=( lb+ub )>>1;
+			}else		{ /* cube iC is empty.  all local args miss. */
+_cube_miss:	 																						dBUG_6A( cube_err[5], __FUNCTION__, "", iC-1, CSZ,	__FILE__, __LINE__ );
+_cube_overrun:				if(	iC!=zC )	{	a_ = a;
+									do	{ if(a!=za)	x = ARG( ++a );				else 		{	NX;	goto _none_x;	}
+										} while(	x < *Epsilon( cube ) );
+/* all cube iC args miss		*/			off+=a-a_; lb=iC+1;												goto _search;
+/* remaining args miss	*/	}else		{off+=1+za-a;												NX;	goto _none_x;
+
+			}			}			}
+		} while( 1 );	/* search	*/
+
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										FINAL SHIFT										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+_none_x:
+	return (bool) (AvFILLp( avArg )+1!=off);
+	}
+bool _ex(			/* avArgs */	){ //	cut matches from avArgs.		return true if all hit.			Searches ICEPack;	iterates args. 		Best for large objects with few args.	
+//	printf("\n_excludes(): ");
+	ui08			Qc,
+			*	cube,
+			*	cubeZ,
+			*	pq;
+	STRLEN		CS, CSZ;
+
+	long long int				za = AvFILLp(	avArg ),	a=0;							if( za==-1	){	dBUG3ps_NOARG;		CR;return 1;	}
+	long long int	lb,		ub,	zC = AvFILLp(	avICE ),	iC;/*=0;*/					if( zC==-1 ){	dBUG3ps_NOCUBE;	CR;return 0;	}
+	char			zcZ,			zc,					ic=0;
+
+	ui64			Ac, Bc, Ec, x,
+				off=0;	/* running shift offset								*/
+	SV		**	psvA0 =	AvARRAY( avArg ),
+			**	psvC0 =	AvARRAY( avICE ),				*svC=*psvC0;				if(		svC 	== NULL	){	dBUG_5A( cube_err[1], __FUNCTION__, "", iC,		__FILE__, __LINE__ );	if( zC!=0) goto _x0_search; else{ CR;return 0;}	}
+																			else if(	!SvOK( 	svC)	){	dBUG_6A( cube_err[2], __FUNCTION__, "", iC, &*svC,	__FILE__, __LINE__ );	if( zC!=0) goto _x0_search; else{ CR;return 0;}	}
+																			else if(	!SvPOK( 	svC)	){	dBUG_6A( cube_err[3], __FUNCTION__, "", iC, &*svC,	__FILE__, __LINE__ );	if( zC!=0) goto _x0_search; else{ CR;return 0;}	}
+
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										BLOCK  1										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*	######			FIND THE FIRST MATCH TO MARK-IN ARRAY SHIFT RANGE		######		*/
+/*			The conditional statements commented "x0 hit?" mark-in each AV shift range.				*/
+/*			It is to isolate these cases implicitly that the search loop code is differentiated 4x here—		*/
+/*			that, and to handle all arguments located in cube (0) as special cases.						*/
+
+						x = ARG( 0 );	cube = SvPVbyte(	svC, CS );				if(		CS< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC,	CS,	__FILE__, __LINE__ );	if( zC!=0) goto _x0_search; else{CR;return 0;	}	}
+	if(					x <  *Epsilon(	cube ) ){
+							zc=zcOf(	cube );
+					if(		zc!=-1 ){	deICE0(				Qc, Ac, Bc );  	Ec=	Ac +Bc;
+/*cube 0 err	*/		}else{																			dBUG_6A( cube_err[8], __FUNCTION__, iC, Ec, *Epsilon( cube),	__FILE__, __LINE__ );
+												iC=0;											goto _x0_cube_miss;
+						}						ic=0;
+			do	{ while( x >Ec )	{					
+					if(		ic!=zc ){	deICE( cube[	++ic ],	Qc, Ac, Bc );  	Ec+=Ac +Bc;
+/*cube 0 err	*/		}else{						iC=0;												dBUG_6A( cube_err[8], __FUNCTION__, iC, Ec, *Epsilon( cube),	__FILE__, __LINE__ );
+																								goto _x0_cube_miss;
+					}	}
+/* x0 hit? 	*/	if(		x !=	Ec
+				&&		x >= Ec-Bc ){	off =1;														goto _C0_next_x;	}
+
+				if( a!=za )	x = ARG( ++a );										else			{	CR;	return 0;	}
+				} while(	x < *Epsilon(	cube ) );
+			}
+
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										BLOCK  2										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/* 	######		1ST MATCH NOT FOUND IN CUBE 0;		SEARCHING CUBES >0		######		*/
+
+_x0_search:		lb =1,	ub =zC +1,				iC= ub >>1;
+	do	{											svC=*( psvC0 +iC ); 		if(		svC 	== NULL	){	dBUG_5A( cube_err[1], __FUNCTION__, "", iC,		__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else{ CR;return 0;}	}
+																			else if(	!SvOK( 	svC)	){	dBUG_6A( cube_err[2], __FUNCTION__, "", iC,&*svC,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else{ CR;return 0;}	}
+																			else if(	!SvPOK( 	svC)	){	dBUG_6A( cube_err[3], __FUNCTION__, "", iC,&*svC,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else{ CR;return 0;}	}
+									cube = SvPVbyte(	svC, CS );				if(		CS< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC,	CS,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else{ CR;return 0;}	}
+		if(				x <	*Epsilon(	cube ) ){ if( (	iC=( ( ub	= iC )+lb	)>>1 )==ub ){	_INTRALOC;			goto _x0_intra;	}
+		}else if(			x == *Epsilon(	cube ) || (	iC=( ( lb	= iC )+ub	)>>1 )==lb ){	_x0_intraloc1up:
+																			_INTRALOC1Up( _x0_cube_miss );
+_x0_intra:	ic=0;			zc=zcOf(	cube );
+			if(				zc!=-1 ){	deICE0(				Qc, Ac, Bc );  	Ec = Ac+Bc+ *Epsilon( cubeZ );	
+			   do	{ while(	x >Ec ){
+					if(		zc!=	ic ){	deICE( cube[	++ic ],	Qc, Ac, Bc );  	Ec += Ac+Bc;	}else			{	dBUG_6A( cube_err[8], __FUNCTION__, iC, Ec, *Epsilon( cube),	__FILE__, __LINE__ );
+																								goto _cube_miss;
+					}																			}
+/* x0 hit? 	*/	if(		x !=	Ec
+				&&		x >= Ec-Bc ){	off =1;														goto _next_x;	}
+
+				if( a!=za )	x = ARG( ++a );										else			{	CR;	return 0;	}
+				if(		x >	*Epsilon(	cube ) )	{	if( iC!= zC )			break;	else			{	CR;	return 0;	}	}
+				if(		x == *Epsilon(	cube ) )	{													goto _x0_intraloc1up;		}
+				} while( 1 );	lb =iC+1;	
+_nth_search:							ub =zC +1;	iC=( lb+ub )>>1;
+			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_6A( cube_err[5], __FUNCTION__, "", iC-1, CSZ,	__FILE__, __LINE__ );
+_x0_cube_miss:			if(	iC!=zC )	{
+									do	{ if(a!=za)	x = ARG( ++a );				else 		{	NX;	goto _none_x;	}
+										} while(	x < *Epsilon( cube ) );
+/* all cube iC args miss		*/			lb=iC+1;	/* unlike in "v_includes()", we stay in this block 'til x0 hit. */	goto _nth_search;
+/* remaining args miss	*/	}else		{														NX;	goto _none_x;
+			}			}			}
+		} while( 1 );	/* search	*/
+
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										BLOCK  3										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*	######			STILL IN CUBE 0: FIRST MATCH HAS BEEN FOUND ( *dst )			######		*/
+/*	######		ALL SUBSEQUENT MATCHES MARK-OUT AN ARRAY SHIFT RANGE		######		*/
+
+			do	{ while(	x >Ec ){
+					if(		zc!=	ic ){	deICE( cube[	++ic ],	Qc, Ac, Bc );  	Ec += Ac+Bc;
+/*cube error		*/	}else{					/*	*	*	*	*	*	*	*	*	*	*/				dBUG_6A( cube_err[8], __FUNCTION__, iC, Ec, *Epsilon( cube),	__FILE__, __LINE__ );
+/*not last cube	*/		if(	iC!=zC )	{ do	{ if(a!=za)	x = ARG( ++a );				else			{	NX;	goto _none_x;	}
+										} while(	x < *Epsilon( cube ) );
+/* all cube 0 args miss		*/	lb=iC+1;																goto _search;
+/* all remaining args miss	*/			}	else /* return...	*	*	*	*	*	*	*	*/	{	NX;	goto _none_x;	}
+					}	}
+
+	/* hit?	*/	if(		x !=	Ec
+				&&		x >= Ec-Bc )	++	off;
+
+_C0_next_x:		if( a!=za )	x = ARG( ++a );										else			{	NX;	goto _none_x;	}
+				} while(	x < *Epsilon(	cube ) );
+
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										BLOCK  4										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*	printf("\n_excludes(): cube 0 handled; remaining cubes to be searched for arguments as normal.\n");		*/
+							lb =1;	ub =zC +1;	iC= ub >>1;
+	do	{											svC=*( psvC0 +iC ); 		if(		svC 	== NULL	){	dBUG_5A( cube_err[1], __FUNCTION__, "", iC,		__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {NX;	goto _none_x;	}	}
+																			else if(	!SvOK( 	svC)	){	dBUG_6A( cube_err[2], __FUNCTION__, "", iC, &*svC,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {NX;	goto _none_x;	}	}
+																			else if(	!SvPOK( 	svC)	){	dBUG_6A( cube_err[3], __FUNCTION__, "", iC, &*svC,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {NX;	goto _none_x;	}	}
+									cube = SvPVbyte(	svC, CS );				if(		CS< 16		){	dBUG_6A( cube_err[4], __FUNCTION__, "", iC,  CS,	__FILE__, __LINE__ );	if( iC!=zC){ ++iC; continue; } else {NX;	goto _none_x;	}	}
+		if(				x <	*Epsilon(	cube ) ){ if( (	iC=( ( ub	= iC )+lb	)>>1 )==ub ){	_INTRALOC;			goto _intra;	}
+		}else if(			x == *Epsilon(	cube ) || (	iC=( ( lb	= iC )+ub	)>>1 )==lb ){	_intraloc1up:
+																			_INTRALOC1Up( _cube_miss );
+_intra:		ic=0;			zc=zcOf(	cube );
+			if(				zc!=-1 ){	deICE0(				Qc, Ac, Bc );  	Ec = Ac+Bc+ *Epsilon( cubeZ );	
+			   do	{ while(	x >Ec ){
+					if(		zc!=	ic ){	deICE( cube[	++ic ],	Qc, Ac, Bc );  	Ec += Ac+Bc;	}else			{	dBUG_6A( cube_err[8], __FUNCTION__, iC, Ec, *Epsilon( cube),	__FILE__, __LINE__ );
+																								goto _cube_miss;
+					}																			}
+	/* hit?	*/	if(		x !=	Ec
+				&&		x >= Ec-Bc )	++	off;
+
+_next_x:			if( a!=za )	x = ARG( ++a );										else			{	NX;	goto _none_x;	}
+				if(		x >	*Epsilon(	cube ) )	{	if( iC!= zC )			break;	else			{	NX;	goto _none_x;	}	}
+				if(		x == *Epsilon(	cube ) )	{						goto	_intraloc1up;							}
+				}while(1);	lb =iC+1;	
+_search:							ub =zC +1;		iC=( lb+ub )>>1;
+			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_6A( cube_err[5], __FUNCTION__, "", iC-1, CSZ,	__FILE__, __LINE__ );
+_cube_miss:				if(	iC!=zC )	{
+									do	{ if(a!=za)	x = ARG( ++a );				else 		{	NX;	goto _none_x;	}
+										} while(	x < *Epsilon( cube ) );
+/* all cube iC args miss		*/			lb=iC+1;														goto _search;
+/* remaining args miss	*/	}else		{														NX;	goto _none_x;
+			}			}			}
+		} while( 1 );	/* search	*/
+
+/*	######	######	######	######	######	######	######	######	######	######		*/
+/*										FINAL SHIFT										*/
+/*	######	######	######	######	######	######	######	######	######	######		*/
+_none_x:
+	return	AvFILLp( avArg )+1 ==off? 1: 0;/* np. */
+	}
+
+
+
 
 ui64	_hits(			/* avArgs */ 	){ //	count matches in avArgs.		return number of hits.		Searches args;	iterates ICEPack. 	best for small objects with many args.	
 	long long int	lb=0,	ub = AvFILLp(	avArg )+1;		if( ub==0	){	dBUG3ps_NOARG					return 0;	}

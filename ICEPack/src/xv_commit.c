@@ -740,8 +740,8 @@ void _av_commit(){	/* 	does batch splice on avICE, swapping new/old fragments. *
 	It is only called once to finalize all insertions and deletions made by _sv_commit(), which can run many times per accessor call.
 
 	The parameters of all deferred splices are aggregated and temporarily stored in these (4) global arrays:
-		> rSeqSrc 	—the absolute index number of the operand element in the pre-operational array.
-		> rSeqDst 	—the absolute index number of the operand element in the post-operational array.
+		> rSeqSrc 	—the absolute index number of the control index in the pre-operational array.
+		> rSeqDst 	—the absolute index number of the control index in the post-operational array.
 		> rSeqIns 	—the number of elements to be inserted at destination index.
 		> rSeqCut 	—the number of elements to be removed at source index.
 
@@ -782,19 +782,19 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 	In ascending mode, the order of operations per step is:
 		> cut deleted elements
 		> shift intermediate elements
-		> shift operand element
+		> shift control index
 		> insert new elements
 
 	In descending mode, the order of operations per step (*with one caveat) is:
 		> shift intermediate elements
 		> insert new elements
-		> shift operand element
+		> shift control index
 		> cut deleted elements
 
-	* The first descending step after flopping from ascending mode does not shift the operand element (special case labeled "_descx").
+	* The first descending step after flopping from ascending mode does not shift the control index (special case labeled "_descx").
 	Rather, that assignment is preempted by the first step of the preceding ascending run and prioritized to prevent potential clobbering.
 
-	Inserts and cuts are defined immediately upon call to AvPOST AvCUT and AvPOST_retro,
+	Inserts and cuts are scheduled by calls to AvPOST, AvCUT and AvPOST_retro,
 	but the shift parameter can only be computed in-between instantiations of steps.
 	Obviously the final call is never followed by another, so to actually get things started here, the first thing we do is finalize the last step.
 
@@ -918,4 +918,4 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 	}
 
 
-/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** .f,.gw33ff.*/
+/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** .f,.gw33eff.*/

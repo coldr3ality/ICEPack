@@ -474,6 +474,14 @@ if( 	/*	x not in cube 0	*/	x >= *Epsilon(	cube)){							iC= ub>>1;
 						if(	x >	*Epsilon(	cube) ){		/* past end (2 cubes up)		*/	E_=*Epsilon(	cube); goto	_epiloc;	}
 				}else	{							/* past end (1 cube up)		*/	E_=*Epsilon(	cubeZ);		_epiloc:
 							if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();			EPILOC( E_ );		return;
+//	EPIGLOT;		SvCOMMIT;	if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();							return;
+/*	it only makes sense to roll excursive arguments into the current cube if x is within the first void of the next cube,
+	or this cube is the last cube.
+	It does not make sense to do so if x is more than one cube out, because then we have to rewrite a lot of unchanged data.
+	The current procedure works best in all cases other than "iC==zC". 
+	What we are trying to do with EPILOG  is effect better cube utilization, but this is a very limited edge case
+	compared to the vast majority of cases where many arguments extend past the logical end of the object.
+	*/
 						}
 				if(			x != *Epsilon(	cubeZ)){
 						if(	x != *Epsilon(	cube )){	CS = SvCUR(	sv );				/*	ReINTRALOC;	*/	goto	_loca;	}
@@ -700,4 +708,4 @@ void	_filterHV(){
 
 #endif
 
-/*	dooooo	ffwgfsfgff*/
+/*	dooooo	ffwgfsfgeff*/

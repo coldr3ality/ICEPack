@@ -37,6 +37,8 @@ extern bool		_addsUp(),
 				_has(),
 				_includes(),
 				_excludes(),
+				_in(),
+				_ex(),
 				_fits(),
 				_hits(),
 				_strikes();

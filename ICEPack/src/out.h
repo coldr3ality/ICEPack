@@ -11,10 +11,10 @@
 #define	ARG( $a )	SvIVX( *(	pSvA0 + $a )	)
 #define	ARG0		SvIVX( *	pSvA0		)
 
-extern char	* const cube_err[],
-			* const svtype_err,
-			* const malloc_err,
-			* const usage_err[];
+extern char	* cube_err[],
+			* svtype_err,
+			* malloc_err,
+			* usage_err[];
 
 extern AV	*	avOut,
 			*	avDBUG,

@@ -152,7 +152,7 @@
 //	#define DeICE0v_(		$u,	$v	) _DeICE0v(		cubeZ, 	CSZ,			$u,	$v	);
 	#define DeICEzu_(		$u		) _DeICEzu(		cubeZ, 	CSZ,	zcZ,		$u		);
 
-//	#define DeICEv_E(		$u,	$v	)				++ic;					DeICEv(		$u,	$v	);	RW[ $v ]=ok;	E[$v] =A[$v] +B[$v] +E[$u];
+
 //	#define DeICEu_K(		$u,	$v	) H[$u] = cube[	++ic	];					DeICEu(		$u,	$v	);	RW[ $u ]=ok;
 	#define DeICEv1_KI(	$u,	$v	) H[$v] = cube[	++ic	];					DeICEv1( 	$u,	$v	);	RW[ $v ]=mod; 						I[ $v ] =ic;
 //	#define DeICEv1_KEI(	$u,	$v	) H[$v] = cube[	++ic	];					DeICEv1( 	$u,	$v	);	RW[ $v ]=mod; E[$v] =A[$v] +B[$v] +E[$u];	I[ $v ] =ic;

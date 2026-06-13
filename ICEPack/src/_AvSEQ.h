@@ -5,7 +5,7 @@ extern long long int	rSeq_iR[	256	], iR,	// source index of rSeq_SV 				(for eac
 				rSeqCut[	256	],	// the number of leading SVs to remove 	(for each control point)
 				rSeqSrc[	256	],	// source index						(for each control point)
 				rSeqDst[	256	],	// destination index						(for each control point)
-	/*	rel_zC, */	dsc, /* asc, zsc, juke, jmp, */
+	/*	rel_zC, */	dsc, /* asc, zsc, juke, pmo, */
 				rack_iC;			// running control point iterator
 
 #if defined(DEBUG_AvCOMMIT_L1)
@@ -27,18 +27,26 @@ extern long long int	rSeq_iR[	256	], iR,	// source index of rSeq_SV 				(for eac
 /* new step	*/		++	dsc;			rack_iC = $iC;			rSeqIns[ dsc ]=1;	rSeqCut[ dsc ] = 0;			\
 			}	rSeq_SV[ ++iR ]=$sv;																dBUG_SvINS( $iC, $sv )
 
-
 #define	AvCUT(	$iC )			SvREFCNT_dec(*( pSv0+$iC ) );	/* automatically increments iC			*/	\
+		if(	rack_iC == $iC	){				rSeqSrc[	dsc ]							++	rSeqCut[ dsc ];			\
+		}else{	rSeq_iR[	dsc ]	=	iR;															\
+				rSeqSrc[	dsc ]	=	rack_iC-1;	rel_iC -=					rSeqCut[ dsc ];			\
+				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
+												rel_iC +=	rSeqIns[ dsc ];								\
+/* new step	*/		++	dsc;			rack_iC = $iC;			rSeqIns[ dsc ]=0;	rSeqCut[ dsc ] = 1;			\
+			}					/*	rack_iC = ++$iC;		*/										dBUG_SvCUT( $iC, $sv )
+
+#define	AvCLIP(	$iC )			SvREFCNT_dec(*( pSv0+$iC ) );	/* mmm								*/	\
 		if(	rack_iC == $iC	){											++	rSeqCut[ dsc ];			\
 		}else{	rSeq_iR[	dsc ]	=	iR;															\
 				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\
 				rSeqDst[	dsc ]	=	rack_iC 	+	rel_iC;											\
 												rel_iC +=	rSeqIns[ dsc ];								\
-/* new step	*/		++	dsc;								rSeqIns[ dsc ]=0;	rSeqCut[ dsc ] = 1;			\
-			}						rack_iC = ++$iC;												dBUG_SvCUT( $iC, $sv )
+/* new step	*/		++	dsc;			rack_iC = $iC+1;		rSeqIns[ dsc ]=0;	rSeqCut[ dsc ] = 1;			\
+			}																					dBUG_SvCUT( $iC, $sv )
 
 
-#define	AvCUT_B4( $iC )		SvREFCNT_dec(*( pSv0+$iC-1 ) );	/* assumes iC is incremented already		*/	\
+#define	AvCUT_B4( $iC )		SvREFCNT_dec(*( pSv0+$iC-1 ) );	if( SvREFCNT( *( pSv0+$iC-1 ) )!=0) printf("\n!	AvCUT_B4: Sv refcnt ==%d!\n", SvREFCNT( *( pSv0+$iC-1 ) ) ); /* assumes iC is incremented already		*/	\
 		if(	rack_iC == $iC-1 ){											++	rSeqCut[ dsc ];			\
 		}else{	rSeq_iR[	dsc ]	=	iR;															\
 				rSeqSrc[	dsc ]	=	rack_iC;		rel_iC -=					rSeqCut[ dsc ];			\

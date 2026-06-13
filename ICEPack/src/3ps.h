@@ -11,10 +11,10 @@
 #define	ARG( $a )	SvIVX( *(	psvA0 + $a )	)
 #define	ARG0		SvIVX( *	psvA0		)
 
-extern const char	* const	cube_err[],
-				* const	svtype_err,
-				* const	malloc_err,
-				* const	usage_err[];
+extern char	* cube_err[],
+			* svtype_err,
+			* malloc_err,
+			* usage_err[];
 extern AV	*	avDBUG;	extern long long int	zd;
 extern AV	*	avICE;		extern long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
 extern AV	*	avArg;		extern long long int	a, za; 					//	a list of integer value[s] to operate on.

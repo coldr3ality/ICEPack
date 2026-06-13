@@ -25,7 +25,6 @@
 //	#include "SwCASE_IC_HEXL_inc.h"
 	#include "SwCASE_IC2XE_R2L_dec.h"
 	#include "SwCASE_IC2XE_inc.h"
-
 #define __ToTEXT_ROW_ALLOC	224
 
 void _toText(){
