@@ -2,14 +2,12 @@
 	To engineer a non-repeating ID layer across edge devices without a core network.
 	
 	There are entropy sources as usual, but instead of piping this directly into a Session ID generator,
-	use it to select the "nth" free ID in an ICEPack instance, conserving namespace locally; then,
-	implement periodic redistribution of available namespace service-wide, without degrading entropy,
-	randomly drawing large sets of nth IDs for each edge server and periodically throwing them back 
-	into the pool and drawing a new set.
-	In this way, edge servers can unilaterally assign system-wide Session IDs on an event-driven basis,
-	with no core negotiation needed, with guaranteed ID collission protection.  Not only does this free us
-	to rate the appropriate namespace depth precisely, it also frees us to implement Forward Secrecy—
-	i.e., perpetual renewal of active Session-IDs. 
+	we allocate "random nth" IDs in a Compressed Truth Vector, conserving namespace locally; then,
+	implement periodic redistribution of free namespace across all nodes to minimize loss of entropy.
+	Edge servers assign Session IDs unilaterally and on an event-driven basis, with no core negotiation.
+	ID/name collissions are prevented implicitly by the applied concept of "Dynamic Enumeration".
+	Not only does this intrinsic collision prevention free us to spec for raw computation complexity,
+	it also enables us to implement Perfect Forward Secrecy— i.e., perpetual ID renewal. 
 
 	OBJECT CLASS
 	ICEPack manipulates QWORD-sized truth vectors designed to be used as inside-out UUID tables.
