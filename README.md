@@ -1,6 +1,6 @@
 	OBJECTIVE
-	To implement a session ID generator that is non-deterministic, non-repeating, and operates ad-hoc
-	on all edge devices while maintaining one coherent mapping without a specialized core network.
+	To engineer a non-repeating ID layer across edge devices without a core network.
+	
 	There are entropy sources as usual, but instead of piping this directly into a Session ID generator,
 	use it to select the "nth" free ID in an ICEPack instance, conserving namespace locally; then,
 	implement periodic redistribution of available namespace service-wide, without degrading entropy,
