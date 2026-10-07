@@ -31,7 +31,8 @@ WriteMakefile(
 #	'TYPEMAPS' => ['C:\\Perl64S\\perl\\lib\\ExtUtils\\typemap'],
 
 #	'CCFLAGS'			=> "$Config::Config{ccflags}",
-	'OPTIMIZE'			=> '-O1',
+	'OPTIMIZE'			=> '-O0',
+#	'OPTIMIZE'			=> '-O0 -Wall -Wno-char-subscripts -Wno-pointer-sign -Wno-unused-but-set-variable -Wno-unused-variable -Wno-comment -Wno-parentheses -Wno-unused-label',
 #	'XSMULTI'			=> 1,
 	);
 

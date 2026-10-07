@@ -20,7 +20,6 @@
 #define	ui64	long long	unsigned	int 
 #define	ui64	long long	unsigned	int 
 
-
 //	#define PERL_NO_GET_CONTEXT		this seems to cause gcc to generate "error: 'my_perl' undeclared"
 //	#include <stddef.h>
 //	#include <stdbool.h>
@@ -31,27 +30,29 @@
 #include "XSUB.h"
 #include "dBUG.h"
 #include "ICEPack.h"
-const char	* const cube_err[]={	"#	ICEPack::%s: array index #%lld is NULL	at %s line %lld.\n",											//0
-								"#	ICEPack::%s: SV* at array index #%lld is NULL	 at %s line %lld\n",									//1
-								"#	ICEPack::%s: <%s> at array index #%lld is not a scalar (!SvOK) (&*0x%llX)	 at %s line %lld\n",				//2
-								"#	ICEPack::%s: <%s> at array index #%lld is not a string (!SvPOK) (&*0x%llX)	 at %s line %lld\n",				//3
-								"#	ICEPack::%s: string at array index #%lld is less-than 16 bytes (cube size: %lld byte[s])	 at %s line %lld\n",		//4
-								"#	ICEPack::%s: cube at array index #%lld contains no keybytes (cube size: %lld byte[s])	 at %s line %lld\n",	//5
-								"#	ICEPack::%s: cube at array index #%lld contains corrupt data (keybyte #%d overrun)	 at %s line %lld\n",		//6
-								"#	ICEPack::%s: searching for arg %d (%lld)  past end of cube #%lld *Epsilon(%lld) 	 at %s line %lld\n",		//7
-								"#	ICEPack::%s: cube #%lld checksum error *Epsilon computed vs. stored: %lld / %lld 	 at %s line %lld\n",		//8
-								},
-			* const svtype_err	=	"#!	ICEPack::%s: unknown Perl type constant (%d)	at %s %s line %s\n",
-			* const malloc_err	=	"#	ICEPack::%s: could not [re]allocate buffer space at %s line %s\n",
-			* const usage_err[]	={	"#!	ICEPack::%s:	arg[0] must be an arrayref <ICEPack>.\n",
-									},
-			* const arg_err[]	={	"#!	ICEPack::%s( <%s> ): arg[%d] must be an arrayref <ICEPack Object>.\n\t",
-								"#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be an arrayref <ICEPack Object>.\n\t",
-								"#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be a positive / unsigned integer.\n\t",
-								"#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be a packed quad.\n\t",
-								"#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be an arrayref <Integer Array>.\n\t",
-								"#!	ICEPack::%s( <%s> ): arg[%d] must be an arrayref <Integer Array>.\n\t",
-								};
+char	* cube_err[]={
+	/*	0: 4-arg	*/	"\r#	ICEPack::%s: array index #%lld is NULL	at %s line %d.\n",											//0
+	/*	1: 4-arg	*/	"\r#	ICEPack::%s: SV* at array index #%lld is NULL	 at %s line %d\n",									//1
+	/*	2: 6-arg	*/	"\r#	ICEPack::%s: <%s> at array index #%lld is not a scalar (!SvOK) (&*0x%llX)	 at %s line %d\n",				//2
+	/*	3: 6-arg 	*/	"\r#	ICEPack::%s: <%s> at array index #%lld is not a string (!SvPOK) (&*0x%llX)	 at %s line %d\n",				//3
+	/*	4: 5-arg	*/	"\r#	ICEPack::%s: string at array index #%lld is less-than 16 bytes (cube size: %lld byte[s])	 at %s line %d\n",		//4
+	/*	5: 5-arg	*/	"\r#	ICEPack::%s: cube at array index #%lld contains no keybytes (cube size: %lld byte[s])	 at %s line %d\n",	//5
+	/*	6: 5-arg	*/	"\r#	ICEPack::%s: cube at array index #%lld contains corrupt data (keybyte #%d overrun)	 at %s line %d\n",		//6
+	/*	7: 7-arg	*/	"\r#	ICEPack::%s: searching for arg %d (%lld)  past end of cube #%lld *Edge(%lld) 	 at %s line %d\n",		//7
+	/*	8: 6-arg	*/	"\r#	ICEPack::%s: cube #%lld checksum error *Edge computed vs. stored: %lld / %lld 	 at %s line %d\n",		//8
+					},
+	* svtype_err	=	"\r#!	ICEPack::%s: unknown Perl type constant (%d)	at %s %s line %s\n",
+	* malloc_err	=	"\r#	ICEPack::%s: could not [re]allocate buffer space at %s line %s\n",
+	* usage_err[]	={	"\r#!	ICEPack::%s:	arg[0] must be an arrayref <ICEPack>.\n",
+							},
+	* arg_err[]	={
+	/*	0: 3-arg	*/	"\r#!	ICEPack::%s( <%s> ): arg[%d] must be an arrayref <ICEPack Object>.\n\t",
+	/*	1: 4-arg	*/	"\r#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be an arrayref <ICEPack Object>.\n\t",
+	/*	2: 4-arg	*/	"\r#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be a positive / unsigned integer.\n\t",
+	/*	3: 4-arg	*/	"\r#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be a packed quad.\n\t",
+	/*	4: 4-arg	*/	"\r#!	ICEPack::%s( <%s>, <%s> ): arg[%d] must be an arrayref <Integer Array>.\n\t",
+	/*	5: 3-arg	*/	"\r#!	ICEPack::%s( <%s> ): arg[%d] must be an arrayref <Integer Array>.\n\t",
+					};
 const char* const svtype_names[] = {
 	/* [SVt_NULL]: */		"SVt_NULL",		/*	0	undefined								*/
 	/* [SVt_IV]: */			"SVt_IV",			/*	1	integer									*/
@@ -92,15 +93,19 @@ const char* const svtype_names_ref[] = {
 	};
 const ui08	svtype_cnt= sizeof(svtype_names) / sizeof(svtype_names[0] );
 
-void icepack_init(){
-	printf("\nICEPack is cold\n");
+void icepack_init(){/*	printf("\nICEPack is cold\n");	*/
 	_icepack_init();
 	avICE_=newAV();
 	rvICE_ = newRV_inc( (SV*) avICE_ );
 	}
 
-#ifdef	DEBUG
+#ifdef DEBUG
 	SV*		getAvDBUG(){	SV* rv =newRV_inc( (SV*) avDBUG );	return rv;	}
+	void		clearAvDBUG(){	av_clear( avDBUG);	}
+
+	#ifdef DEBUG_STDOUT
+	void		printAvDBUG(){printf("\n!	%s: no log captured; DEBUG_STDOUT enabled.\n", __FUNCTION__);	}
+	#else
 	void		printAvDBUG(){
 		size_t		a, za;
 		SV		*	sv,
@@ -109,19 +114,22 @@ void icepack_init(){
 		STRLEN		cS;
 		svtype		svt = SvTYPE( avDBUG );
 		if(			svt != SVt_PVAV || AvFILLp( avDBUG ) ==-1)	return;
-
 		pSv	= AvARRAY(	avDBUG );
 		za	= AvFILLp(	avDBUG );
 
-		for( a=0; a<= za; ++a ){	sv= *( pSv +a );
-			if( SvPOK(		sv ) )	{	pStr= SvPVbyte( sv, cS );	if( cS >0) 	printf( pStr );
-			}						}
+		printf("\n<DEBUG>\n");
 
+		for( a=0; a<= za; ++a ){	sv= *( pSv +a );
+			if( SvPOK(		sv ) )	{	pStr= SvPVbyte( sv, cS );	if( cS >0) 	printf("#	%s", pStr );
+			}						}
+		printf("\n</DEBUG>\n");
 		av_clear( avDBUG );	
 		}
+	#endif
 #else
-	SV*  	getAvDBUG(){					printf("\n!	getAvDBUG():  	ICE has not been compiled with debug options set.\n");	}
-	void  	printAvDBUG(){					printf("\n!	printAvDBUG():	ICE has not been compiled with debug options set.\n");	}
+	SV*		getAvDBUG(){}
+	void		clearAvDBUG(){}
+	void		printAvDBUG(){printf("\n!	DEBUG not enabled\n");	}
 #endif
 
 #define SvINIT( $AV, $SV )		AvINIT1(		$AV );				\
@@ -161,10 +169,23 @@ void icepack_init(){
 
 
 
-#define	CUBE_(	$iC )   									SvPVbyte( *( AvARRAY( avICE) +$iC ), CSZ	)
-#define	CUBE(	$iC )   									SvPVbyte( *( AvARRAY( avICE) +$iC ), CS	)
-#define	CUBEvc(	$iC )(  		__builtin_clzll( *( (ui64*) (	cube =	SvPVbyte( *( AvARRAY( avICE) +$iC ), CS	) ) +1 ) )	>>3)
+//#define	CUBE_(	$iC )   									SvPVbyte( *( AvARRAY( avICE) +$iC ), CSΩ	)
+//#define	CUBE(	$iC )   									SvPVbyte( *( AvARRAY( avICE) +$iC ), CS	)
+//#define	CUBEvc(	$iC )(  		__builtin_clzll( *( (ui64*) (	cube =	SvPVbyte( *( AvARRAY( avICE) +$iC ), CS	) ) +1 ) )	>>3)
 
+SV* zRange(		SV*	rvICE,	SV* sviC		){
+	svtype			t0 = SvTYPE(	rvICE ),
+					t1 = SvTYPE(	sviC	);	if(	t0 != SVt_RV		|| !SvROK(	rvICE	) ){	printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_undef; }
+										if( (	t1 != SVt_IV &&
+											t1 != SVt_PVIV )	|| !SvIOK(	sviC		) ){	printf( arg_err[3], __FUNCTION__, 1,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", SvTYPE( sviC), SVt_IV );	return &PL_sv_undef; }
+	avICE = (AV*)	SvRV(	rvICE );
+	t0 = SvTYPE(			avICE );			if( t0 != SVt_PVAV ){							printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_undef; }
+	const long long	iC	= SvIVX( sviC );	if( iC > AvFILLp( avICE ) )	{						printf("\n!	%s: ( arg[1]: %lld ) is past end of ICE array ($#_: %lld ).\n", __FUNCTION__, iC, AvFILLp( avICE ) );																	return &PL_sv_undef; }
+	SV*		sv	= *(AvARRAY( avICE )+ iC );	if( NULL==sv || !SvPOK( sv ) || SvCUR( sv )< 16 )	{	printf( arg_err[3], __FUNCTION__, 1,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", SvTYPE( sv), SVt_IV );		return &PL_sv_undef; }
+	ui08*	cube = SvPVbyte_nolen( sv );
+	SV*		svOut = newSViv( zcOf( cube ) );
+	return	svOut;
+	}
 SV*	fills(			SV*	rvICE,	SV* svMIN, SV* svRUN	){		// matches object to given run length and index
 	svtype			t0,
 					t1=SvTYPE( svMIN),
@@ -173,10 +194,10 @@ SV*	fills(			SV*	rvICE,	SV* svMIN, SV* svRUN	){		// matches object to given run 
 								"\r!	ICEPack::fills( <%s>, <%s>, <%s> ):	arg[1] must be a scalar UV <low boundary>.\n",
 								"\r!	ICEPack::fills( <%s>, <%s>, <%s> ):	arg[2] must be a scalar UV <run length>.\n"	};
 	unsigned char	*	cube,
-				*pk, *pq,
+				*	pq,
 					zc;
 	STRLEN			CS;
-	ui08				Qc;
+//	ui08				Qc;
 	ui64				Ac, Bc, min, run;
 
 	if( (t0= SvTYPE(	rvICE ) )	!= SVt_RV || ! SvROK(	rvICE ) )	{ printf( usage_err[0],  	t0< svtype_cnt? svtype_names[	t0 ]: "UNKNOWN", t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", t2< svtype_cnt? svtype_names[t2 ]: "UNKNOWN" );		return &PL_sv_no;	}
@@ -191,8 +212,8 @@ SV*	fills(			SV*	rvICE,	SV* svMIN, SV* svRUN	){		// matches object to given run 
 		cube = SvPVbyte( C0, CS );
 		zc=zcOf( cube );
 
-		if( zc==0 )	{_deICE0( cube, CS, cube[0],	pq, Qc, Ac, Bc );	if( Ac==min && Bc==run ) 	return newSViv( Bc );
-		}			}
+		if( zc==0 ) switch( cube[ 0 ] )	{	SwCASE_IC2AB_inc( pq,	Ac, Bc,	pq );	}	if( Ac==min && Bc==run ) 	return newSViv( Bc );
+		}
 	return &PL_sv_no;
 	}
 SV*	toText(		SV* rvICE	){
@@ -204,7 +225,6 @@ SV*	toText(		SV* rvICE	){
 	if(	rt0 != SVt_PVAV ){				printf( arg_err[0], __FUNCTION__, rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
 	avOut = newAV();
 	rvOut = newRV_inc( (SV*) avOut );
-	STRLEN			L;
 	if( AvFILLp( avICE ) !=-1) _toText();
 	return rvOut;
 	}
@@ -217,13 +237,12 @@ SV*	toTextX(		SV* rvICE	){
 	if(	rt0 != SVt_PVAV ){				printf( arg_err[0], __FUNCTION__, rt0< svtype_cnt? svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	return &PL_sv_no; }
 	avOut = newAV();
 	rvOut = newRV_inc( (SV*) avOut );
-	STRLEN			L;
 	if( AvFILLp( avICE ) !=-1) _toTextX();
 	return rvOut;
 	}
 SV*	upsortQ(		SV* rvArg,	SV* svQx	){
-	const char	*	arg0_err	= "\r!       ICEPack::upsortQ( <%s>, <%s> ): arg[0] must be an arrayref.\n\t",
-				*	arg1_err	= "\r!       ICEPack::upsortQ( <%s>, <%s> ): arg[1] must be a packed quad.\n\t";
+	const char	*	arg0_err	= "\r!       ICEPack::upsortQ( <%s>, <%s> ): arg[0] must be an arrayref.\n\t";
+			//	*	arg1_err	= "\r!       ICEPack::upsortQ( <%s>, <%s> ): arg[1] must be a packed quad.\n\t";
 	svtype			t0 = SvTYPE( rvArg ),
 					t1 = SvTYPE( svQx	);
 	if( t0 != SVt_RV || !SvROK(	rvArg	) ){	printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );		return &PL_sv_yes; }
@@ -240,13 +259,13 @@ SV*	upsortQ(		SV* rvArg,	SV* svQx	){
 	const long long	x	= *( (ui64*) pqx );
 
 	SSize_t			displacement;
-	long long			lb	= 0,
-					ub	= AvFILLp( avArg )+1,	i= ub >>1;		if( ub==0	){		svQ=newSVpvn( pqx, 8 );  SvINIT( avArg, svQ );			return &PL_sv_no;	}
+	long long			lo	= 0,
+					hi	= AvFILLp( avArg )+1,	i= hi >>1;		if( hi==0	){		svQ=newSVpvn( pqx, 8 );  SvINIT( avArg, svQ );			return &PL_sv_no;	}
 
 						pq = SvPVbyte_nolen( svQ=	*( sv0 +i ) );
 	while(	x !=	*( (ui64*)	pq )	){
-		if(	x >	*( (ui64*)	pq )	){	lb=i;			i=( i +ub	)>>1;	if( i==lb	){ ++i;	svQ=newSVpvn( pqx, 8 );  SvINS( avArg, svQ, i ); 		return &PL_sv_no;  }
-		}else{					ub=i;		i=( lb + i	)>>1;	if( i==ub	){		svQ=newSVpvn( pqx, 8 );  SvINS( avArg, svQ, i );			return &PL_sv_no;  }
+		if(	x >	*( (ui64*)	pq )	){	lo=i;			i=( i +hi	)>>1;	if( i==lo	){ ++i;	svQ=newSVpvn( pqx, 8 );  SvINS( avArg, svQ, i ); 		return &PL_sv_no;  }
+		}else{					hi=i;		i=( lo + i	)>>1;	if( i==hi	){		svQ=newSVpvn( pqx, 8 );  SvINS( avArg, svQ, i );			return &PL_sv_no;  }
 			}			pq = SvPVbyte_nolen( svQ=	*( sv0 +i ) );
 		}
 	return &PL_sv_yes; 	// return true: given packed quad is already present in sorted array
@@ -256,23 +275,23 @@ SV*	insortIV(		SV* rvArg,	SV* svX		){
 					t1 = SvTYPE(	svX	);
 	if(	t0 != SVt_RV		|| !SvROK(	rvArg	) ){	printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_yes; }
 	if( (	t1 != SVt_IV &&
-		t1 != SVt_PVIV )	|| !SvIOK(	svX		) ){	printf( arg_err[3], __FUNCTION__, 1,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", SvTYPE( svX), SVt_IV );		return &PL_sv_yes; }
+		t1 != SVt_PVIV )	|| !SvIOK(	svX		) ){	printf( arg_err[3], __FUNCTION__, 1,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN", SvTYPE( svX), SVt_IV );	return &PL_sv_yes; }
 	avArg = (AV*)	SvRV(	rvArg );
 	t0 = SvTYPE(			avArg );
 	if( t0 != SVt_PVAV ){							printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_yes; }
 
 	const long long	x	= SvIVX( svX );
 	SSize_t			displacement;
-	long long int		lb	= 0,
-					ub	= AvFILLp( avArg )+1,	i= ub >>1;			if( ub==0	){		svX=newSViv( x );  SvINIT( avArg, svX );				return &PL_sv_no;	}
+	long long int		lo	= 0,
+					hi	= AvFILLp( avArg )+1,	i= hi >>1;			if( hi==0	){		svX=newSViv( x );  SvINIT( avArg, svX );				return &PL_sv_no;	}
 
 	SV				**	src,
 					**	dst,
 					**	svA0= AvARRAY( avArg ),
 					*	svA	= *(svA0 +i );
 	while(	x !=	SvIVX(	svA ) ){
-		if(	x >	SvIVX(	svA ) ){		lb=i;			i=( i +ub	)>>1;	if( i==lb	){ ++i;	svX=newSViv( x );  SvINS( avArg, svX, i );			return &PL_sv_no;  }
-		}else{						ub=i;		i=( lb + i	)>>1;	if( i==ub	){		svX=newSViv( x );  SvINS( avArg, svX, i );			return &PL_sv_no;  }
+		if(	x >	SvIVX(	svA ) ){		lo=i;			i=( i +hi	)>>1;	if( i==lo	){ ++i;	svX=newSViv( x );  SvINS( avArg, svX, i );			return &PL_sv_no;  }
+		}else{						hi=i;		i=( lo + i	)>>1;	if( i==hi	){		svX=newSViv( x );  SvINS( avArg, svX, i );			return &PL_sv_no;  }
 			}			svA	= *(svA0 +i );
 		}
 	return &PL_sv_yes; 	// return true: given integer is already present in sorted array
@@ -288,17 +307,17 @@ SV*	inIV(			SV* rvArg,	SV* svX		){
 	if( t0 != SVt_PVAV ){							printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names_ref[t0 ]: "UNKNOWN",  	t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_yes; }
 
 	const long long	x	= SvIVX( svX );
-	SSize_t			displacement;
-	long long int		lb	= 0,
-					ub	= AvFILLp( avArg )+1,	i= ub >>1;			if( ub==0	){			return &PL_sv_no;	}
+//	SSize_t			displacement;
+	long long int		lo	= 0,
+					hi	= AvFILLp( avArg )+1,	i= hi >>1;			if( hi==0	){			return &PL_sv_no;	}
 
-	SV				**	src,
-					**	dst,
+	SV		//		**	src,
+			//		**	dst,
 					**	svA0= AvARRAY( avArg ),
 					*	svA	= *(svA0 +i );
 	while(	x !=	SvIVX(	svA ) ){
-		if(	x >	SvIVX(	svA ) ){		lb=i;			i=( i +ub	)>>1;	if( i==lb	){/* ++i;*/	return &PL_sv_no;  }
-		}else{						ub=i;		i=( lb + i	)>>1;	if( i==ub	){			return &PL_sv_no;  }
+		if(	x >	SvIVX(	svA ) ){		lo=i;			i=( i +hi	)>>1;	if( i==lo	){/* ++i;*/	return &PL_sv_no;  }
+		}else{						hi=i;		i=( lo + i	)>>1;	if( i==hi	){			return &PL_sv_no;  }
 			}			svA	= *(svA0 +i );
 		}
 	return &PL_sv_yes; 	// return true: given integer is already present in sorted array
@@ -341,33 +360,50 @@ SV*	has(			SV* rvICE,	SV* rvArg	){ //	count matches in avArgs.	best for large ob
 SV*	includes(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS; //	cut non-matches from avArgs.	best for large objects with few args.	return true = total inclusivity.
 	return _includes()? &PL_sv_yes: &PL_sv_no;
 	}
-SV*	excludes(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	cut matches from avArgs.	best for large objects with few args.	return true = total inclusivity.
+SV*	excludes(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	cut matches from avArgs.		best for large objects with few args.	return true = total inclusivity.
 	return _excludes()? &PL_sv_yes: &PL_sv_no;
 	}
-SV*	fits(			SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	count matches in avArgs.	best for small objects with many args.	return true = total inclusivity.
+
+SV*	contains(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS; //	count non-matches in avArgs.	best for large objects with few args.	return true = total inclusivity.
+	return _contains()? &PL_sv_yes: &PL_sv_no;
+	}
+SV*	encompasses(	SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	count matches in avArgs.		best for large objects with few args.	return true = total inclusivity.
+	return _encompasses()? &PL_sv_yes: &PL_sv_no;
+	}
+
+SV*	fits(			SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	count matches in avArgs.		best for small objects with many args.	return true = total inclusivity.
 	return _fits()? &PL_sv_yes: &PL_sv_no;
 	}
-SV*	hits(			SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	count matches in avArgs.	best for small objects with many args.	return true = total inclusivity.
+SV*	hits(			SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	//	count matches in avArgs.		best for small objects with many args.	return true = total inclusivity.
 	SV* svH=newSViv( _hits() );
 	return svH;
 	}
-SV*	strikes(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	 //	cut matches from avArgs.	best for small objects with many args.	return true = total inclusivity.
+
+SV*	strikes(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	 //	cut matches from avArgs.		best for small objects with many args.	return true = total inclusivity.
 	return _strikes()? &PL_sv_yes: &PL_sv_no;
 	}
+
+extern short xcª, ixº;
+extern bool trace;
 SV*	set(			SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;
-	_set240();
-	return newSViv( za +1 -hit );
+	_set240();		ui64		ok = za +1 -hit;
+	SV	*	svOK=newSVuv(	ok );
+	return	svOK;
 	}
 SV*	unset(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;
 	_unset();
 	return newSViv( za +1 -miss );
+	}
+SV*	sweep(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;
+	_sweep();
+	return newSViv( za +1 -hit );
 	}
 SV*	av2ICE(		SV* rvArg	){
 	SV	*	svA,
 		**	pSv;
 	int		a, za;
 	ui64		x, Ac, Bc, Ec, E_;
-	char		zc, ic;
+	char		zc;//, ic;
 	ui08		*pk, *pq;
 	svtype		rt0;
 	svtype const 	t0 = SvTYPE(	rvArg );
@@ -376,13 +412,42 @@ SV*	av2ICE(		SV* rvArg	){
 	if( t0 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err[5], __FUNCTION__, rt0< svtype_cnt?	svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	 return &PL_sv_undef; }
 
 					avICE = newAV_alloc_x( 1 );
-	pSv0=AvARRAY(	avICE );
+	Aº=AvARRAY(	avICE );
 		za=  AvFILLp(	avArg);
 	if(	za >=0 ){
 		x =	SvIVX(  svA = *AvARRAY( avArg)  );
 		*( (ui64*) 		buf		)=0;	
 		*( (ui64*) 		buf+1	)=0;	pk =buf;	pq =buf +16;		a=0; 	E_=0;
 		AvNEW( avICE,	buf,			pk,		pq,		avArg,	a,	za,	E_ );
+		}
+			svA = newRV_inc( (SV*)	avICE );
+	sv_bless(	svA,					hvICE );
+	return	svA;
+	}
+
+SV*	av2ICE2(		SV* rvArg	){
+	SV	*	svA;
+	//	**	pSv;
+	int		a, za;
+	ui64		x, Ac, Bc, Ec, E_;
+	char		zc;//, ic;
+	ui08		*pk, *pq;
+	svtype		rt0;
+	svtype const 	t0 = SvTYPE(	rvArg );
+	if( t0 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err[5], __FUNCTION__, t0< svtype_cnt?	svtype_names[t0 ]: 	"UNKNOWN", 0 );	 return &PL_sv_undef; }
+	avArg	= (AV*) SvRV(    	rvArg );	rt0 = SvTYPE( avArg );
+	if( t0 != SVt_RV || !SvROK(	rvArg) ){	printf( arg_err[5], __FUNCTION__, rt0< svtype_cnt?	svtype_names_ref[rt0 ]: "UNKNOWN", 0 );	 return &PL_sv_undef; }
+
+					avICE = newAV_alloc_x( 1 );
+	Aº=AvARRAY(	avICE );
+		za=  AvFILLp(	avArg);
+	if(	za >=0 ){
+		x =	SvIVX(  svA = *AvARRAY( avArg)  );
+	//	*( (ui64*) 		buf		)=0;	
+	//	*( (ui64*) 		buf+1	)=0;	pk =buf;	pq =buf +16;		a=0; 	E_=0;
+	//	AvNEW( avICE,	buf,			pk,		pq,		avArg,	a,	za,	E_ );
+								E_=0;		a=0;
+		AvICExt( x, 	pq, pk, buf,	E_, avArg,	a, za );
 		}
 			svA = newRV_inc( (SV*)	avICE );
 	sv_bless(	svA,					hvICE );
@@ -418,16 +483,16 @@ void snapshot(	SV*	rvICE	){	// —Stores one single copy of any given <ICE> obje
 
 	for(;	iC<= zC_;	++iC ){	sv =*( pSvC0 +iC );
 		if(		NULL ==	sv || !SvPOK( sv ) || SvCUR( sv )< 16 )	{
-			if(	NULL ==( sv_=*( pSvC0_+iC ) ) || !SvPOK( sv_) )	{			*( pSvC0_ +iC )= newSVpvn(	nube, 16 );	printf("\nsnapshot() glitch at #%d line %lld\n", iC, __LINE__);
+			if(	NULL ==( sv_=*( pSvC0_+iC ) ) || !SvPOK( sv_) )	{			*( pSvC0_ +iC )= newSVpvn(	nube, 16 );	printf("\nsnapshot() glitch at #%lld line %d\n", iC, __LINE__);
 			}else											sv_setpv( *( pSvC0_ +iC ),			nube );	//	printf("\nsnapshot() set SV #%lld/%lld	NULL\n", iC, zC );
 		/*	*( (ui64*) nube +1) =	Ec;	*/
 		}else{				/*	Ec =	*( (ui64*) SvPVbyte_nolen( sv ) +1);	*/
-			if(	NULL ==( sv_=*( pSvC0_+iC ) ) || !SvPOK( sv_) )	{			*( pSvC0_ +iC )= newSVsv(	sv );			printf("\nsnapshot() glitch at #%d line %lld\n", iC, __LINE__);
+			if(	NULL ==( sv_=*( pSvC0_+iC ) ) || !SvPOK( sv_) )	{			*( pSvC0_ +iC )= newSVsv(	sv );			printf("\nsnapshot() glitch at #%lld line %d\n", iC, __LINE__);
 			}else											sv_setsv(	*( pSvC0_ +iC ),		 	sv );		//	printf("\nsnapshot() set SV #%lld/%lld\n", iC, zC );
 		}	}
 	for(;	iC<= zC;	++iC ){	sv =*( pSvC0 +iC );
 		if(		NULL ==	sv || !SvPOK( sv ) || SvCUR( sv )< 16 )	{
-		/*	*( (ui64*) nube +1) =	Ec;	*/								*( pSvC0_ +iC )= newSVpvn(	nube, 16 );	printf("\nsnapshot() glitch at #%d line %lld\n", iC, __LINE__);
+		/*	*( (ui64*) nube +1) =	Ec;	*/								*( pSvC0_ +iC )= newSVpvn(	nube, 16 );	printf("\nsnapshot() glitch at #%lld line %d\n", iC, __LINE__);
 		}else{				/*	Ec =	*( (ui64*) SvPVbyte_nolen( sv ) +1);	*/
 																	*( pSvC0_ +iC )= newSVsv(	sv );
 		}	}
@@ -440,7 +505,7 @@ SV*	getSnapshot(){	AvFILLp( avICE_ )=zCs;
 	return rvICE_;
 	}
 
-#ifdef ENABLE_EXPERIMENTAL
+#ifdef EXPERIMENTAL_ENABLE
 /* 
 SV*	toHash(		SV* rvICE	){
 	svtype	rt0,		t0 = SvTYPE( rvICE );
@@ -495,18 +560,9 @@ getAvDBUG ()
 
 void
 printAvDBUG ()
-        PREINIT:
-        I32* temp;
-        PPCODE:
-        temp = PL_markstack_ptr++;
-        printAvDBUG();
-        if (PL_markstack_ptr != temp) {
-          /* truly void, because dXSARGS not invoked */
-          PL_markstack_ptr = temp;
-          XSRETURN_EMPTY; /* return empty stack */
-        }
-        /* must have used dXSARGS; list context implied */
-        return; /* assume stack size is correct */
+
+void
+clearAvDBUG ()
 
 SV *
 fills (rvICE, svMIN, svRUN)
@@ -580,6 +636,11 @@ insortIV (rvArg, svX)
 	SV *	svX
 
 SV *
+zRange (rvArg, sviC)
+	SV *	rvArg
+	SV *	sviC
+
+SV *
 inIV (rvArg, svX)
 	SV *	rvArg
 	SV *	svX
@@ -600,6 +661,16 @@ includes (rvICE, rvArg)
 
 SV *
 excludes (rvICE, rvArg)
+	SV *	rvICE
+	SV *	rvArg
+
+SV *
+contains (rvICE, rvArg)
+	SV *	rvICE
+	SV *	rvArg
+
+SV *
+encompasses (rvICE, rvArg)
 	SV *	rvICE
 	SV *	rvArg
 
@@ -629,10 +700,14 @@ unset (rvICE, rvArg)
 	SV *	rvArg
 
 SV *
+sweep (rvICE, rvArg)
+	SV *	rvICE
+	SV *	rvArg
+
+SV *
 exitCode ()
 	CODE:
 	{	SV* svEX = newSViv( exit_code );
-		printf("\nexit code: %d\n", exit_code);
 		RETVAL	=	svEX;
 		}
 	OUTPUT:
@@ -642,4 +717,6 @@ SV *
 av2ICE (rvArg)
 	SV *	rvArg
 
-
+SV *
+av2ICE2 (rvArg)
+	SV *	rvArg

@@ -14,35 +14,26 @@ src/_ICE.h
 
 src/lluiCAST.h
 
-src/SwCASE_AB2ICEq_t0.h
-src/SwCASE_AB2ICEq_t0inc.h
-src/SwCASE_AB2ICEq_t0incQ.h
-src/SwCASE_AB2ICEq_t1.h
-src/SwCASE_AB2ICEq_t1inc.h
-src/SwCASE_AB2ICEq_t1incQ.h
-src/SwCASE_AB2ICEq_t2.h
-src/SwCASE_AB2ICEq_t2inc.h
-src/SwCASE_AB2ICEq_t2incQ.h
-src/SwCASE_AB2ICEq_t3.h
-src/SwCASE_AB2ICEq_t3inc.h
-src/SwCASE_AB2ICEq_t3incQ.h
-src/SwCASE_ICEq2AB.h
+src/SwCASE_AB2IC_t0_inc.h
+src/SwCASE_AB2IC_t3_inc.h
+src/SwCASE_IC2ABQ.h
 
-src/SwCASE_ICEq2ABrev.h
-src/SwCASE_ICEq2ABrev_inc.h
-src/SwCASE_ICEq2ABrev_inc_p.h
-src/SwCASE_ICEq2ABrev_init.h
-src/SwCASE_ICEq2ABrev_init_p.h
-src/SwCASE_ICEq2AB_inc_o.h
-src/SwCASE_ICEq2AB_inc_p.h
-src/SwCASE_ICEq2AB_init_o.h
-src/SwCASE_ICEq2AB_init_p.h
+src/SwCASE_IC2AB_inc.h
+src/SwCASE_IC2ABQ_inc.h
+src/SwCASE_IC2ABQ_init16p.h
+src/SwCASE_IC2ABQ_inc_vec.h
+src/SwCASE_IC2A1BQ_init16.h
 
+#src/SwCASE_IC2ABQ_R2L.h		#[not]	included by "out.c"
+src/SwCASE_IC2ABQ_R2L_dec.h	#		included by "out.c"
+src/SwCASE_IC2XE_R2L_dec.h	#		included by "out.c"
+src/SwCASE_IC2XE_inc.h
 srcgen/gen_c_for__lluiCASTa.pl
 srcgen/gen_c_for__lluiCASTab.pl
 srcgen/gen_c_for__lluiCASTabc.pl
 srcgen/gen_c_for__lluiCASTabcd.pl
 srcgen/gen_c_for__lluiCASThab.pl
-srcgen/gen_c_for__SwCASE_AB2ICEq_t[0123].h.pl
-srcgen/gen_c_for__SwCASE_ICEq2AB.h.pl
-srcgen/gen_c_for__SwCASE_ICEq2ABrev.h.pl
+srcgen/gen_c_for__SwCASE_AB2IC_t[0123].h.pl
+srcgen/gen_c_for__SwCASE_IC2AB.h.pl
+srcgen/gen_c_for__SwCASE_IC2ABQ_R2L.h.pl
+srcgen/gen_c_for__SwCASE_IC2XE_R2L.h.pl
