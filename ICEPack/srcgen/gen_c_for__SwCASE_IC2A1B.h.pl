@@ -30,10 +30,10 @@ my $readable_date = scalar localtime($mtime);
 
 for( my $ctv=0; $ctv< $#CASE_TERMINATOR; $ctv+=3 ){
 # foreach my $overrunBytes(0..3){
-  open(my $fh, '>',	"SwCASE_IC2A1B$CASE_TERMINATOR[$ctv].h");
+  open(my $fh, '>',	"SwCASE_IC2A1BQ$CASE_TERMINATOR[$ctv].h");
   printf $fh(
 	"/*	This file was programmatically generated.\n\t	script:\t\t$0\n\t	last modified:\t$readable_date	*/\n\n".
-	"#define	SwCASE_IC2A1B%s(		\$q, \$a, \$b, \$pq  %s)	/*	Expand [a, b] from the q-data at *pq, adding (+1) to a.		*/		\\\n",
+	"#define	SwCASE_IC2A1B%s(	\$pq, \$a, \$b, \$q  %s)	/*	Expand [a, b] from the q-data at *pq, adding (+1) to a.		*/		\\\n",
 		$CASE_TERMINATOR[$ctv		],	# variant's name suffix
 		$CASE_TERMINATOR[$ctv	+1	],	# variant's add'l macro arguments
 		);

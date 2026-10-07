@@ -2,7 +2,7 @@ use strict;
 use warnings;
 my @CAST=(	undef,	'ui08',	'ui16',	'ui32',		'ui32',	'ui64',		'ui64',	'ui64',	'ui64'	);	my @AND=(	undef, ";\t\t\t", ";\t\t\t", "& 0x00FFFFFF;  \t", ";\t\t\t", "& 0x000000FFFFFFFFFF;", "& 0x0000FFFFFFFFFFFF;", "& 0x00FFFFFFFFFFFFFF;", ";\t\t\t" );
 my @OS=(	0,		0,		0,		-1,			0,		-3,			-2,		-1,		0		);
-my @BS=(	";",		";",		";",		">>8;",	";",		">>24;",	">>16;",	">>8;",	";"		);
+my @BS=(	");",		");",		");",		">>8);",	");",		">>24);",	">>16);",	">>8);",	");"		);
 
 my	$T="\t\t\t\t\t\t\t";
 use constant	A=>0;
@@ -57,9 +57,9 @@ for( my $ctv=0; $ctv< $#CASE_TERMINATOR; $ctv+=3 ){
 					$s[A]=			$q[A];
 					$o[A]=	$OS[	$q[A] ];
 if( $OS[$q[A] ] ==0){
-  printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +*( ($CAST[ $q[A]]*) \$pq		)".		"%-18s	\t	\$E =\$X +%d;$T",										$qs, $q[A], 0,			$BS[$q[A] ],				$q[B] -1	);
+  printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +( *( ($CAST[ $q[A]]*) \$pq		)".	"%-18s	\t	\$E =\$X +%d;$T",										$qs, $q[A], 0,			$BS[$q[A] ],				$q[B] -1	);
 }else{
-  printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +*( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	\$E =\$X +%d;$T",										$qs, $q[A], 0,	$o[A],	$BS[$q[A] ],				$q[B] -1	);
+  printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +( *( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	\$E =\$X +%d;$T",										$qs, $q[A], 0,	$o[A],	$BS[$q[A] ],				$q[B] -1	);
 	}
 
 					eval( $CASE_TERMINATOR[ $ctv +2 ] );
@@ -77,9 +77,9 @@ if( $OS[$q[A] ] ==0){
 					$o[B]=	$OS[	$q[B] ];
 
 if( $o[B ]==0){
-  printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +%d;".								"	$T	\$E =\$X +*( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, 0, $q[B],	 			$q[A]-1,				$BS[$q[B] ]	);
+  printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +%d;".								"	$T	\$E =\$X +( *( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, 0, $q[B],	 			$q[A]-1,				$BS[$q[B] ]	);
 }else{
-  printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +%d;".								"	$T	\$E =\$X +*( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, 0, $q[B],	 			$q[A]-1,		$o[B],	$BS[$q[B] ]	);
+  printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +%d;".								"	$T	\$E =\$X +( *( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, 0, $q[B],	 			$q[A]-1,		$o[B],	$BS[$q[B] ]	);
 	}
 					eval( $CASE_TERMINATOR[ $ctv +2 ] );
 					print $fh( "	break;	\\\n");
@@ -99,14 +99,14 @@ if( $o[B ]==0){
 					$qs=0xC0|	( ( $q[B] -1) <<3)|	($q[A]-1);
 if(		$o[A ]==0){
   if(		$o[B ]==0){
-    printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +*( ($CAST[ $q[A]]*) \$pq		)".		"%-18s	\t	\$E =\$X +*( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, $q[A], $q[B],			$BS[$q[A] ],			$BS[$q[B] ]	);
+    printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +( *( ($CAST[ $q[A]]*) \$pq		)".	"%-18s	\t	\$E =\$X +( *( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, $q[A], $q[B],			$BS[$q[A] ],			$BS[$q[B] ]	);
   }else{
-    printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +*( ($CAST[ $q[A]]*) \$pq		)".		"%-18s	\t	\$E =\$X +*( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, $q[A], $q[B],			$BS[$q[A] ],	$o[B],	$BS[$q[B] ]	);
+    printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +( *( ($CAST[ $q[A]]*) \$pq		)".	"%-18s	\t	\$E =\$X +( *( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, $q[A], $q[B],			$BS[$q[A] ],	$o[B],	$BS[$q[B] ]	);
   }
 }elsif(	$o[B ]==0){
-    printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +*( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	\$E =\$X +*( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, $q[A], $q[B],	$o[A],	$BS[$q[A] ],			$BS[$q[B] ]	);
+    printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +( *( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	\$E =\$X +( *( ($CAST[ $q[B]]*) \$pq		)".	"%-18s	",	$qs, $q[A], $q[B],	$o[A],	$BS[$q[A] ],			$BS[$q[B] ]	);
 }else{
-    printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +*( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	\$E =\$X +*( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, $q[A], $q[B],	$o[A],	$BS[$q[A] ],	$o[B],	$BS[$q[B] ]	);
+    printf $fh("case 0x%02X:	/* %2d, %-2d  */	\$X =\$E +( *( ($CAST[ $q[A]]*) (\$pq %+d )\t)".	"%-18s	\t	\$E =\$X +( *( ($CAST[ $q[B]]*) (\$pq %+d )\t)".	"%-18s	",	$qs, $q[A], $q[B],	$o[A],	$BS[$q[A] ],	$o[B],	$BS[$q[B] ]	);
 	}
 					eval( $CASE_TERMINATOR[ $ctv +2 ] );
 					print $fh( "	break;	\\\n");

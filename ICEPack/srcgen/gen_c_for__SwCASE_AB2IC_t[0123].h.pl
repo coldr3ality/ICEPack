@@ -35,7 +35,7 @@ for( my $ctv=0; $ctv< $#CASE_TERMINATOR; $ctv+=3 ){
   open(my $fh, '>',	"SwCASE_AB2IC_t$overrunBytes$CASE_TERMINATOR[$ctv].h");
   printf $fh(
 	"/*	This file was programmatically generated.\n\t	script:\t\t$0\n\t	last modified:\t$readable_date	*/\n\n".
-		"#define	SwCASE_AB2IC_t$overrunBytes%s( \$a, \$b, \$pq%s)	/*	cast [a, b] to the high side of *pq	w/ ($overrunBytes) byte[s] of overrun tolerance	*/		\\\n",
+		"#define	SwCASE_AB2IC_t$overrunBytes%s( \$pq, \$a, \$b %s)	/*	cast [a, b] to the high side of *pq	w/ ($overrunBytes) byte[s] of overrun tolerance	*/		\\\n",
 		$CASE_TERMINATOR[$ctv		],	# variant's name suffix
 		$CASE_TERMINATOR[$ctv	+1	],	# variant's add'l macro arguments
 		);
