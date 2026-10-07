@@ -1,5 +1,5 @@
 /*	Copyright 2026 Peter Arlen Schmidt
-
+g
 	Licensed under the Apache License, Version 2.0 (the "License");
 	you may not use this file except in compliance with the License.
 	You may obtain a copy of the License at
@@ -21,7 +21,26 @@
 #include "perl.h"
 #include "XSUB.h"
 #include "dBUG.h"
-#include	"access.h"
+#include	"access.h"	
+int	à=10,	ª=9;
+int	ß=7;
+int	ê=0, È=1, Ê=2;
+int	Ì=8;
+int 	Ú=3, Ü=4,	º=5,	µ=6,	Þ=0xDEC27;
+
+bool trace=0;
+extern	void	_av_commit(),
+			_sv_commit_1x(),
+			_sv_commit_nx(),
+			printAvDBUG(),
+			_print_mx( unsigned char mx_max, short ix¹, short izΩ ),
+			_init_mx();
+
+
+#if defined( DEBUG_SvCOMMIT_L0 ) || defined( DEBUG_SvCOMMIT_L1 ) || defined( DEBUG_SvCOMMIT_L1X )
+size_t			avdbuginx_dmarkcase;
+unsigned short 	subcase;
+#endif
 //	camelCase				JavaScript, Java
 //	snake_case				Python, Ruby, C/C++ standard libraries
 //	SCREAMING_SNAKE_CASE	Constants in C, Java, JavaScript
@@ -110,7 +129,7 @@
 
 	The dichotomy of a RELiC object is a 2D AV* array of SV* "cubes", where:
 
-	>	Each SV* "cube" is labeled by an "Epsilon" value which represents the upper limit for the range of sorted keys contained within.
+	>	Each SV* "cube" is labeled by an "Edge" value which represents the upper limit for the range of sorted keys contained within.
 	>	Each SV* "cube" can vary in length from (16..144) bytes, containing up to (8) flag inversion boundary pairs known as "cycla".
 	>	Each "cyclum" can vary in length from (1..17) byte[s], using a single "keybyte" to define a pair of ULLs (A, B) as variable fields.
 		>	If either A or B is less-than 8, its value is stored in the keybyte and its variable field is omitted;
@@ -140,7 +159,7 @@
 		> gen_c_for__lluiCASThab.pl
 		> gen_c_for__SwCASE_AB2IC_t[0123].h.pl	*the numbers 0, 1, 2, and 3 are tolerance ratings for allowable bytes of overrun.
 		> gen_c_for__SwCASE_IC2AB.h.pl
-		> gen_c_for__SwCASE_IC2AB_R2L.h.pl
+		> gen_c_for__SwCASE_IC2ABQ_R2L.h.pl
 
 	E.g.:
 	In order to copy an unsigned LLU into a field fit for the significant bytes only, it will require one of the following combinations of casts:
@@ -165,7 +184,8 @@
 			*	hvOut;
 		AV	*	avOut,
 			*	avDBUG;	long long int	zd;
-		AV	*	avICE;		long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
+		AV	*	avEnum;
+		AV	*	avICE;		long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
 		AV	*	avICE_;		long long int	zCs=-1;
 		AV	*	avArg;		long long int	a, za; 					//	a list of integer value[s] to operate on.
 		SV	*	rvOut,				/*	arrayref to AV* avOut									*/
@@ -175,157 +195,162 @@
 
 SV			**	src,
 			**	dst,
-			**	pSv0,
+			**	Aº,
 			
 			*	svA,					/*	general purpose scratch SV								*/
 			*	svLbf,				/*	lower cube fragment									*/
-			*	svZ,	 				/*	SV containing right-hand cube data	(upper fragment)		*/
+			*	svΩ,	 				/*	SV containing right-hand cube data	(upper fragment)		*/
 			*	sv,					/*	SV containing pre-commit cube data	(original pre-op cube)	*/
 			*	sv0;					/*	SV containing left-hand cube data		(lower fragment)		*/
 ui08			*	cube	=NULL,		/*	unsigned char * cube data (of index iC )					*/
-			*	cubeZ	=NULL,		/*	unsigned char * cube data (of index iC -1)					*/
-			*	qube;
+			*	cubeΩ	=NULL,		/*	unsigned char * cube data (of index iC -1)					*/
+			*	cube¹;
 char			*	lightning = "\n!! !  !   !    !     !      !       !        !         !          !           !            !             !              !               !                !\n",
 				aString[8448],
 				exit_code=0,
 			*	ps;
-bool				L=0,
-				R=1;
-STRLEN			cS, CS, CSZ;
-ui08				*pk,		*pq,
-			/*	*pkz, */	*pqz,
-				*pk_,	*pq_,	
-			/*	*pkx, */	*pqx,
+
+#if defined( DEBUG_ACCESS_L0 ) || defined (DEBUG_ACCESS_L1 ) || defined( DEBUG_ACCESS_L2X )
+unsigned long long int		ƒloc;
+#endif
+STRLEN			cS, CS, CSΩ, oCS;
+char	iqZ;
+ui08				*pk,			*pq,		*pΩ,
+			/*	*pkz,		*pqz,	*/
+			/*	*pk_,	*/	*p_,	
+			/*	*pkx,		*pqx,	*/
 				buf[	8 	+8	+8*16	+1	+15 ];	/*	buffers the output of ICE() and its variants
 /*	CUBE STRUCT:	^	^	^		^	^ overflow padding (to survive an overshot "long long" cast)
 					|	|	|		NULL byte
 					|	|	up to 128 bytes of variable "q-data"
-					|	"Epsilon" is the cube's search key.  It signifies the upper boundary of encoded keys within the cube.
+					|	"Edge" is the cube's search key.  It signifies the upper boundary of encoded keys within the cube.
 					keybyte area stores up to (8) keybytes, which define variable "q-data" geometry for up to (8) inversion run cycla.
 					*/
 
 /*	standard global constant cube initialization templates 	*/
 /*			"cube_i0" is used to initialize a cube which should start with element #0 set.						*/
 ui08 const	cube_i0[	16]={	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x08,		/* cyclum #0:	x==0			*/
-							0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	1		};	/* Epsilon:	1				*/
+							0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	1		};	/* Edge:		1				*/
 
 /*			"nube" is used to initialize an empty cube, or as a global null value to set pointers to directly.			*/
 ui08			nube[	16]={	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,		/* no content					*/
-							0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00	};	/* Epsilon:	0				*/
+							0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00	};	/* Edge:		0				*/
+
+ui08			zube[	16]={	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,		/* no content					*/
+							0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00	};	/* Edge:		0				*/
+SV			_sv_;
 
 /*			"cubE" is a global constant object used to failsafe RELiC accessors against potential overrun by iCE() and its variants.
 			It contains a single null point at the max int, bounding the 64-bit namespace.					*/
 ui08 const	cubE[	24]={	0xB8,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,		/* cyclum #7:	x==null			*/
-							0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,		/* Epsilon:	2^64-1 (max uint)	*/
+							0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,		/* Edge:		2^64-1 (max uint)	*/
 							0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF,	0xFF	};	/* A: 		2^64-1 (max uint)	*/
 
 
-ui64			i, ub, lb, n, N, o, s;		/*	global scratch variables used in private contexts									*/
+ui64			i, hi, lo, n, N, o, s;		/*	global scratch variables used in private contexts									*/
 ui64			x, y, z,				/*	common arguments														*/
 			skip, hit, miss,			/*	the number of misses or collissions counted as a method processes arguments  		*/
 			hu, bu, hm, lm; 	 	/*	high-unit, base-unit, high-mask, low-mask:
 									used to quantize keys for each unitary digit of numeric base (BASEBITS).		 		*/
-ui08			f,					/*	A-B encoding flags, just the first (2) bits of the keybyte isolated						*/
-			ab,					/*	A-B encoding parameters, the last (6) bits of the keybyte isolated; a pair of octal values	*/
-			lost_ic;				/*	a number of cycla consolidated into a single cyclum due to having null B-value			*/
-ui64			Kx8, Kx8_, _Kx8,		/*	an actual array of (8) octets, but cast as an unsigned quad, simply to use bitwise ops	*/
-			Qx7;
 
 //in general, a variable preceded by an underscore is vigilantly kept up-to-date, so to represent a value in a post-op state.
 //matrix indeces will not be negative
 /*						____	object______________________	verb_________	subject_____________________	preposition______________________	*/
-char unsigned u, v, w,			/*	matrix indeces		iterate		the modification range		in	matrix { A[], B[], E[], Q[] }	*/
-/*	ix1,	ixX,	ixY,	*/	ixZ,		/*	matrix indeces		mark in		fragment boundaries		in	matrix { A[], B[], E[], Q[] }	*/
-/*	iz1,	izX,	izY,	*/	izZ,		/*	matrix indeces		mark out		fragment boundaries		in	matrix { A[], B[], E[], Q[] }	*/
-/*	^commented out because they do not need to be global.  Only the high fragment is ever seen outide of void _sv_commit().				*/
+short		oc,	xc,
+			ocª,	xcª;			/*		mark		the [active: ª] indeces		of	char *	cube			*/
+short unsigned u, v, w,			/*	matrix indeces		iterate		the modification range		in	matrix { A[], B[], E[], L[] }	*/
 
-	ixM, izM,		 			/*	matrix indeces		mark in/out	the Modification range		in	matrix { A[], B[], E[], Q[] }	*/
-	inM,	/*	izM+1		*/	/*	matrix index			high-bounds	the Modification range		in	matrix { A[], B[], E[], Q[] }	*/
-	ixH;	/*	inM+n_del	*/	/*	matrix index			marks in		the High-passthrough range	in	matrix { A[], B[], E[], Q[] }	
+	ixº,	/*	ix¹, ixⁿ, ix², */	ixΩ,		/*	matrix indeces		mark in		fragment boundaries		in	matrix { A[], B[], E[], L[] }	*/
+	izº,	/*	iz¹, izⁿ, iz², */	izΩ,		/*	matrix indeces		mark out		fragment boundaries		in	matrix { A[], B[], E[], L[] }	*/
+/*			^localized to:	(void) _sv_commit_1x()
+						(void) _sv_commit_nx()	*/
+
+	ixM, izM,		 			/*	matrix indeces		mark in/out	the Modification range		in	matrix { A[], B[], E[], L[] }	*/
+	inM,	/*	izM+1		*/	/*	matrix index			high-bounds	the Modification range		in	matrix { A[], B[], E[], L[] }	*/
+	ixH;	/*	inM+n_del	*/	/*	matrix index			marks in		the High-passthrough range	in	matrix { A[], B[], E[], L[] }	
 								for inclusion-based methods, izM is always ixH -1.
 								for exclusion-based methods, izM can be less than that, as cycla in-between are dropped.			*/
 
 char unsigned	q,	q0,	q1;		/*	q-field lengths			total		the q-data length			of any given cyclum			*/
 char			ic, 				/*	cyclum index			iterates		the read position			in	char *	cube			*/
-			icI,	icO,			/*	cyclum indeces		mark in/out	the Modification range		in	char *	cube			*/
-		
-			zc,	zcZ,			/*	cyclum index 			identifies		the zeta cyclum			of	char *	cube / cubeZ		*/
-			vc,	vc_;			/*	cyclum count			defines		vacant capacity available	in	char *	cube / cubeZ		*/
-short		tena_zc;			/*	cyclum index			identifies		the tentative zeta cyclum	of	char *	cube			*/
+		/*	icI, 	localized in _sv_commit_1x() and _sv_commit_nx()	*/
+			icO,				/*	cycla index			marks out	the modification range		in	char *	cube			*/
+			zc,	zcΩ, zcC;		/*	cycla indeces 			mark		the ending indeces			of	char *	cube / cubeΩ		*/
+
 AV			*avOut;
 SV			*svOp;
 svtype		svt;
 long long int	displacement, d, D;
 
-char *	opStat[]={"null", "del", "ok", "mod", "new"};
-enum	opStat{	null, del, ok, mod, new}
-/*		THE MATRIX					*/
-		RW[	256 ];					/* read/write status enumerator			*/
+char *	opStat[]={"null", "del", "ok", "mod", "new", "epi" };
+enum	opStat{	null, del, ok, mod, new, epi }
+/*		THE MATRIX				*/
+		RW[	512 ];				/* read/write status enumerator			*/
 
-ui64		A[	256 ],	Au,	Av,	Ac,		/* relative coord.s	which define	each negative cyclum phase	in	matrix { A[], B[], E[], Q[] }	*/
-		B[	256 ],	Bu,	Bv,	Bc,		/* relative coord.s	which define	each positive cyclum phase	in	matrix { A[], B[], E[], Q[] }	*/
-		E[	256 ],	Eu,	Ev,	Ec,	E_,	/* "Epsilon" values	which bound	the absolute coordinates	in	matrix { A[], B[], E[], Q[] }	*/
-		ZC[	256 ];					/* cube lengths, pre-re-fragmentation  	*/
-ui08 	I[	256 ],					/* cycla indeces	which align	pre/post op keybytes		in	char *	cube			*/
-		H[	256 ],					/* header codes	which ixZ.	q-data field space			in	char *	cube			*/
-	*	Qp[	256 ],
-		Q[	256 ], 	Qu,	Qv,	Qc,		/* q-data lengths	which define	each read increment		in	char *	cube			*/
-		Qx[	256 ],					/* q-data lengths	which define	each write increment		in	char *	cube			*/
-		O[	256 ],					/* q-data offsets	which mark	each read position			in	char *	cube			*/
-		Ox[	256 ];					/* q-data offsets	which mark	each write position			in	char *	cube			*/
-	
-// array resequencing buffer matrix
-	SV		*	rSeq_SV[	256 ]; 	// temporary holding of SV* cubes pending insertion into AV* avICE
-	long long int	rSeq_iR[	256	], iR,	// source index of rSeq_SV 				(for each control point)
-				rSeqIns[	256	],	// the number of trailing SVs to insert		(for each control point)
-				rSeqCut[	256	],	// the number of leading SVs to remove 	(for each control point)
-				rSeqSrc[	256	],	// source index						(for each control point)
-				rSeqDst[	256	],	// destination index						(for each control point)
-				rel_zC, 	dsc,  asc, zsc, juke, pmo,
-				rack_iC	=0;		// running control point iterator
-#define INIT_SvCOMMIT	ixM=0xFF;								/*<— how we know there's nothing to commit	*/
-#define INIT_AvCOMMIT	rSeqCut[0]= rSeqIns[0]=	juke= rel_iC= rack_iC= 	dsc	= 0;	\
-						rSeq_iR[0]= iR=							asc	= -1;
+ui64		A[	512 ],	Ac,			/* relative coord.s	which define	each negative cyclum phase	in	matrix { A[], B[], E[], L[] }	*/
+		B[	512 ],	Bc,			/* relative coord.s	which define	each positive cyclum phase	in	matrix { A[], B[], E[], L[] }	*/
+		E[	512 ],	Ec,	E_;		/* "Edge" values	which bound	the absolute coordinates	in	matrix { A[], B[], E[], L[] }	*/
+//		Zc[	512 ];				/* cube lengths, pre-re-fragmentation  	*/
+ui08 	I[	512 ],				/* cycla indeces	which align	pre/post op keybytes		in	char *	cube			*/
+		K[	512 ],				/* header codes	which encode	variable q-data layout		in	char *	cube			*/
+		L[	512 ], 	Lc;			/* q-data lengths	which define	each read increment		in	char *	cube			*/
+ui16		O[	512 ],				/* q-data offsets	which mark	each read position			in	char *	cube			*/
+		Oª[	512 ];				/* q-data offsets	which mark	each write position			in	char *	cube			*/
 
-#define	ARG( $a )	SvIVX( svA=*(	AvARRAY(	avArg)+ $a	) )
-#define	ARG0		SvIVX( svA=*	AvARRAY(	avArg)		)
 
-#define	zOf( 	$a)		7-( 	__builtin_clzll(			 $a		) >>3)
-#define	zcOf(	$cube)	7-( 	__builtin_clzll( *( (ui64*)	$cube)	) >>3)
-#define	ncOf(	$cube)	8-( 	__builtin_clzll( *( (ui64*)	$cube)	) >>3)
+/*	Shared context with AvPOST(...), AvCUT(...) & AvCUT2(...) defined in AvSEQ.h,  and _av_commit() defined in _av_commit.c:	*/
+
+	SV		*	rSeq_SV[	512 ]; 	//	temporary holding of SvPVbyte(...) char* "cubes" awaiting batch splice-insertion to AV* avICE
+	long long int	rSeq_iR[	512	], iR,	//	source index of rSeq_SV 		after the destination index	(for each step [asc|dsc] )
+				rSeqIns[	512	],	//	number of trailing SVs to insert	after the destination index	('')
+				rSeqCut[	512	],	//	number of leading SVs to remove before the destination index	('')
+				rSeqSrc[	512	],	//	source index						
+				rSeqDst[	512	],	//	destination index				
+						dsc,		//	step iterators, ascending/descending
+				rel_iC,			/*	relative difference in active cube index since control index of current step was initialized
+									—This is especially used by AvPOST(...); AvCUT[2](...) to compute running dest. indeces.	*/
+				cut_iC,
+				step_iC =	0;		//	running destination index counter
+				/*,	local to (void) _av_commit():
+						asc,		//	step iterator, ascending
+						zsc,		//	ending step
+						juke,	//	step run length of reactive iteration reversal from descending to ascending order
+						pmo	/*	[p]eristaltic [mo]ve run length (formerly jmp for "jump", which was an oversimplified )
+									—"peristaltic move" refers to reflow / compaction or expansion of subsequent indeces.	*/
+
+
 
 #ifdef DEBUG
 	void _init_mx(){		/*	totally zero-out buffer matrix to improve clarity of debug info	*/
-		ui08	x=255;	tena_zc=-1;
+		ui08	x=255;	ixº=oc=ocª=0; xc= xcª=-1;
 
 		u= v= w= izM =0;	ixM=0xFF;
 		do{	RW[x]=0;
 			A[x]=	B[x]=	E[x]=	0;
-			H[x]=	Q[x]=	Qx[x]=
-			I[x]=		O[x]=	Ox[x]=	0;
+			K[x]=	L[x]=
+			I[x]=		O[x]=	Oª[x]=	0;
 			} while( ++x != 255 );
-		Qx[255]=0;
 		}
 #else
 	void _init_mx( ){	printf("!	_init_mx() called w/o debugging implemented by preprocessor\n");		}
 #endif
 
-void _icepack_init(){	printf("—vUry cold\n\n");
+void _icepack_init(){	/*	printf("—vUry cold\n\n");	*/
 #if	defined( DEBUG )
 	avDBUG=newAV();
 	printf("\n	Debug options are set.  From perl, call \"getAvDBUG()\" or \"printAvDBUG()\" to access audit data.\n", __FILE__);
 #endif
 #if defined(DEBUG_SvCOMMIT_L1)
-	printf("\r	DEBUG_SvCOMMIT_L1 is defined in %s:	auditing nominal activity within _sv_commit()\n", __FILE__);
+	printf("\r	DEBUG_SvCOMMIT_L1 is defined in %s:	auditing nominal activity within _sv_commit_1x and _sv_commit_nx()\n", __FILE__);
 #endif
 #if defined(DEBUG_SvCOMMIT_L2)
-	printf("\r	DEBUG_SvCOMMIT_L2 is defined in %s:	auditing verbose activity within _sv_commit()\n", __FILE__);
+	printf("\r	DEBUG_SvCOMMIT_L2 is defined in %s:	auditing verbose activity within _sv_commit_1x and _sv_commit_nx()\n", __FILE__);
 #endif
 #if defined(DEBUG_SvCOMMIT_L3)
-	printf("\r	DEBUG_SvCOMMIT_L3 is defined in %s:	checking integrity within _sv_commit()\n", __FILE__);
+	printf("\r	DEBUG_SvCOMMIT_L3 is defined in %s:	checking integrity within _sv_commit_1x and _sv_commit_nx()\n", __FILE__);
 #endif
 #if defined(DEBUG_AvCOMMIT_L1)
-	printf("\r	DEBUG_AvCOMMIT_L1 is defined in %s:	auditing nominal activity within _av_commit(), AvPOST, AvCUT, and AvCUT_B4\n", __FILE__);
+	printf("\r	DEBUG_AvCOMMIT_L1 is defined in %s:	auditing nominal activity within _av_commit(), AvPOST and AvCUT\n", __FILE__);
 #endif
 #if defined(DEBUG_AvCOMMIT_L2)
 	printf("\r	DEBUG_AvCOMMIT_L2 is defined in %s:	auditing verbose activity within _av_commit() \n", __FILE__);
@@ -342,312 +367,47 @@ void _icepack_init(){	printf("—vUry cold\n\n");
 #if defined(DEBUG_ACCESS_L3)
 	printf("\r	DEBUG_ACCESS_L3 is defined in %s:	checking integrity within accessor methods.\n", __FILE__);
 #endif
-
 	hvICE		= gv_stashpv(	"ICEPack",			0);
 	avOut		= get_av(		"ICEPack::avOut",		GV_ADD);
-	A[	255 ]=255;
-	B[	255 ]=255;
-	O[	255 ]=16;
-	Ox[	255 ]= 0;
-	Q[	255 ]= 0;
-	*( (ui64*) H )	= 0;
+	A[	512 ]=255;
+	B[	512 ]=255;
+	O[	512 ]=16;
+	Oª[	512 ]= 0;
+	L[	512 ]= 0;
+	for( x=0; x< 32; ++x)	*( (ui64*) K+x )	= 0;
 	u=v=w=255;
 	int x;
-	for( x=0; x<128; ++x){
-		RW[x]=null;
-		rSeq_iR[	x ]=-1;
-		rSeqIns[	x ]=0;
-		rSeqCut[	x ]=0;
-		rSeqSrc[ 	x ]=0;
-		rSeqDst[	x ]=0;
-		rSeq_SV[	x ]=NULL;
+	for( x=0; x<32; ++x){
+		*( (ui64*) RW		+x )=null;
+		*( (ui64*) rSeq_iR	+x )=-1;
+		*( (ui64*) rSeqIns	+x )=0;
+		*( (ui64*) rSeqCut	+x )=0;
+		*( (ui64*) rSeqSrc 	+x )=0;
+		*( (ui64*) rSeqDst	+x )=0;
+		}
+	for( x=0; x<512; ++x){
+		rSeq_SV[ x ]=NULL;
 	}	}
 
-void deIceV_KE(){	DeICEv_KE(	u, v );	}
-void deIceV_KEI(){	DeICEv_KEI(	u, v );	}
-#ifdef DEBUG_ACCESS_L2			//	audit nominal activity verbosely
-	#define dBUGinit_mx			_init_mx();
-	#define dBUG_ReICEzSvZ($v )												cS=sprintf(aString, "\nReICEzSvZ( %d ) line %lld\n", $v, __LINE__); AvDBUG_PUSH( aString, cS );\
-								if( (ui08*) cubeZ != (ui08*) SvPVbyte_nolen( svZ ) ){	cS=sprintf(aString, "\nReICEzSvZ( %d ): cubeZ [was] out of sync with svZ!\n", $v ); AvDBUG_PUSH( aString, cS );\
-																			cubeZ=SvPVbyte_nolen( svZ );	\
-																			}
-#else
-	#define dBUGinit_mx
-	#define dBUG_ReICEzSvZ($v )
-#endif
-#ifdef DEBUG_ACCESS_L3			//	check integrity
-	#define dBUG_SvCUR($CS, $VARNAME )			if( $CS<16){ printf("\n!	%s< 16 ( %d )	%s line %lld\n",$VARNAME, $CS,  __FILE__, __LINE__ );	/*exit(-1);*/	}
-#else
-	#define dBUG_SvCUR($CS, $VARNAME )
-#endif
-
-#define uMOD	RW[ u ] = mod
-#define vMOD	RW[ v ] = mod
-#define vNUL		RW[ v ] = null;
-#define uNEW 	RW[ u ] = new
-#define vNEW 	RW[ v ] = new
-
-#define Epsilon(	$cube) ( 	(ui64*) $cube+1)
-
-void	_set240(){
-	#ifdef DEBUG_ACCESS_L1			//	audit nominal activity
-		#define dBUGop0		cS=sprintf(aString, "\r=+|_	x[%lld]: %lld ( 0x%llX )	=+|_ 	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGop1 		cS=sprintf(aString, "\r!|+=	x[%lld]: %lld ( 0x%llX )	!|+= 	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGop2		cS=sprintf(aString, "\r=|+=	x[%lld]: %lld ( 0x%llX )	=|+= 	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGop3		cS=sprintf(aString, "\r=+|$	x[%lld]: %lld ( 0x%llX )	=+|$ 	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGop4		cS=sprintf(aString, "\r=+_ 	x[%lld]: %lld ( 0x%llX )	=+_  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGop5		cS=sprintf(aString, "\r=+= 	x[%lld]: %lld ( 0x%llX )	=+=  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGop6		cS=sprintf(aString, "\r_+_	x[%lld]: %lld ( 0x%llX )	_+_  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGop7		cS=sprintf(aString, "\r_+=	x[%lld]: %lld ( 0x%llX )	_+=  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGop8		cS=sprintf(aString, "\r===	x[%lld]: %lld ( 0x%llX )	===  	\n\t", a, x, x );	AvDBUG_PUSH( aString, cS );
-	#else
-		#define dBUGop0
-		#define dBUGop1 
-		#define dBUGop2
-		#define dBUGop3
-		#define dBUGop4
-		#define dBUGop5
-		#define dBUGop6
-		#define dBUGop7
-		#define dBUGop8
-	#endif
-	#if defined( DEBUG_ACCESS_L1 ) || defined( DEBUG_ACCESS_L2 ) || defined( $DEBUG_ACCESS_L3 )
-		#define dBUGop9		cS=sprintf(aString, "\r=|==	x[%lld]: %lld ( 0x%llX )	=|==  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-	#else
-		#define dBUGop9
-	#endif
-
-	SV ** pSv;			pSv0	= AvARRAY(	avICE );								dBUGavCLR	dBUGinit_mx
-ui64	x = ARG0;		hit=a=0;	za	= AvFILLp(	avArg);				if( za ==-1){	/*	no args */		return;	}
-					zzC=(	zC	= AvFILLp(	avICE )	)-1;			if( zC ==-1){		NEW(	0 );		return;	}
-ui64							nC	= zC+1;	/*<— value to reset upper boundary (ub) to		*/
-																if( za >=247 ){	printf("!	_set(): too many arguments (buffer rotation not yet implemented)\n");	return;	}
-	INIT_SvCOMMIT;
-	INIT_AvCOMMIT;
-
-ui64	/*	shall we begin?	*/	lb=0, ub=nC;	cube = SvPVbyte_nolen(	*pSv0 );	// so, x is probably not in cube 0, but we handle it now to eliminate a special case within INTRALOC, which is a search entrance.
-if( 	/*	x not in cube 0	*/	x >= *Epsilon(	cube)){							iC= ub>>1;
-  do	{/*	search for iC of x	*/				cube = SvPVbyte_nolen(	sv =*(pSv0 +	iC ) );
-	if(						x == *Epsilon(	cube) ){				zcZ = zcOf( cube );	
-							cubeZ	=	cube;	CSZ = SvCUR(	svZ= sv );	_anteloc:	ANTELOC;				//_print_mx(tena_zc, ix1, izZ );
-		if( iC< zC	){	sv=*( ++	iC	+pSv0 );	cube = SvPVbyte_nolen(	sv);			_interloc:	INTERLOC;										//_print_mx(tena_zc, ix1, izZ);
-			/*						RW []	Q []		A []			B []				E []			O []			I []	*/
-/*	=+|_	*/	do	{ if(		A[ 0 ] >1 ){		 	--	A[ 0 ];	   ++	B[ 255 ];												dBUGop0
-							++	*Epsilon(	cubeZ);					if( za == a ){		ReICEzSvZ(255);	goto	_exit_1;		}
-					}else if(	A[ 0 ]==1 ){				A[ 0 ]=A[255];	B[ 0 ]+=B[255]+1;													//_print_mx(tena_zc, ix1, izZ);
-/*	!|+=		*/			if(	zcZ == 0 ){		 									AvCUT_B4( iC );						dBUGop1
-/*	=|+=	*/			}else{	*Epsilon(	cubeZ) -=  	A[ 255 ]	+	B[ 255 ];
-							cubeZ[zcZ--]=0;			SvCUR_set( svZ, O[ 255 ] );		cubeZ[O[255]]=0;						dBUGop2
-							}																	goto	_next_a;
-/*	=|==	*/		}else{ /* rogue null off-cycle is an artifact which the spec must allow */	dBUGop9 		goto	_next_a;   	}
-	x = ARG( ++a );   	} while(	x == *Epsilon(	cubeZ ) );									ReICEzSvZ(255);	goto	_next_x;
-		}else{	do	{		 ++	*Epsilon(	cubeZ );				  ++	B[ 255 ];												dBUGop3
-/*	=+|$	*/													if( za == a ){		ReICEzSvZ(255);	goto	_exit_2; 	}
-	x = ARG( ++a );	} while(	x == *Epsilon(	cubeZ ) );									ReICEzSvZ(255);
-							E_=	*Epsilon(	cubeZ );													goto	_epiloc;
-			}
-
-	}else if(					x <	*Epsilon(	cube) ){	iC=(( ub	= iC )+lb	)>>1;  if( iC==ub ){	INTRALOC;		goto	_loca; 	}
-	}else{				/*	x >	*Epsilon(	cube)*/	iC=(( lb	= iC )+ub	)>>1;  if( iC==lb  ){	INTRALOC1Up;			_loca:
-		MxINIT; 			tena_zc=zc=zcOf(	cube );
-		u=0; v=1;				DeICE0u_E(	0, 	1	);
-		while( x >E[ u ] ){		DeICEv_EI(	u,	v	);	u =v++; }												I[ u ] =icI =ic;
-/*	inclusion	*/
-	_run: do{ if(				x !=E[u] ){
-							d = E[u] -x -B[u];																						//_print_mx(tena_zc, ix1, izZ);
-/*	_+_		*/	if(			d >1	){	vNEW;	Q[v]=0;	A[ v ] = d -1;	B[ v ] = B[ u ];		E[ v ] =E[ u ];/*O[v]=O[u]+Q[u];*/			dBUGop6
-						++tena_zc;	uMOD;			A[ u ] -= d;	B[ u ] = 1;		E[ u ] =x +1;	O[v+1]=O[v];	I[ v ] = I[ u ];				//_print_mx(tena_zc, ix1, izZ);	
-/*	_+=		*/	}else if(		d==1 ){	uMOD;		    --	A[ u ];	   ++	B[ u ];												dBUGop7
-/*	===		*/	}else{	++hit;	/*	RW []	Q []		A []			B []				E []			O []			I []	*/		dBUGop8
-					}
-			}else{					uMOD;					if(	RW[ v ]== null ){	DeICEv_KEI( u, v );  }								//_print_mx(tena_zc, ix1, izZ);	
-/*	=+_		*/	if(		A[ v ] >1 ){	vMOD;		    --	A[ v ];	   ++	B[ u ];		   ++	E[ u ];								dBUGop4
-/*	=+=		*/	}else{	--tena_zc;  	vNUL;						B[ u ]+= A[v]+B[v];	E[ u ] =E[ v ];	O[v]+=Q[v];				dBUGop5//	printf("\nop5 (=+=): u, v, w= %d, %d, %d	I[u]=%d	I[v]=%d	I[w]=%d\n\n", u, v, v+1, I[u], I[v], I[v+1] );
-				}	}
-
-	_next_a:	if( za != a ){		x = ARG( ++a );
-	_next_x:	    if(				x <	*Epsilon(	cube) ){	   								CoINTRaLOC(x);
-			    }else{			/*	*	*	*	*	*	*	*	*	*	*	*	*/	SvCOMMIT;
-				if(			iC< zzC){		cube = SvPVbyte_nolen(	sv = *( ++iC +pSv0 ) );
-						if(	x >	*Epsilon(	cube) )		/* break run; resume search */					break;
-				}else	if(	iC != zC){		cube = SvPVbyte_nolen(	sv = *( ++iC +pSv0 ) );
-						if(	x >	*Epsilon(	cube) ){		/* past end (2 cubes up)		*/	E_=*Epsilon(	cube); goto	_epiloc;	}
-				}else	{							/* past end (1 cube up)		*/	E_=*Epsilon(	cubeZ);		_epiloc:
-							if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();			EPILOC( E_ );		return;
-//	EPIGLOT;		SvCOMMIT;	if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();							return;
-/*	it only makes sense to roll excursive arguments into the current cube if x is within the first void of the next cube,
-	or this cube is the last cube.
-	It does not make sense to do so if x is more than one cube out, because then we have to rewrite a lot of unchanged data.
-	The current procedure works best in all cases other than "iC==zC". 
-	What we are trying to do with EPILOG  is effect better cube utilization, but this is a very limited edge case
-	compared to the vast majority of cases where many arguments extend past the logical end of the object.
-	*/
-						}
-				if(			x != *Epsilon(	cubeZ)){
-						if(	x != *Epsilon(	cube )){	CS = SvCUR(	sv );				/*	ReINTRALOC;	*/	goto	_loca;	}
-						else{	cubeZ =	cube;	CSZ=SvCUR(	svZ = sv ); zcZ = zcOf(	cube );			goto	_anteloc;	}
-				}else	{														ANTELOC;		goto	_interloc;
-			    }	}		}														else				goto	_exit_1;
-/*	run */	} while( 1 );		lb =iC+1;	ub=nC;		iC= ( lb+ub )>>1;
-	}	}	} while( 1 );		/* search	*/
-    }else										{	CS=SvCUR( sv=*pSv0 );		iC=0;
-/* special case to start in cube 0 eliminates a branch */	CSZ=16;	zcZ=0;	cubeZ = nube;						goto	_loca;
-											}
-	_exit_1:																		SvCOMMIT;
-	_exit_2:				if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();
-	}
+void deIce_vEI(){	DeICE_vEI(	u, v );	}
+void deIce_vKE(){	DeICE_vKE(	u, v );	}
+//void deIce_vKI(){	DeICE_vKI(	u, v );	}
+void deIce_vKEI(){	DeICE_vKEI(	u, v );	}
+//void deIce_vKEI2(){	DeICE_vKEI2(	u, v );	}
+void reIce_uO(	ui16 u, ui16 v)	{	ReICEuO(	u, v );	}
+void reIce_uOx(	ui16 u, ui16 v)	{	ReICEuOx(	u, v );	}
 
 
 
-
-#define zcNUL	RW[ zc ] = null
-#define uDEL		RW[ u ] = del
-#define UnREADv	if( RW[ v ] !=null ) --ic;
-
-void	_unset(){
-	#ifdef DEBUG_ACCESS_L1			//	audit nominal activity
-		#define dBUGopA0	cS=sprintf(aString, "\r=|x=	x[%lld]: %lld ( 0x%llX )	=|x=  	! ! ! A==0 ic#%d cube #%lld \n\t",	a, x, x, ic, iC	); AvDBUG_PUSH( aString, cS );
-		#define dBUGopB0	cS=sprintf(aString, "\r=|x!	x[%lld]: %lld ( 0x%llX )	=|x=  	! ! ! B==0 ic#%d cube #%lld \n\t",	a, x, x, ic, iC	); AvDBUG_PUSH( aString, cS );
-		#define dBUGopA		cS=sprintf(aString, "\r=x|_ 	x[%lld]: %lld ( 0x%llX )	=x|_   	\n\t", a, x, x );  AvDBUG_PUSH( aString, cS );
-		#define dBUGopAz		cS=sprintf(aString, "\r=x|$ 	x[%lld]: %lld ( 0x%llX )	=x|$  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGopB		cS=sprintf(aString, "\r_x|_ 	x[%lld]: %lld ( 0x%llX )	_x|_   	\n\t", a, x, x );  AvDBUG_PUSH( aString, cS );
-		#define dBUGopBz		cS=sprintf(aString, "\r_x|$ 	x[%lld]: %lld ( 0x%llX )	_x|$  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGopZ		cS=sprintf(aString, "\r!x|_ 	x[%lld]: %lld ( 0x%llX )	!x|_   	\n\t", a, x, x );  AvDBUG_PUSH( aString, cS );
-		#define dBUGopZz		cS=sprintf(aString, "\r!x|$ 	x[%lld]: %lld ( 0x%llX )	!x|$  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGopC		cS=sprintf(aString, "\r=x= 	x[%lld]: %lld ( 0x%llX )	=x=  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGopD 		cS=sprintf(aString, "\r=x_ 	x[%lld]: %lld ( 0x%llX )	=x_  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGopE		cS=sprintf(aString, "\r_x= 	x[%lld]: %lld ( 0x%llX )	_x=  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGopF		cS=sprintf(aString, "\r_x_ 	x[%lld]: %lld ( 0x%llX )	_x_  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-		#define dBUGopX		cS=sprintf(aString, "\r___	x[%lld]: %lld ( 0x%llX )	___   	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-	#else
-		#define dBUGopA0
-		#define dBUGopB0
-		#define dBUGopA
-		#define dBUGopAz
-		#define dBUGopB
-		#define dBUGopBz
-		#define dBUGopZ
-		#define dBUGopZz
-		#define dBUGopC 
-		#define dBUGopD
-		#define dBUGopE
-		#define dBUGopF
-		#define dBUGopX
-	#endif
-	#if defined(DEBUG_AvCOMMIT_L1)
-		#define dBUG_SvCHOP(		$iC )		cS=sprintf(aString, "\r%c	pre-commit:	chop SV     at %lld %+lld (%lld)\n",			241,	$iC,		rel_iC,				$iC+rel_iC			);	AvDBUG_PUSH( aString, cS );
-	#else
-		#define dBUG_SvCHOP(		$iC )
-	#endif
-/*
-	#define E1 printf("\ngoto _exit_1 at line %lld\n", __LINE__ );
-	#define E2 printf("\ngoto _exit_2 at line %lld\n", __LINE__ );
-	#define AL printf("\ngoto _anteloc at line %lld\n", __LINE__ );
-	#define IL printf("\ngoto _interloc at line %lld\n", __LINE__ );
-	#define LO printf("\ngoto _loca at line %lld\n", __LINE__ );
-	#define NA printf("\ngoto _next_a at line %lld\n", __LINE__ );
-*/
-	#define E1
-	#define E2
-	#define AL
-	#define IL
-	#define LO
-	#define NA
-
-ui64		Ac, Bc, Ec, iC1;
-ui08 	Qc,	*pqz;
-
-	SV ** pSv;				pSv0	= AvARRAY(	avICE );							dBUGavCLR	dBUGinit_mx
-ui64	x = ARG0, x1=x+1;	miss=a=0;	za	= AvFILLp(	avArg);			if( za ==-1){	/*	no args	*/		return;	}
-						zzC=(	zC	= AvFILLp(	avICE )	)-1;		if( zC ==-1){	/*	no shit	*/		return;	}
-ui64								nC	= zC+1;	/*<— value to reset upper boundary (ub) to			*/
-																if( za >=247 ){	printf("!	_set(): too many arguments (buffer rotation not yet implemented)\n");	return;	}
-	INIT_SvCOMMIT;
-	INIT_AvCOMMIT;
-
-ui64	/*	shall we begin?	*/	lb=0, ub=nC;	cube = SvPVbyte_nolen(	*pSv0 );	// so, x is probably not in cube 0, but we handle it now to eliminate checking for it constantly
-if( 	/*	x1 not in cube 0	*/	x1>=*Epsilon(	cube)){							iC= ub>>1;
-  do	{/*	search for iC of x1	*/				cube = SvPVbyte_nolen(	sv =*(pSv0 +	iC ) );
-	if(						x1==*Epsilon(	cube) ){									
-		cubeZ = cube;		zcZ =	zcOf(	cubeZ ); 				  					CSZ = SvCUR(	svZ= sv );	_anteloc:
-												DeICEzu_(255);											
-		if( iC != zC ){						cube =	SvPVbyte(	sv = *(pSv0+ ++iC ),	CS );	iCI=iC;			_interloc:
-			MxINIT;		tena_zc=zc=zcOf(	cube); 	DeICE0u_K( 	0, 	1	);	u=0; v=1;	E[0]=*Epsilon(cubeZ)+A[0]+B[0]; I[0]=icI=0;
-
-/* =x|_	*/	if(	B[255] >1 ){	 --	*Epsilon(	cubeZ );	++	A[ 0 ];	   --	B[ 255 ];			ReICEzSvZ(255);						dBUGopA
-/* _x|_	*/	}else{							A[0]	+=	A[ 255 ]	+	B[ 255 ];
-			    if(			zcZ ){	*Epsilon(	cubeZ)	-=  	A[ 255 ]	+	B[ 255 ];			cubeZ[			O[ 255 ] ]=0;
-				cubeZ[	zcZ-- ]=0;												SvCUR_set( svZ,	O[ 255 ] );			dBUGopB
-/* !x|_	*/	    }else			{		/*	cubeZ is now empty	*/					AvCUT_B4( iC );						dBUGopZ
-				}			}		RW[0]=mod;												NA	goto	_next_a;
-		}else{
-/* =x|$	*/	if(	B[255] >1 )	{ --	*Epsilon(	cubeZ );				   --	B[ 255 ];			ReICEzSvZ(255);						dBUGopAz
-/* ! |$	*/ 	}else if(		zcZ)	{	*Epsilon(	cubeZ) -=  	A[ 255 ]	+	B[ 255 ];			cubeZ[			O[ 255 ] ]=0;
-				cubeZ[	zcZ-- ]=0;												SvCUR_set( svZ,	O[ 255 ] );			dBUGopBz
-/* !x|$	*/	}else			{		/*	cubeZ is now empty	*/	iC1=iC+1;			AvCUT_B4( iC1 );						dBUGopZz
-							}		/*	(it was the last cube)	*//*	^ yeah, really */	miss += za-a;	E2	goto 	_exit_2;
-			}
-	}else if(					x1<	*Epsilon(	cube) ){	iC=(( ub	= iC )+lb	)>>1;  if( iC==ub ){	INTRALOC;	LO	goto	_loca; 	}
-	}else{				/*	x1>	*Epsilon(	cube)*/	iC=(( lb	= iC )+ub	)>>1;  if( iC==lb  ){	INTRALOC1Up_EX;			_loca:
-		MxINIT; 			tena_zc=zc=zcOf(	cube );	DeICE0u_E(	0, 	1	);	u=0; v=1;							I[ 0 ]=0;
-		while( x >E[ u ] ){							DeICEv_EI(	u,	v	);	u = v++; }						I[ u ] =icI =ic;
-		do	{	d =E[u] -x;
-			if(	d >=1&&	B[ u ] >=d ){	uMOD;
-				if(		B[ u ] >1 ){
-					if(	B[ u ] !=d ){
-/* =x=	*/				if(	d!=1 ){ if(	RW[ v ] )	{w=v+1;	RW[ w ]=RW[v];	printf( lightning ); printf("\nunset: shunt v to w\n");
-											Q[w]=Q[v]; A[w]=A[v];	B[w]=B[v];		E[ w ] = E[ v ];				I[w]=I[v];
-											}												O[v+1]=O[v];
-					  ++	tena_zc;		vNEW;	Q[v]=Q[u]; A[ v ]=1;	B[ v ]=d-1;		E[ v ] = E[ u ];				I[ v ] = I[ u ];
-											Q[u]=0;	/*	i +=	*/	B[ u ]-=d;			E[ u ]-= d;	/*Ox[ u ]=16;	I[ u ] = 0;*/	dBUGopC;
-						
-/* =x_	*/				}else{	if(	RW[v]==null ){	DeICEv_KEI( u, v );  }	
-									vMOD;		  ++	A[ v ];/*i+=*/--B[ u ];			--E[ u ];								dBUGopD;
-							}
-/* _x=	*/			}else{						  ++	A[ u ];	   --	B[ u ];												dBUGopE;
-						}
-/* _x_	*/		}else{ --	tena_zc;	if(	RW[v]==null){// DeICEvINC_KEI( u, v );	}else{	// <-- I'd like to activate this
-												DeICEv_KEI( u, v );  }
-									vNUL;	Q[u]=0;	A[u]+=A[v]+1;	B[ u ]=B[ v ];		E[ u ]=E[ v ];	O[v]+=Q[v];/*	I[ u ] = I[ v ];*/	dBUGopF;
-					}
-/* ___	*/	}else	{ ++	miss;	/*	RW []	Q []		A []			B []				E []			O []			I []	*/		dBUGopX;
-					}
-
-	_next_a:	if( za != a ){		x1=(	x = ARG( ++a ) )+1;
-	_next_x:		if(			x1 < *Epsilon(	cube ) ){									CoINTRaLOC(x);
-				}else{															SvCOMMIT;	//SvCOMMITx;
-					if(		iC< zzC){		cube = SvPVbyte_nolen(	sv = *( ++iC +pSv0 ) );
-						if(	x1 >	*Epsilon(	cube) )				/* break run; resume search */			break;
-					}else if(	iC != zC){		cube = SvPVbyte(		sv = *( ++iC +pSv0 ),	CS );
-						if(	x1 >	*Epsilon(	cube	) ){			miss+=1+( za-a );					E2	goto	_exit_2;	}
-					}else if(	x1 != *Epsilon(	cubeZ)){				miss+=1+( za-a );					E2	goto	_exit_2;
-					}else{																	AL	goto	_anteloc;
-						}
-					if(		x1 != *Epsilon(	cubeZ)){
-						if(	x1 != *Epsilon(	cube )){	CS = SvCUR(	sv );				/*	ReINTRALOC;*/LO	goto	_loca;	}
-						else{	cubeZ =	cube;	CSZ=SvCUR(	svZ = sv ); zcZ = zcOf(	cube );		AL	goto	_anteloc;	}
-					}else{						CS = SvCUR(	sv );					DeICEzu_(255);IL	goto	_interloc;	}
-				}	}else{																	E1	goto	_exit_1;	}
-/*	run */	} while( 1 );		lb =iC+1;	ub=nC;		iC= ( lb+ub )>>1;
-	}	}	} while( 1 );		/* search	*/
-/* special cases to start in cube 0 eliminates a branch	*/
-  }else	{	cubeZ = nube;		zcZ = -1;				CSZ=16;		svZ=NULL;			
-/* the first shall be last and the last shall be first		*/	CS = SvCUR(	sv=*pSv0 );		iC=0;			LO	goto	_loca;
-/* but the last of the first is the last of the last		*/	/*!.*/
-		}
-	_exit_1:																		SvCOMMIT;	//SvCOMMITx;
-	_exit_2:				if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();
-	}
-
+#ifdef EXPERIMENTAL_ENABLE
 //	soundcloud.com/byproduct/asteroiddance_final
 //	music.youtube.com/playlist?list=PLW-SI8dXPY9PCKS_Fr7yJ0bdak0S5RwOR
 
-#ifdef ENABLE_EXPERIMENTAL
 void	_toHash(){					hvOut = newHV();
 	ui64			x, Ac, Bc, Ec=0,	i=0;
 	char			ic, zc,
 				key[ 8 ];
-	ui08			Qc,	bs;
+	ui08			Lc,	bs;
 			*	cube,
 			*	pq;
 	SV		**	sviC0  =	AvARRAY(  	avICE ),
@@ -657,11 +417,11 @@ void	_toHash(){					hvOut = newHV();
 
 	long long int	iC, zC  =	AvFILLp(  	avICE );
 
-	for(		iC=0; iC<= zC;  ++iC ){								sv = *( sviC0 +iC );
+	for(		iC=0; iC<= zC;  ++iC ){									sv = *( sviC0 +iC );
 										cube = SvPVbyte(	sv,  CS );
 		pq=								cube +16;
 						zc = zcOf(		cube );
-		for(	ic=0;  ic<=	zc; ++ic ){	 deICE(	cube[ ic ], Qc, Ac, Bc );
+		for(	ic=0;  ic<=	zc; ++ic ){	 deICE(	cube[ ic ], Ac, Bc, Lc );
 					x =Ec +Ac;
 			for( Ec =	x +Bc;  x< Ec;  ++x ){	bs = 	__builtin_clzll( x)	&0xFFFFFFFFFFFFFF00;
 				*( (ui64*) key )= x;	//<< bs;
@@ -678,7 +438,7 @@ void	_filterHV(){
 	ui64			Ac, Bc, Ec=0,	i=0;
 	char			ic, zc,
 				key[ 8 ];
-	ui08			Qc,
+	ui08			Lc,
 			*	cube,
 			*	pq;
 	SV		**	sviC0  =	AvARRAY(  	avICE ),
@@ -688,11 +448,11 @@ void	_filterHV(){
 	long long int	iC, zC  =	AvFILLp(  	avICE );
 	printf("\r_filterHV(): avICE has %d+1 element[s]\n	hvArg has (%d) key[s]\n\n", zC, N);
 
-	for(		iC=0; iC<= zC;  ++iC ){						sv = *( sviC0 +iC );
-									cube = SvPVbyte(	sv,  CS );
-		pq=							cube +16;
-					zc = zcOf(		cube );
-		for(	ic=0;  ic<=zc; ++ic ){	deICE(	cube[ ic ], Qc, Ac, Bc );
+	for(		iC=0; iC<= zC;  ++iC ){								sv = *( sviC0 +iC );
+										cube = SvPVbyte(	sv,  CS );
+		pq=								cube +16;
+						zc = zcOf(		cube );
+		for(	ic=0;  ic<=	zc; ++ic ){	deICE(	cube[ ic ], Ac, Bc, Lc );
 						*( (ui64*)  	key ) =Ec +Ac;
 			for(	Ec	=	*( (ui64*)  	key ) +Bc;
 						*( (ui64*)  	key )< Ec;
@@ -708,4 +468,108 @@ void	_filterHV(){
 
 #endif
 
-/*	dooooo	ffwgfsfgeff*/
+ui08 const	digs0x3	=	32;
+ui64 const	unit0x3[		32]={	},
+			hmask0x3[	32]={	0xFFFFFFFFFFFFFFFF,	0xFFFFFFFFFFFFFFFC,	0xFFFFFFFFFFFFFFF0,	0xFFFFFFFFFFFFFFC0,
+								0xFFFFFFFFFFFFFF00,	0xFFFFFFFFFFFFFC00,	0xFFFFFFFFFFFFF000,	0xFFFFFFFFFFFFC000,
+								0xFFFFFFFFFFFF0000,	0xFFFFFFFFFFFC0000,	0xFFFFFFFFFFF00000,	0xFFFFFFFFFFC00000,
+								0xFFFFFFFFFF000000,	0xFFFFFFFFFC000000,	0xFFFFFFFFF0000000,	0xFFFFFFFFC0000000,
+								0xFFFFFFFF00000000,	0xFFFFFFFC00000000,	0xFFFFFFF000000000,	0xFFFFFFC000000000,
+								0xFFFFFF0000000000,	0xFFFFFC0000000000,	0xFFFFF00000000000,	0xFFFFC00000000000,
+								0xFFFF000000000000,	0xFFFC000000000000,	0xFFF0000000000000,	0xFFC0000000000000,
+								0xFF00000000000000,	0xFC00000000000000,	0xF000000000000000,	0xC000000000000000	};
+ui08	const	digs0x7	=	22;
+ui64	const	unit0x7[		22 ]={	0x0000000000000001,	0x0000000000000008,	0x0000000000000040,	0x0000000000000200,
+								0x0000000000001000,	0x0000000000008000,	0x0000000000040000,	0x0000000000200000,
+								0x0000000001000000,	0x0000000008000000,	0x0000000040000000,	0x0000000200000000,	
+								0x0000001000000000,	0x0000008000000000,	0x0000040000000000,	0x0000200000000000,	
+								0x0001000000000000,	0x0008000000000000,	0x0040000000000000,	0x0200000000000000,	
+								0x1000000000000000,	0x8000000000000000	},
+			hmask0x7[	22]={	0xFFFFFFFFFFFFFFFF,	0xFFFFFFFFFFFFFFF8,	0xFFFFFFFFFFFFFFC0,	0xFFFFFFFFFFFFFE00,
+								0xFFFFFFFFFFFFF000,	0xFFFFFFFFFFFF8000,	0xFFFFFFFFFFFC0000,	0xFFFFFFFFFFE00000,
+								0xFFFFFFFFFF000000,	0xFFFFFFFFF8000000,	0xFFFFFFFFC0000000,	0xFFFFFFFE00000000,
+								0xFFFFFFF000000000,	0xFFFFFF8000000000,	0xFFFFFC0000000000,	0xFFFFE00000000000,
+								0xFFFF000000000000,	0xFFF8000000000000,	0xFFC0000000000000,	0xFE00000000000000,
+								0xF000000000000000,	0x8000000000000000	};
+
+ui08 const	digs0xF	=	16;
+ui64 const	unit0xF[		16]={	},
+			hmask0xF[	16]={	0xFFFFFFFFFFFFFFFF,	0xFFFFFFFFFFFFFFF0,	0xFFFFFFFFFFFFFF00,	0xFFFFFFFFFFFFF000,
+								0xFFFFFFFFFFFF0000,	0xFFFFFFFFFFF00000,	0xFFFFFFFFFF000000,	0xFFFFFFFFF0000000,
+								0xFFFFFFFF00000000,	0xFFFFFFF000000000,	0xFFFFFF0000000000,	0xFFFFF00000000000,
+								0xFFFF000000000000,	0xFFF0000000000000,	0xFF00000000000000,	0xFF00000000000000	};
+#define	FIRST_INCL(	$x )
+
+#define	NEXT_INCL(	$x )
+
+#define	COMMIT_INCL					 SvCOMMIT;	\
+		if( dsc || rSeqIns[0] || rSeqCut[0] )		_av_commit();
+
+extern char	 _vec0x7_add(	ui64 x00,	ui64 xFF,	ui64 _0, char ctx );
+
+void	_enum0x7_set(  ){
+	char	ctx=0;
+	ui64	x	= ARG0;	a =	hit =0;	za =	AvFILLp(	avArg);					if( za ==-1){	/*	no args */		return;	}
+	ui64	zx	= ARG(	za ),	xu, xu1, xh;
+	bool				run_iC;
+	ui64				hmask,
+					lmask,
+					unit;
+					
+	SV	**	pAv;
+	si08		zDig 	= AvFILLp(  	avEnum );
+//	ui08		xDig 	= digs0x3 	-( __builtin_clzll( zx ) >>2 );
+	ui08		xDig 	= digs0x7 	-( __builtin_clzll( zx ) >>3 );
+//	ui08		xDig 	= digs0xF 	-( __builtin_clzll( zx ) >>4 );
+	ui08		d;
+	if(		xDig<=	zDig)						pAv = AvARRAY(	avEnum );
+	else	{			  AvINIT(  	avEnum, xDig );	pAv = AvARRAY(	avEnum );
+		for(	d =	zDig +1; d <= xDig; ++d )	{	*(	pAv +d )= (SV*) newAV();			
+				zDig =xDig;				}
+		}
+	for( d =1; d<=	zDig; ++d ){					xu1 =(	xu= (	xh=	ARG0	& hmask0x7[	d ] )	+unit0x7[ d ] );
+		avICE = (AV*) *(pAv+d);		FIRST_INCL(	xu );
+		for(		a=	s=1; a<= za; ++a )
+			if(										xu==(	xh=	ARG( a )	& hmask0x7[	d ] ) ) ++s;
+			else	{			ctx=	_vec0x7_add(	xu1, 	xu,	s,	ctx );
+											xu1 =(	xu	=	xh 	)						+unit0x7[	d ];
+				++ a;			NEXT_INCL(	xu);
+				for(	s=1; a<= za; ++a)
+					if(						xu==(	xh=	ARG( a )	& hmask0x7[	d ] ) ) ++s;
+					else	{ 	ctx=	_vec0x7_add(	xu1, 	xu,	s,	ctx	);
+								s =1;		xu1 =(	xu	=	xh 	)						+unit0x7[ d ];
+								NEXT_INCL(xu);
+						}		break;
+				}
+		;					ctx=	_vec0x7_add(	xu1, 	xu,	s,	ctx );
+							COMMIT_INCL;
+		}
+	return;
+	}
+
+
+
+/*	cat
+Dearest Claude, I am working on a Perl/XS module written in C, and it is an instantiable object class for a compressed prefix-sum structure I call ICEPack.  I have a series of macros with a very carefully chosen naming convention inspired by Latin, and I must carefully choose another name for a specific edge case variant.  
+
+These macros are called within my setter methods as an abstraction layer for locating the relevant compressed fragments  (called "cubes") for given method arguments (values of x), as well as seeking within those fragments to locate relevant encoded units to be decoded, modified and then re-encoded.  These macros help make the source code of the setter methods intelligible, as there is much to do with navigating the compressed data fragments which doesn't need to be reiterated.  The use of Latin , I feel, instantly sets them apart from all the other macros in the program, especially because they all end in "LOC", an abbreviation of "LOCUS".
+
+Each operation needs to modify two adjacent encode units at once (as vectors [u, v], which may both be in the same cube or bridging adjacent cubes).  To further complicate their work, each setter supports batch arguments, and in order to promote the automatic re-balancing of the overall structure, any straight run of arguments located in a straight run of cubes must be tracked and re-encoded at once.  As such, these macros also manage the mark-in and mark-out of continuous cube runs, which has prompted me to create a run-intializing as well as a run-continuing variant to go with each scope type.  In order to make these macro names short, concise and descriptive, I have adopted a shorthand naming convention inspired by Latin.  Currently, there are (8) of these macros, but it has come to my attention that I must come up with a descriptive name for a 9th.  Here are the ones I have so far, as well as brief descriptions of what they do:
+
+ANTELOC and INTERLOC are the only two which handle vectors [u, v] separately.  They bring focus on an "interlocal" operation scope where vector u focuses on the last encode unit of the low cube, and vector v focuses on the first encode unit of the right-hand cube.
+
+Conversely, CoANTELOC and ReINTERLOC do the same for vectors [u, v], but in continuing a run that is already, uh, running.
+
+INTRALOC and CoINTRALOC focus vectors [u, v] on two adjacent cycla which are found within the same one cube.
+
+EPILOC and CoEPILOC focus on the last cube in the array structure, positioning left-hand vector [u] at the end to append remaining args.
+
+Now then, to the point:  it has come to my attention that I have an unnamed edge case which is computationally trivial, yet still needs a descriptive name for debugging purposes.  It is functionally identical to INTRALOC, but specific to cube #0, which requires unique initialization due to the fact that no cube precedes cube 0.
+
+Can you think of a Latin prefix to prepend to INTRALOC which would distinguish it from the others while clearly signifying that it is especially meant for the very first "cube" in the structure?
+
+
+
+
+
+*/

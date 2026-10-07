@@ -1,16 +1,4 @@
-#define	cui8	const	unsigned	char	
-#define	ui08			unsigned	char	
-#define	ui16			unsigned	short 
-#define	ui32		long	unsigned	int 
-#define	si64	long long			int 
-#define	ui64	long long	unsigned	int 
-#define	ui64	long long	unsigned	int 
-
-	#include	"_ICE.h"
-
-#define	ARG( $a )	SvIVX( *(	pSvA0 + $a )	)
-#define	ARG0		SvIVX( *	pSvA0		)
-
+#include	"_ICE.h"
 extern char	* cube_err[],
 			* svtype_err,
 			* malloc_err,
@@ -29,20 +17,20 @@ extern ui08		svtype_cnt;
 extern char *	opStat[];
 extern enum	opStat{	null, del, ok, mod, new}
 
-			RW[	256 ];			/* read/write status enumerator			*/
+			RW[	512 ];			/* read/write status enumerator			*/
 
-extern ui64	A[	256 ],	Ac,		/* relative coord.s	define	each negative cyclum phase		in	matrix { A[], B[], E[], Q[] }	*/
-			B[	256 ],	Bc,		/* relative coord.s	define	each positive cyclum phase		in	matrix { A[], B[], E[], Q[] }	*/
-			E[	256 ],	Ec;		/* "Epsilon" values	bound	each absolute cyclum range		in	matrix { A[], B[], E[], Q[] }	*/
-extern ui08 	I[	256 ],			/* cycla indeces	align	pre op / post op keybytes		in	char *	cube			*/
-			H[	256 ],			/* keybytes		encode	each cyclum's q-data geometry	in	char *	cube			*/
-		*	Qp[	256 ],
-			Q[	256 ],	Qc,		/* q-data lengths	define	each read increment			in	char *	cube			*/
-			Qx[	256 ],			/* q-data lengths	define	each write increment			in	char *	cube			*/
-			O[	256 ],			/* q-data offsets	mark	each read position				in	char *	cube			*/
-			Ox[	256 ],			/* q-data offsets	mark	each write position				in	char *	cube			*/
-		u,		v,		w,		/* matrix indeces	iterate	the modification vector			in	matrix { A[], B[], E[], Q[] }	*/
-	ixM, izM;		 				/* matrix indeces	mark	the modification range			in	matrix { A[], B[], E[], Q[] }	*/
+extern ui64	A[	512 ],	Ac,		/* relative coord.s	define		each negative cyclum phase		in	matrix { A[], B[], E[], L[] }	*/
+			B[	512 ],	Bc,		/* relative coord.s	define		each positive cyclum phase		in	matrix { A[], B[], E[], L[] }	*/
+			E[	512 ],	Ec;		/* "Edge" values	bound		each absolute cyclum range		in	matrix { A[], B[], E[], L[] }	*/
+extern ui08 	I[	512 ],			/* cycla indeces	align		pre op / post op keybytes		in	char *	cube			*/
+			K[	512 ],			/* keybytes		encode		each cyclum's q-data geometry	in	char *	cube			*/
+		*	Qp[	512 ],
+			L[	512 ],	Qc;		/* q-data lengths	which define	each read increment			in	char *	cube			*/
+extern ui16	O[	512 ],			/* q-data offsets	mark		each read position				in	char *	cube			*/
+			Oª[	512 ];			/* q-data offsets	mark		each write position				in	char *	cube			*/
+extern char unsigned 	u, v, w,		/* matrix indeces	iterate		the modification range			in	matrix { A[], B[], E[], L[] }	*/
+					ixM, izM;		/* matrix indeces	mark in/out	the Modification range			in	matrix { A[], B[], E[], L[] }	*/
+
 
 const char	*	fmtLLU[	24	] ={
 				NULL,	" %c%-1llu ",	" %c%-2llu ",	" %c%-3llu ",	" %c%-4llu ",	" %c%-5llu ",	" %c%-6llu ",	" %c%-7llu ",
@@ -54,6 +42,11 @@ const char	*	fmtLLU[	24	] ={
 						" %c%02X       ",				" %c%02X        ",			" %c%02X         ",		" %c%02X          ",		" %c%02X          ",		" %c%02X            ",		" %c%02X             ",
 						" %c%02X              ",			" %c%02X               ",		" %c%02X                ",	" %c%02X                 ",	" %c%02X                 ",	" %c%02X                   ",	" %c%02X                    ",
 						" %c%02X                     ",		" %c%02X                      "	},
+			*	fmtLLX[	24	] ={
+				NULL,	" %c%03llX ",					" %c%03llX ",				" %c%03llX  ",			" %c%03llX   ",		" %c%03llX   ",		" %c%03llX     ",		" %c%03llX      ",
+						" %c%llX       ",				" %c%llX        ",			" %c%llX         ",		" %c%llX          ",		" %c%llX          ",		" %c%llX            ",		" %c%llX             ",
+						" %c%llX              ",				" %c%llX               ",		" %c%llX                ",	" %c%llX                 ",	" %c%llX                 ",	" %c%llX                   ",	" %c%llX                    ",
+						" %c%llX                     ",			" %c%llX                      "	},
 			*	fmtStr[	24	] ={
 				NULL,	" %-1s ",		" %-2s ",		" %-3s ",		" %-4s ",		" %-5s ",		" %-6s ",		" %-7s ",
 						" %-8s ",		" %-9s ",		" %-10s ",	" %-11s ",	" %-12s ",	" %-13s ",	" %-14s ",

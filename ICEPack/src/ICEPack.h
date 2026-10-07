@@ -1,12 +1,12 @@
-#include "_AvMOD.h"
 #include	"_ICE.h"
+#include "_AvMOD.h"
 
 extern HV	*	hvICE,
 			*	hvArg,
 			*	hvOut;
 extern AV	*	avOut,
 			*	avDBUG;	extern long long int	zd;
-extern AV	*	avICE;		extern long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, post_zC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
+extern AV	*	avICE;		extern long long int	iC, iCI, iCO, post_C, zC, zzC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
 extern AV	*	avICE_;		extern long long int	zCs;
 extern AV	*	avArg;		extern long long int	a, za; 					//	a list of integer value[s] to operate on.
 extern SV	*	rvOut,				/*	arrayref to AV* avOut									*/
@@ -15,12 +15,12 @@ extern SV	*	rvOut,				/*	arrayref to AV* avOut									*/
 			*	rvICE_,				/*	arrayref to AV* avICE_									*/
 			**	src,
 			**	dst,
-			**	pSv0;
+			**	Aº;
 extern long long int	displacement;
-extern ui08		*pk,		*pq,
-			/*	*pkz, */	*pqz,
-				*pk_,	*pq_,	
-			/*	*pkx, */	*pqx,
+extern ui08	/*	*pk,		*pq,		*/
+			/*	*pkz, 	*pqz,	*/
+			/*	*pk_,	*p_,	*/
+			/*	*pkx, 	*pqx,	*/	
 				q, q0, q1,		/*	q-field lengths, used generically	*/
 				buf[];
 extern const ui08	nube[16];		/*	null cube / new cube			*/
@@ -31,14 +31,15 @@ extern void		_icepack_init(),
 				_toTextX(),
 				_set240(),
 				_unset(),
+				_sweep(),
 				_printHex( 	SV* rvICE);
 extern	SV	*	toHex(		SV* rvICE);
 extern bool		_addsUp(),
 				_has(),
 				_includes(),
 				_excludes(),
-				_in(),
-				_ex(),
+				_contains(),
+				_encompasses(),
 				_fits(),
 				_hits(),
 				_strikes();

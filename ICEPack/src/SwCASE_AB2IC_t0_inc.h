@@ -1,8 +1,8 @@
 /*	This file was programmatically generated.
 		script:		gen_c_for__SwCASE_AB2IC_t[0123].h.pl
-		last modified:	Tue May 19 08:40:22 2026	*/
+		last modified:	Tue Sep 29 11:56:17 2026	*/
 
-#define	SwCASE_AB2IC_t0_inc( $a, $b, $pq, $i)	/*	cast [a, b] to the high side of *pq	w/ (0) byte[s] of overrun tolerance	*/		\
+#define	SwCASE_AB2IC_t0_inc( $pq, $a, $b , $i)	/*	cast [a, b] to the high side of *pq	w/ (0) byte[s] of overrun tolerance	*/		\
 \
 /*	part 1 of 4:	A disabled;	B disabled	(neither)	*/	\
 case 0x00:	/*  0, 0   */	\

@@ -1,30 +1,32 @@
 // These macros have been adapted from Perl 5.32's sv.c, I believe, and all credit goes where it is due.
 
-#define AvINIT1( $av)			if( !AvALLOC( $av ) || AvMAX( $av )<=0 ) 	av_extend( $av, 0);							\
+#define AvINIT1(	$av)			if( !AvALLOC( $av ) || AvMAX( $av )<=0 ) 	av_extend( $av, 0);						\
 							AvFILLp( $av)=0;
+#define AvINIT(	$av, $n )		if( !AvALLOC( $av ) || AvMAX( $av )<=$n ) 	av_extend( $av, $n);					\
+							AvFILLp( $av)=$n;
 
 #define AvINSERT1( $av, $I )			displacement = 1+AvFILLp( $av ) -i;										\
-							if(	displacement <0 ){					/* not that much array */		\
-								displacement =0;												\
+							if(	displacement <0 ){					/* not that much array */				\
+								displacement =0;														\
 								if (!AvALLOC( $av ) )	av_extend( $av , 0);								\
-								}															\
-							/* push up or down? */												\
+								}																	\
+							/* push up or down? */														\
 							if ( $I< displacement && 1 <= AvARRAY( $av ) - AvALLOC( $av ) ){	/*slide left*/		\
-								if( $I) {														\
-									src = AvARRAY( $av );											\
-									dst = src	-1;												\
-									Move(src, dst, $I, SV*);										\
-									}														\
-								--AvARRAY( $av );												\
-								++AvMAX( $av );													\
-								++AvFILLp( $av );													\
-							}else{											/*slide right*/		\
+								if( $I) {																\
+									src = AvARRAY( $av );												\
+									dst = src	-1;														\
+									Move(src, dst, $I, SV*);												\
+									}																\
+								--AvARRAY( $av );														\
+								++AvMAX( $av );														\
+								++AvFILLp( $av );														\
+							}else{											/*slide right*/				\
 								if (AvFILLp( $av )	+1 >= AvMAX( $av ) )	av_extend( $av ,	AvFILLp( $av ) +1);		\
-																		++AvFILLp( $av );			\
-								if( displacement ){												\
-									dst = AvARRAY( $av ) + AvFILLp( $av );								\
-									src = dst	-1;												\
-									while(displacement--)	*dst-- = *src--;						\
+																		++AvFILLp( $av );				\
+								if( displacement ){														\
+									dst = AvARRAY( $av ) + AvFILLp( $av );									\
+									src = dst	-1;														\
+									while(displacement--)	*dst-- = *src--;								\
 								}	}
 
 #define AvINSERT( $av, $I, $N){		displacement = 1+AvFILLp( $av) -$I;										\

@@ -22,14 +22,15 @@
 #include "XSUB.h"
 #include "dBUG.h"
 #include "out.h"
-//	#include "SwCASE_IC_HEXL_inc.h"
-	#include "SwCASE_IC2XE_R2L_dec.h"
+//	#include "SwCASE_IC_HEXL_inc.h"	
+//	#include "SwCASE_IC2XE_R2L_dec.h"
 	#include "SwCASE_IC2XE_inc.h"
 #define __ToTEXT_ROW_ALLOC	224
 
 void _toText(){
 	av_push(		avOut,	newSVpvn(	"\n\n", 2 ) );
-	STRLEN		pvS, CS, nCS, lenRowID, metaLen, EOLLen;
+	int			nCS;
+	STRLEN		pvS, CS, lenRowID, metaLen, EOLLen;
 	char			ptrOddRow[__ToTEXT_ROW_ALLOC ],
 				ptrEvnRow[__ToTEXT_ROW_ALLOC ],
 				oCell,
@@ -45,8 +46,8 @@ void _toText(){
 			*	po,
 			*	pe;
 	long long int	x,		  iC,	zC = AvFILLp(		avICE ),	nC =zC +1;
-	SV		**	pSv0 =			AvARRAY(	avICE ),
-			*	sviC=*( pSv0	+zC );
+	SV		**	ICEº =			AvARRAY(	avICE ),
+			*	sviC=*( ICEº	+zC );
 
 	ui08		*	cube,	pos,
 				edge, wipe, r0,	r1,	vecS, cellS, rowLen, oddLineLen, evnLineLen,  avSizeDigs,
@@ -63,11 +64,11 @@ void _toText(){
 	}else{	cube = SvPVbyte( sviC, CS);
 		if(	cube==NULL )						{	EzC=0; vecS=12; cellS=14;	avSize=0;
 		}else								{	EzC=*( (ui64*) cube +1 );	avSize=CS;
-						log = log10l( (long double)	EzC );	/* "Epsilon" of cube zC (minus one) will be the largest number encoded	*/
+						log = log10l( (long double)	EzC );	/* "Edge" of cube zC (minus one) will be the largest number encoded	*/
 			vecS=ceil(	log );	cellS =vecS +2;
 		}	}
 	//sum total byte length of all SV* allocations in AV* avICE
-	for( iC=zC; iC >=0; --iC ){	sviC = *( pSv0 +iC );
+	for( iC=zC; iC >=0; --iC ){	sviC = *( ICEº +iC );
 			if( NULL !=	sviC
 			&& SvPOK(	sviC ) )	avSize += SvCUR( sviC );
 			}
@@ -139,18 +140,18 @@ void _toText(){
 	EOLLen	= sprintf( ptrEvnRow	+rowLen, "  \n\n" );				evnLineLen	=rowLen +EOLLen;		ptrEvnRow[evnLineLen]=0;
 	
 
-	if(	oddLineLen >__ToTEXT_ROW_ALLOC ){	printf("\n!	_toText(): row length allocation is too low!  Increase at least to %d bytes!\n\n", rowLen +metaLen );
+	if(	oddLineLen >__ToTEXT_ROW_ALLOC ){	printf("\n!	_toText(): row length allocation is too low!  Increase at least to %llu bytes!\n\n", rowLen +metaLen );
 											return;	}
 
 	av_push( avOut, newSVpvn( ptrOddRow, oddLineLen ) );
 
 	Ec=0;
 	for( iC=0; iC <= zC;  ++iC){
-		sviC = *( pSv0 +iC );		if(NULL	==	sviC		){ pvS =sprintf( aString, "\r[%llu]: NULL\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
-								if( !SvOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvOK\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
-								if( !SvPOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvPOK\n",			iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
-								if( SvTYPE( sviC )!=3	){ pvS =sprintf( aString, "\r[%llu]: SVTYPE != SVt_RV\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
-		cube=SvPVbyte( sviC,  CS );	if( cube==NULL		){ pvS =sprintf( aString, "\r[%llu]: SvPVbyte(...)==NULL\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+		sviC = *( ICEº +iC );				if(NULL	==	sviC		){ pvS =sprintf( aString, "\r[%llu]: NULL\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+										if( !SvOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvOK\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+										if( !SvPOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvPOK\n",			iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+										if( SvTYPE( sviC )!=3	){ pvS =sprintf( aString, "\r[%llu]: SVTYPE != SVt_RV\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+		cube = SvPVbyte( sviC,  CS );	if( cube==NULL		){ pvS =sprintf( aString, "\r[%llu]: SvPVbyte(...)==NULL\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 		pq	= cube +16;
 		zc= zcOf( cube );
 		
@@ -160,7 +161,7 @@ void _toText(){
 		pe = ptrEvnRow	+lenRowID;
 
 
-		for( ic=0; ic <=zc;  ++ic ){				_deICE( cube, CS, cube[ ic ], pq, Qc, Ac, Bc);	Ec =( Xc= Ac +Ec ) +Bc;
+		for( ic=0; ic <=zc;  ++ic ){				_deICE( cube, CS, cube[ ic ], pq, Ac, Bc, Qc);	Ec =( Xc= Ac +Ec ) +Bc;
 			if(				Bc<2	){
 				if(	Ac==0||	Bc==0	)	sprintf( po, fsOdd_L0, Ac? 95: 33, Bc? 95: 33, Xc	);
 				else						sprintf( po, fsOdd_L1, Xc	);	sprintf( pe, fsBlankRow		);
@@ -187,7 +188,8 @@ void _toText(){
 	}
 void _toTextX(){
 	av_push(		avOut,	newSVpvn(	"\n\n", 2 ) );
-	STRLEN		pvS, CS, nCS, lenRowID, metaLen, EOLLen;
+	int			nCS;
+	STRLEN		pvS, CS, lenRowID, metaLen, EOLLen;
 	char			ptrOddRow[__ToTEXT_ROW_ALLOC ],
 				ptrEvnRow[__ToTEXT_ROW_ALLOC ],
 				oCell,
@@ -203,8 +205,8 @@ void _toTextX(){
 			*	po,
 			*	pe;
 	long long int	x,		  iC,	zC = AvFILLp(		avICE ),	nC =zC +1;
-	SV		**	pSv0 =			AvARRAY(	avICE ),
-			*	sviC=*( pSv0	+zC );
+	SV		**	ICEº =			AvARRAY(	avICE ),
+			*	sviC=*( ICEº	+zC );
 
 	ui08		*	cube,	pos,
 				edge, wipe, r0,	r1,	vecS, cellS, rowLen, oddLineLen, evnLineLen,  avSizeDigs,
@@ -218,16 +220,16 @@ void _toTextX(){
 	if(		NULL==	sviC
 	||		!SvOK(	sviC )
 	||		SvTYPE(	sviC )!=3 )				{	EzC=0; vecS=18; cellS=20;	avSize=0;
-	}else{	cube = SvPVbyte( sviC, CS);
+	}else{	cube =  SvPVbyte( sviC, CS);
 		if(	cube==NULL )						{	EzC=0; vecS=18; cellS=20;	avSize=0;
 		}else								{	EzC=*( (ui64*) cube +1 );	avSize=CS;
-		//				log = log10l( (long double)	EzC );	/* "Epsilon" of cube zC (minus one) will be the largest number encoded	*/
+		//				log = log10l( (long double)	EzC );	/* "Edge" of cube zC (minus one) will be the largest number encoded	*/
 		//	vecS=ceil(	log );				cellS =vecS +2;
 
 			vecS=18-(__builtin_clzll( EzC ) >>2);	cellS =vecS +2;
 		}	}
 	//sum total byte length of all SV* allocations in AV* avICE
-	for( iC=zC; iC >=0; --iC ){	sviC = *( pSv0 +iC );
+	for( iC=zC; iC >=0; --iC ){	sviC = *( ICEº +iC );
 		if( NULL !=	sviC
 		&& SvPOK(	sviC ) )	avSize += SvCUR( sviC );
 		}
@@ -306,10 +308,10 @@ void _toTextX(){
 
 	Ec=0;
 	for( iC=0; iC <= zC;  ++iC){
-		sviC = *( pSv0 +iC );		if(NULL	==	sviC		){ pvS =sprintf( aString, "\r[%llu]: NULL\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
-								if( !SvOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvOK\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
-								if( !SvPOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvPOK\n",			iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
-								if( SvTYPE( sviC )!=3	){ pvS =sprintf( aString, "\r[%llu]: SVTYPE != SVt_RV\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+		sviC = *( ICEº +iC );				if(NULL	==	sviC		){ pvS =sprintf( aString, "\r[%llu]: NULL\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+										if( !SvOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvOK\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+										if( !SvPOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvPOK\n",			iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+										if( SvTYPE( sviC )!=3	){ pvS =sprintf( aString, "\r[%llu]: SVTYPE != SVt_RV\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 		cube=SvPVbyte( sviC,  CS );	if( cube==NULL		){ pvS =sprintf( aString, "\r[%llu]: SvPVbyte(...)==NULL\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 		pq	= cube +16;
 		zc= zcOf( cube );
@@ -320,7 +322,7 @@ void _toTextX(){
 		pe = ptrEvnRow	+lenRowID;
 
 
-		for( ic=0; ic <=zc;  ++ic ){				_deICE( cube, CS, cube[ ic ], pq, Qc, Ac, Bc);	Ec =( Xc= Ac +Ec ) +Bc;
+		for( ic=0; ic <=zc;  ++ic ){				_deICE( cube, CS, cube[ ic ], pq, Ac, Bc, Qc);	Ec =( Xc= Ac +Ec ) +Bc;
 			if(				Bc<2	){
 				if(	Ac==0||	Bc==0	)	sprintf( po, fsOdd_L0, Ac? 95: 33, Bc? 95: 33, Xc	);
 				else						sprintf( po, fsOdd_L1, Xc	);	sprintf( pe, fsBlankRow		);
@@ -345,133 +347,86 @@ void _toTextX(){
 
 	av_push(			avOut,	newSVpvn(	"\n\n", 2 ) );
 	}
-/*
-void _toBase96(){
-
-	ui08		*	data,
-			*	cube;
-	SV		**	pSvC0	= AvARRAY(	avICE	);
-	size_t		iC,	zC	= AvFILLp(	avICE	);
-	unsigned char	ic,	zc	= zcOf(		*pSvC0	);
-	ui64		q=0;
-	STRLEN	i0, i1=1;
-	for( iC=0;  iC<=zC;  ++iC ) 	q+= SvCUR(		*( pSvC0 +iC ) );	if( q==0 ) return;
-	SV		*	svQ = newSVpvz( q );
-	ui08		*	pq1 = SvPVbyte_nolen( svQ )+16;
-	ui16		c, r, n=0;
-
-	while( zC-- >=0 ){
-
-		cube =	SvPVbyte(	*(	pSvC0 +iC	), i0 );
-		while( --i0 >15 ){	c =	cube[ i0		] /96;	data[ i1 ] = n= cube[ i0 ] %96;
-					if(	c )	data[ i1+1	] =c;
-
-				pq0 = cube +16;
-				
-				*pq1 = *( (ui64*
-			
-/*	01230000
-
-	00004560
-	00000007 ..	8A
-
-	00123000
-	00000123
-
-	12300000
-	00012300
-	00000012
-	30000000
-
-	ui08		*	cube	= SvPVbyte(	*pSvC0,	CS );
-	
-
-
-	}*/
 
 unsigned char		**	Mpk,
 				**	Mpq;
 char				*	Mzc, MZ=-1;
 
 SV* toHex(		SV*	rvICE		){
-	AV			*	avICE,
-				*	avOut;
-	SV			*	rvOut,
-				**	pSv0,
-				**	pSviC,
-				*	SvC;
 	unsigned char	WS,	s,
 						cell[	8	]={5,5,5,5,5,5,5,5},
-				*	pr,	row[  384	], ic;
+				*	pr,	row[  512	], ic;
 	ui64			Xc,	Ec;
 	long long int	iC,	zC, nC;
 	STRLEN			L, CS, rowL;
 #ifdef DEBUG
 	STRLEN		cS;
 #endif
-	avOut	= newAV_alloc_x( nC +1 );
-	rvOut	= newRV_inc( (SV*) avOut );
-	svtype			type= SvTYPE(	rvICE );					if(	type >= svtype_cnt )				{ dBUG_4A( svtype_err,	__FUNCTION__, (ui08) type, __FILE__, __LINE__ );	type=0;	}
-															if(	type != SVt_RV || ! SvROK(	rvICE ) )	{ dBUG_2A( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names[		type ]: "UNKNOWN"  );			return rvOut;	}
-					avICE=(AV*) SvRV(	rvICE );
-					type = SvTYPE(	avICE );					if(	type != SVt_PVAV )					{ dBUG_2A( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names_ref[ 	type ]: "UNKNOWN" );			return rvOut; 	}
-	nC=( zC= AvFILLp(	avICE ) ) +1;								if(	nC==0 )							return rvOut;
-
+	svtype			type	= SvTYPE(	rvICE );				if(	type >= svtype_cnt )				{ dBUG_4A( svtype_err,	__FUNCTION__, (ui08) type, __FILE__, __LINE__ );	type=0;	}
+															if(	type != SVt_RV || ! SvROK(	rvICE ) )	{ dBUG_2A( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names[		type ]: "UNKNOWN"  );			return &PL_sv_undef;	}
+	AV			*	avICE	=(AV*) SvRV(	rvICE );
+					type	= SvTYPE(	avICE );				if(	type != SVt_PVAV )					{ dBUG_2A( usage_err[0], __FUNCTION__, type < svtype_cnt? svtype_names_ref[ 	type ]: "UNKNOWN" );			return &PL_sv_undef; 	}
+					nC =( zC	= AvFILLp(	avICE ) ) +1;			if(	nC==0 )							return &PL_sv_undef;
 	if( MZ< nC ){
 		if( MZ==-1 ){	Newx(	Mzc, nC,	char );	Newx(	Mpq, nC, ui08* );	Newx(	Mpk, nC, ui08* );
 		}else	{	Renew(	Mzc, nC,	char );	Renew(	Mpq, nC, ui08* );	Renew(	Mpk, nC, ui08* );
-				}
-		if( Mzc==NULL|| Mpq==NULL||Mpk==NULL)	{ printf( malloc_err, __FUNCTION__, __FILE__, __LINE__ );	return rvOut;	}
+				}											if( Mzc==NULL|| Mpq==NULL||Mpk==NULL){ dBUG_3A( malloc_err, __FUNCTION__, __FILE__, __LINE__ );	return &PL_sv_undef;	}
 		MZ=nC;
 		}
-	pSv0	= AvARRAY(	avICE );								if( pSv0==NULL)	{ dBUG_4A( cube_err[0], __FUNCTION__,							0, 			__FILE__, __LINE__ );				return rvOut; }
-									SvC	=*	pSv0;			if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							0, 			__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
-					type = SvTYPE(	SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
-															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
-	Mpk[	0 ] = SvPVbyte( 			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
-	Mzc[	0 ] = zcOf( Mpk[0] );								if(Mzc[ 0 ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	}
-	Mpq[	0 ] = Mpk[ 0 ]+16;									/*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*/	_continue:
+	AV			*	avOut	= newAV_alloc_x( nC+1 );
+	SV			*	svRow,
+				**	Outº	= AvARRAY(	avOut ),
+				**	ICEº		= AvARRAY(	avICE );				if( ICEº==NULL)	{ dBUG_4A( cube_err[0], __FUNCTION__,							0, 			__FILE__, __LINE__ );				return &PL_sv_undef; }
+	SV			*	SvC	=*ICEº;								if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							0, 			__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+					type = SvTYPE(	SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-2;	goto _continue; }
+															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-3;	goto _continue; }
+	Mpk[	0 ] = SvPVbyte( 			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	Mzc[0]=-4;	goto _continue; }
+	Mzc[	0 ] = zcOf( Mpk[0] );								if(Mzc[ 0 ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	Mzc[0]=-5;					}
+	Mpq[	0 ] = Mpk[ 0 ]+16;									/*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*/	_continue:
 
 
-	for(	iC=zC;	iC>0;	--iC ){		SvC	=*(	pSv0 +iC );		if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							iC,			__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
-					type = SvTYPE(	SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
-															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
-		Mpk[ iC] = SvPVbyte(			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
-		Mzc[ iC]= zcOf( Mpk[ iC ] );								if(Mzc[ 0 ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+	for(		iC=zC;	iC>0;	--iC ){	SvC	=*(	ICEº +iC );		if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							iC,			__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+					type = SvTYPE(	SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-2;		continue; }
+															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-3;		continue; }
+		Mpk[ iC] = SvPVbyte(			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-4;		continue; }
+		Mzc[ iC]= zcOf( Mpk[ iC ] );								if(Mzc[ iC ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-5;		continue; }
 		Mpq[ iC]= Mpk[ iC ]+16;
 		}
 	Xc=Ec=0;
-	for(		ic=0;	ic< 8; ++ic ){
-		for(	iC=0;	iC <= zC;	++iC ){	if( ic<= Mzc[ iC ])			{	switch( Mpk[ iC ][ ic ] ){ SwCASE_IC2XE_inc(	Mpq[ iC ], Xc, Ec, Mpq[ iC ] );	}
+	for(		iC=0; 	iC<= zC;	  ++	iC ){
+		for(	ic=0; 	ic<=	Mzc[ iC ];	++ic ){	switch( Mpk[ iC ][ ic ] ){ SwCASE_IC2XE_inc(	Mpq[ iC ], Xc, Ec, Mpq[ iC ] );	}
 /*hex*/		s = (Xc+1==Ec)?	20-	(__builtin_clzll( Xc ) >>2)
 						:	41-(	(__builtin_clzll( Xc ) >>2)+(__builtin_clzll( Ec-1 ) >>2) );
 /*dec*/	//	s = (Xc+1==Ec)?	2 +(char) ceil( log10l( (long double)	Xc	) )
 		//					4 +(char) ceil( log10l( (long double)	Xc	) ) +(char) ceil( log10l( (long double)	Ec-1	) );
 			if( s >cell[ ic ] )	cell[ ic ] = s;	
-		}	}												}
-
+		}	}
 	Xc=Ec=0;
-	for(		iC=0;	iC <= zC;  ++iC){		pr = row;
-		if(	Mzc[ iC ] ==-1 ){				L=	sprintf(	pr, "# cube #%llu error\n", iC );		av_push( avOut, newSVpvn(  row, L ) );
-		}else{
-	//		Ec = *( (ui64*) Mpk[ iC ] );
-			Mpq[ iC ]	= Mpk[ iC ] +16;	for( ic=0; ic<= Mzc[ iC ]; ++ic )	{	switch( Mpk[ iC ][ ic ] ){ SwCASE_IC2XE_inc(	Mpq[ iC ], Xc, Ec, Mpq[ iC ] );	}
-
-				if(	Xc+1 == Ec )	pr +=(	L=	sprintf(	pr,	"0x%llX,",		Xc		) );
-				else				pr +=(	L=	sprintf(	pr,	"0x%llX..0x%llX,",	Xc,	Ec-1	) );
+	for(			iC=0;	iC <= zC;  	++iC){	pr = row;
+		if(					Mzc[ iC ] >-1 ){											Mpq[ iC ]	= Mpk[ iC ] +16;
+			for(	ic=0;	ic<=	Mzc[ iC ];	++ic )	{	switch( Mpk[ iC ][ ic ] ){ SwCASE_IC2XE_inc(	Mpq[ iC ], Xc, Ec, Mpq[ iC ] );	}
+				if(	Xc+1 == Ec )				pr +=(	L=	sprintf(	pr,	"0x%llX,",		Xc		) );
+				else							pr +=(	L=	sprintf(	pr,	"0x%llX..0x%llX,",	Xc,	Ec-1	) );
 
 									WS = cell[ ic ] -L;
-				WSPACE_UNSAFE(	pr,	WS );
+				WSPACE_UNSAFE(	pr,	WS );												if( pr-row >512 ){	printf("\n!	%s (unsigned char*) row allocation too low.  need %lld\n",	__FUNCTION__, pr-row);	}
 				}
-		//	Ec = *( (ui64*) Mpk[ iC ] );
-								*pr++ = 10;		
-			av_push( avOut, newSVpvn( row, pr-row ) );
-		}	}
+			if( ic< 8 ){							pr +=(	L=	sprintf(	pr,	"undef,") );
+									WS = cell[ ic ] -L;
+				WSPACE_UNSAFE(	pr,	WS );												if( pr-row >512 ){	printf("\n!	%s (unsigned char*) row allocation too low.  need %lld\n",	__FUNCTION__, pr-row);	}
+				}
+											*pr++ = 10;	*pr=0;	svRow=newSVpvn( row, pr-row );
+		}else{										L=	sprintf(	row, "# cube #%llu error %d\n", iC, -Mzc[ iC ] );
+														*pr=0;	svRow=newSVpvn(  row, L );
+			}										*( AvARRAY( avOut ) +iC ) =	svRow;
+		}
+	AvFILLp( avOut )	= zC;
+	SV	*	rvOut	= newRV_inc( (SV*) avOut );
 	return	rvOut;
 	}
 
 void _printHex(	AV*	avICE		){
-	SV			**	pSv0,
+	SV			**	ICEº,
 				**	pSviC,
 				*	SvC;
 	unsigned char	WS,	s,
@@ -493,25 +448,25 @@ void _printHex(	AV*	avICE		){
 	if( Mzc==NULL|| Mpq==NULL||Mpk==NULL)	{ printf( malloc_err, __FUNCTION__, __FILE__, __LINE__ );	return;	}
 
 
-	pSv0	= AvARRAY(	avICE );								if( pSv0==NULL)	{ dBUG_4A( cube_err[0], __FUNCTION__,							0, 			__FILE__, __LINE__ );				return; }
-									SvC	=*	pSv0;			if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							0, 			__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+	ICEº	= AvARRAY(	avICE );									if( ICEº==NULL)	{ dBUG_4A( cube_err[0], __FUNCTION__,							0, 			__FILE__, __LINE__ );				return; }
+									SvC	=*	ICEº;			if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							0, 			__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
 				type = SvTYPE(		SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
 															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	0, &*SvC,	__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
-	Mpk[	0 ] = SvPVbyte( 			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
+	Mpk[	0 ] = SvPVbyte(			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	Mzc[0]=-1;	goto _continue; }
 	Mzc[	0 ] = zcOf( Mpk[0] );								if(Mzc[ 0 ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							0, CS,		__FILE__, __LINE__ );	}
 	Mpq[	0 ] = Mpk[ 0 ]+16;									/*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*	*/	_continue:
 
 
-	for(	iC=zC;	iC>0;	--iC ){		SvC	=*(	pSv0 +iC );		if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							iC,			__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+	for(	iC=zC;	iC>0;	--iC ){		SvC	=*(	ICEº +iC );		if(SvC==NULL)		{ dBUG_4A( cube_err[1], __FUNCTION__,							iC,			__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
 				type = SvTYPE(		SvC );					if(!SvOK( SvC ) )	{ dBUG_6A( cube_err[2], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
 															if(!SvPOK( SvC ) )	{ dBUG_6A( cube_err[3], __FUNCTION__, svtype_names_ref[ 	type ],	iC, &*SvC,	__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
-		Mpk[ iC] = SvPVbyte(		SvC, CS );					if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
+		Mpk[ iC] = SvPVbyte(			SvC, CS );				if(CS<16 )		{ dBUG_5A( cube_err[4], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
 		Mzc[ iC]= zcOf( Mpk[ iC ] );								if(Mzc[ 0 ]==-1 )	{ dBUG_5A( cube_err[5], __FUNCTION__,							iC, CS,		__FILE__, __LINE__ );	Mzc[iC]=-1;		continue; }
 		Mpq[ iC]= Mpk[ iC ]+16;
 		}
 	Xc=Ec=0;
 	for(		ic=0;	ic< 8; ++ic ){
-		for(	iC=0;	iC <= zC;	++iC ){	if( ic<= Mzc[ iC ])			{	switch( Mpk[ iC ][ ic ] ){ SwCASE_IC2XE_inc(	Mpq[ iC ], Xc, Ec, Mpq[ iC ] );	}
+		for(	iC=0;	iC <= zC;	++iC ){	if( ic<= Mzc[ iC ])						{	switch( Mpk[ iC ][ ic ] ){ SwCASE_IC2XE_inc(	Mpq[ iC ], Xc, Ec, Mpq[ iC ] );	}
 /*hex*/		s = (Xc+1==Ec)?	20-	(__builtin_clzll( Xc ) >>2)
 						:	41-(	(__builtin_clzll( Xc ) >>2)+(__builtin_clzll( Ec-1 ) >>2) );
 /*dec*/	//	s = (Xc+1==Ec)?	2 +(char) ceil( log10l( (long double)	Xc	) )
@@ -538,10 +493,9 @@ void _printHex(	AV*	avICE		){
 	}	}	}
 
 
-#ifdef DEBUG
-void	_print_mx( unsigned char mx_max, short ix1, short izZ ){
-	if( mx_max >32 ){	printf("\r!_print_mx( unsigned char mx_max ): mx_max cannot exceed 32 (it is %d).\n", mx_max ); return; }
-	const char	*	label[ ]	= {"H:", "A:", "B:", "E-1:", "I:", "O:", "Ox:", "Q:", "Qx:",  "stat:", " rack:"},
+void	_print_mx_hex(	unsigned char mx_max, short ix¹, short izΩ ){
+	if( mx_max >240 ){	printf("\r!_print_mx( unsigned char mx_max ): mx_max cannot exceed 240 (it is %d).\n", mx_max ); return; }
+	const char	*	label[ ]	= {"K:", "A:", "B:", "E-1:", "I:", "O:", "O\xA6:", "L:", "stat:", " rack:"},
 					labelC	= sizeof( label ) / sizeof( label[0] ),
 				*	csUVW	="|uvw|",
 				*	csUV	="|uv|",
@@ -553,7 +507,7 @@ void	_print_mx( unsigned char mx_max, short ix1, short izZ ){
 	SV		*sv;
 	ui08				x, c=1;
 	char				r=0,
-			*ptxt,	txt[	8960	]={13, 10},	// max ixZ for 32-vector display: 8,753
+			*ptxt,	txt[	0x7FFF	]={13, 10},	// max ixΩ for 32-vector display: 32767
 					lblCell	=	1,
 					cell[	256	]={	};	// abs max cell size = 19 decade digits +2 sign characters = 21 bytes
 	STRLEN	s,	p,	pos[	256	],
@@ -564,15 +518,23 @@ void	_print_mx( unsigned char mx_max, short ix1, short izZ ){
 							}					p = lblCell;
 
 	for( x=255; x!=mx_max; ++x ){			pos	[ x ] = p;
-		s =1 + (char) ceil( log10l( (long double)	H  	[ x ]		) );				cell[ c ]= s>5? s: 5; //min cell width 5 accounting for "stat" enumerator
+		s =1 + (char) ceil( log10l( (long double)	K  	[ x ]		) );				cell[ c ]= s>5? s: 5; //min cell width 5 accounting for "stat" enumerator
 		s =1 + (char) ceil( log10l( (long double)	A  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
 		s =1 + (char) ceil( log10l( (long double)	B  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	E  	[ x ]-1	) );	if( s >cell[ c ] )	cell[ c ]=s;
+/*		s =1 + ( (char) __builtin_clzll( K  	[ x ]  	) >>2 );						cell[ c ]= s>5? s: 5; //min cell width 5 accounting for "stat" enumerator
+		s =1 + ( (char) __builtin_clzll( A  	[ x ]  	) >>2 );			if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + ( (char) __builtin_clzll( B  	[ x ]  	) >>2 );			if( s >cell[ c ] )	cell[ c ]=s;	*/
+		s =16-( (char) __builtin_clzll( E  	[ x ]-1	) >>2 );			if( s >cell[ c ] )	cell[ c ]=s;
+/*		s =1 + ( (char) __builtin_clzll( I  	[ x ]  	) >>2 );			if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + ( (char) __builtin_clzll( O  	[ x ]  	) >>2 );			if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + ( (char) __builtin_clzll( Oª 	[ x ]  	) >>2 );			if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + ( (char) __builtin_clzll( L  	[ x ]  	) >>2 );			if( s >cell[ c ] )	cell[ c ]=s;
+*/
+//		s =1 + (char) ceil( log10l( (long double)	E  	[ x ]-1	) );	if( s >cell[ c ] )	cell[ c ]=s;
 		s =1 + (char) ceil( log10l( (long double)	I  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
 		s =1 + (char) ceil( log10l( (long double)	O  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	Ox  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	Q  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
-		s =1 + (char) ceil( log10l( (long double)	Qx  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + (char) ceil( log10l( (long double)	Oª  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + (char) ceil( log10l( (long double)	L  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
 		p += cell[ c ]+2;	++c;
 		}
 
@@ -605,35 +567,34 @@ void	_print_mx( unsigned char mx_max, short ix1, short izZ ){
 		}				}																	txt[p++]=10;
 /*2: numbers	*/
 	ptxt=txt+p;			for( i=0; i< rowLen;  i+=8 )			*( (ui64*)( ptxt+i ) ) = 0x5F5F5F5F5F5F5F5F;
-						for( x=255 ; x!=24; ++x ){ 			*(ptxt+pos[x]+sprintf( ptxt+pos[x], "#%llu", x ) )=0x5F;		}
+						for( x=255 ; x!=mx_max; ++x ){		*(ptxt+pos[x]+sprintf( ptxt+pos[x], "#%d", x ) )=0x5F;		}
 	p+=rowLen;
-/*3: H		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmt02X[	cell[ c ] ], 120,	H[	x ]		);	p+= cell[ c++ ]+2;	}
+/*3: K		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmt02X[	cell[ c ] ], 120,	K[	x ]		);	p+= cell[ c++ ]+2;	}
 /*4: A		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
 	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 45, 	A[	x ]		);	p+= cell[ c++ ]+2;	}
 /*5: B		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
 	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 43, 	B[	x ]		);	p+= cell[ c++ ]+2;	}
 /*6: E-1		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 90, 	E[	x ]-1	);	p+= cell[ c++ ]+2;	}
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLX[	cell[ c ] ], 90, 	E[	x ]-1	);	p+= cell[ c++ ]+2;	}
+/*												fmtLLU	*/
 /*7: I		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
 	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 35, 	I[	x ]		);	p+= cell[ c++ ]+2;	}
 /*8: O		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
 	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 46, 	O[	x ]		);	p+= cell[ c++ ]+2;	}
-/*9: Ox		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 44, 	Ox[	x ]		);	p+= cell[ c++ ]+2;	}
-/*10: Q		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 196,	Q[	x ]		);	p+= cell[ c++ ]+2;	}
-/*11: Qx		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 205,	Qx[	x ]		);	p+= cell[ c++ ]+2;	}
-/*12: stat	*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+/*9: Oª		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 44, 	Oª[	x ]		);	p+= cell[ c++ ]+2;	}
+/*10: L		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 196,	L[	x ]		);	p+= cell[ c++ ]+2;	}
+/*11: stat	*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
 	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtStr[	cell[ c ] ],	RW[x]&0xF8? "...": opStat[ RW[ x ] ] );	p+= cell[ c++ ]+2;	}
-/*13: range	*/	ptxt=txt+p;		i=	sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	//p+= lblCell+3;
+/*12: range	*/	ptxt=txt+p;		i=	sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	//p+= lblCell+3;
 /* whitespace backdrop		*/	for(	; i< rowLen;  i+=8 )			*( (ui64*)( ptxt +i ) ) = 0x2020202020202020;
 	ptxt+=4;
 	if( ixM >=	0 &&( ixM<	mx_max || ixM ==	255	) )	ptxt[ pos[ ixM	]	]=123;	//	right curly-bracket:		start of mod range
 	if( izM >=	0 && ( izM<	mx_max || izM ==	255	) )	ptxt[ pos[ izM	]+3	]=125;	//	left curly-bracket:		end of mod range
-	if( ix1 >=	0 && ( ix1<	mx_max || ix1 ==	255	) )	ptxt[ pos[ ix1	]+1	]=91;	//	left square bracket:	start of fragment range
-	if( izZ >=	0 && ( izZ<	mx_max || izZ ==	255	) )	ptxt[ pos[ izZ	]+2	]=93;	//	right square bracket:	end of fragment range
+	if( ix¹ >=	0 && ( ix¹<	mx_max || ix¹ ==	255	) )	ptxt[ pos[ ix¹	]+1	]=91;	//	left square bracket:	start of fragment range
+	if( izΩ >=	0 && ( izΩ<	mx_max || izΩ ==	255	) )	ptxt[ pos[ izΩ	]+2	]=93;	//	right square bracket:	end of fragment range
 
 	p+=rowLen;	*( (ui64*) (txt+p) )=0x000A0A0A0A0A0A0A;	p+=7;		//(7) newlines and (1) NUL
 //	else	sprintf( ptxt,	"[not marked]\n\n"	);
@@ -641,7 +602,108 @@ void	_print_mx( unsigned char mx_max, short ix1, short izZ ){
 	AvDBUG_PUSH(txt, p);
 	}
 
-#else
-void _print_mx( unsigned char mx_max, short ix1, short izZ ){	printf("!	_print_mx(...) called w/o debugging implemented by preprocessor\n");	}
-#endif
+void	_print_mx(		unsigned char mx_max, short ix¹, short izΩ ){
+//	if( mx_max >246 ){	printf("\r!_print_mx( unsigned char mx_max ): mx_max cannot exceed 246 (it is %d).\n", mx_max ); return; }
+	const char	*	label[ ]	= {"K:", "A:", "B:", "E-1:", "I:", "O:", "O\xA6:", "L:", "stat:", " rack:"},
+					labelC	= sizeof( label ) / sizeof( label[0] ),
+				*	csUVW	="|uvw|",
+				*	csUV	="|uv|",
+				*	csUW	="|wu|",
+				*	csVW	="|vw|",
+				*	csU		="|u|",
+				*	csV		="|v|",
+				*	csW		="|w|";
+	SV		*sv;
+	ui08				x, c=1;
+	char				r=0,
+			*ptxt,	txt[	0xFFFF	]={13, 10},	// max ixΩ for 32-vector display: 32767
+					lblCell	=	1,
+					cell[	512	]={	};	// abs max cell size = 19 decade digits +2 sign characters = 21 bytes
+	STRLEN	s,	p,	pos[	512	],
+				i,	rowLen, txtLen;
 
+	for( r = labelC-1; r >=0; --r )	{	s = strlen( label[ r ] );
+							if(	s > lblCell ) lblCell = s;	
+							}					p = lblCell;
+
+	for( x=255; x!=mx_max; ++x ){			pos	[ x ] = p;
+		s =1 + (char) ceil( log10l( (long double)	K  	[ x ]		) );				cell[ c ]= s>5? s: 5; //min cell width 5 accounting for "stat" enumerator
+		s =1 + (char) ceil( log10l( (long double)	A  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + (char) ceil( log10l( (long double)	B  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
+	//	s =1 + (char) ceil( log10l( (long double)	E  	[ x ]-1	) );	if( s >cell[ c ] )	cell[ c ]=s;
+		s =16- ( (char) __builtin_clzll( 			E  	[ x ]-1) >>2 );	if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + (char) ceil( log10l( (long double)	I  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + (char) ceil( log10l( (long double)	O  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + (char) ceil( log10l( (long double)	Oª  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
+		s =1 + (char) ceil( log10l( (long double)	L  	[ x ]		) );	if( s >cell[ c ] )	cell[ c ]=s;
+		p += cell[ c ]+2;	++c;
+		}
+
+	for( rowLen = p+2; x< 255; ++x )	pos[x] =p;	// positioning markers beyond mx_max puts them where they'll get overwritten
+	txtLen = ( (	rowLen	+1	)	*	(	labelC	+2 )		+4	+labelC );
+	//			^		^		^		^		^		^	^plus this... why?  I really don't know
+	//			|		|		|		|		|		plus (4) add'l newlines at end of output
+	//			|		|		|		|		... number of cursor rows )
+	//			|		|		|		(number of matrix rows, plus...
+	//			|		|		multipled by number of rows
+	//			|		plus (1) newline per row
+	//			length of each row
+//	printf("\n calculated output: ( %d +1) * ( %d+2 ) +1 +%d = %llu\n", rowLen, labelC, labelC<<1, txtLen );
+	if( txtLen >sizeof( txt ) ){
+		printf("_print_mx(): (char *) txt allocation under-sized!  need %llu bytes, have %llu", txtLen, sizeof( txt ) );
+		return;
+		}
+	ptxt=txt+2;
+/* whitespace backdrop		*/	for( i=0; i< rowLen;  i+=8 )		*( (ui64*)( ptxt +i ) ) = 0x2020202020202020;
+/*1: u,v,w 	*/
+	if( u==v)	if(	u==w )	{	sprintf( ptxt +pos[u], csUVW  	);	*( ptxt+pos[u]+5 )=0x20;
+				}else	{	sprintf( ptxt +pos[v], csUV 	);	*( ptxt+pos[v]+4 )=0x20;
+							sprintf( ptxt +pos[w], csW  	);	*( ptxt+pos[w]+3 )=0x20;
+						}	
+	else if(		u==w )	{	sprintf( ptxt +pos[u], csUW 	);	*( ptxt+pos[u]+4 )=0x20;
+							sprintf( ptxt +pos[v], csV  	);	*( ptxt+pos[v]+3 )=0x20;
+	}else{					sprintf( ptxt +pos[u], csU  	);	*( ptxt+pos[u]+3 )=0x20;
+			if(	v==w )	{	sprintf( ptxt +pos[v], csVW 	);	*( ptxt+pos[v]+4 )=0x20;
+			}else		{	sprintf( ptxt +pos[v], csV  	);	*( ptxt+pos[v]+3 )=0x20;
+							sprintf( ptxt +pos[w], csW  	);	*( ptxt+pos[w]+3 )=0x20;
+		}				}																	txt[p++]=10;
+/*2: numbers	*/
+	ptxt=txt+p;			for( i=0; i< rowLen;  i+=8 )			*( (ui64*)( ptxt+i ) ) = 0x5F5F5F5F5F5F5F5F;
+						for( x=255 ; x!=mx_max; ++x ){		*(ptxt+pos[x]+sprintf( ptxt+pos[x], "#%d", x ) )=0x5F;		}
+	p+=rowLen;
+/*3: K		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmt02X[	cell[ c ] ], 120,	K[	x ]		);	p+= cell[ c++ ]+2;	}
+/*4: A		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 45, 	A[	x ]		);	p+= cell[ c++ ]+2;	}
+/*5: B		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 43, 	B[	x ]		);	p+= cell[ c++ ]+2;	}
+/*6: E-1		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+//	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 90, 	E[	x ]-1	);	p+= cell[ c++ ]+2;	}
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLX[	cell[ c ] ], 90, 	E[	x ]-1	);	p+= cell[ c++ ]+2;	}
+/*7: I		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 35, 	I[	x ]		);	p+= cell[ c++ ]+2;	}
+/*8: O		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 46, 	O[	x ]		);	p+= cell[ c++ ]+2;	}
+/*9: Oª		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 44, 	Oª[	x ]		);	p+= cell[ c++ ]+2;	}
+/*10: L		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 196,	L[	x ]		);	p+= cell[ c++ ]+2;	}
+/*11: stat	*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtStr[	cell[ c ] ],	RW[x]&0xF8? "...": opStat[ RW[ x ] ] );	p+= cell[ c++ ]+2;	}
+/*12: range	*/	ptxt=txt+p;		i=	sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	//p+= lblCell+3;
+/* whitespace backdrop		*/	for(	; i< rowLen;  i+=8 )			*( (ui64*)( ptxt +i ) ) = 0x2020202020202020;
+	ptxt+=4;
+	if( ixM >=	0 &&( ixM<	mx_max || ixM ==	255	) )	ptxt[ pos[ ixM	]	]=123;	//	right curly-bracket:		start of mod range
+	if( izM >=	0 && ( izM<	mx_max || izM ==	255	) )	ptxt[ pos[ izM	]+3	]=125;	//	left curly-bracket:		end of mod range
+	if( ix¹ >=	0 && ( ix¹<	mx_max || ix¹ ==	255	) )	ptxt[ pos[ ix¹	]+1	]=91;	//	left square bracket:	start of fragment range
+	if( izΩ >=	0 && ( izΩ<	mx_max || izΩ ==	255	) )	ptxt[ pos[ izΩ	]+2	]=93;	//	right square bracket:	end of fragment range
+
+	p+=rowLen;	*( (ui64*) (txt+p) )=0x000A0A0A0A0A0A0A;	p+=7;		//(7) newlines and (1) NUL
+//	else	sprintf( ptxt,	"[not marked]\n\n"	);
+//	printf("\nactual output:	%lld byte[s]\n\n", p );
+	AvDBUG_PUSH(txt, p);
+	}
+
+
+
+/* meme	*/

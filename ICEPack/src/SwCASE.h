@@ -323,6 +323,84 @@
 /* 7x7 */	case 0x3F:										/*				0x0000000000000000				0xFFFFFFFFFFFFFFFF			*/					
 /*					^ there is no tail						^ isolate high octets					^ isolate low octets						^ rejoin				*/
 
+#define SwCASE_LPXOVER_00Y( endo$, lo$, out$Y )		/* "00Y" means	switch case vector 0 starts at zero,
+																switch case vector 1 starts at zero,
+																and args[0..1] "Wye into" arg-2, which is the output variable.	*/	\
+\
+/* 0x0 */	case 0x00:																			out$Y =		0x0000000000000000;							break;\
+/* 0x1 */	case 0x01:																			out$Y = lo$ &	0x00000000000000FF;							break;\
+/* 0x2 */	case 0x02:																			out$Y = lo$ &	0x000000000000FFFF;							break;\
+/* 0x3 */	case 0x03:																			out$Y = lo$ &	0x0000000000FFFFFF;							break;\
+/* 0x4 */	case 0x04:																			out$Y = lo$ &	0x00000000FFFFFFFF;							break;\
+/* 0x5 */	case 0x05:																			out$Y = lo$ &	0x000000FFFFFFFFFF;							break;\
+/* 0x6 */	case 0x06:																			out$Y = lo$ &	0x0000FFFFFFFFFFFF;							break;\
+/* 0x7 */	case 0x07:																			out$Y = lo$ &	0x00FFFFFFFFFFFFFF;							break;\
+\
+/* 1x0 */	case 0x08:										out$Y =	endo$ &	0x00000000000000FF;															break;\
+/* 1x1 */	case 0x09:										body =	endo$ &	0x000000000000FF00;	head = lo$ &	0x00000000000000FF;		out$Y =head|	body;	break;\
+/* 1x2 */	case 0x0A:										body =	endo$ &	0x0000000000FF0000;	head = lo$ &	0x000000000000FFFF;		out$Y =head|	body;	break;\
+/* 1x3 */	case 0x0B:										body =	endo$ &	0x00000000FF000000;	head = lo$ &	0x0000000000FFFFFF;		out$Y =head|	body;	break;\
+/* 1x4 */	case 0x0C:										body =	endo$ &	0x000000FF00000000;	head = lo$ &	0x00000000FFFFFFFF;		out$Y =head|	body;	break;\
+/* 1x5 */	case 0x0D:										body =	endo$ &	0x0000FF0000000000;	head = lo$ &	0x000000FFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 1x6 */	case 0x0E:										body =	endo$ &	0x00FF000000000000;	head = lo$ &	0x0000FFFFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 1x7 */	case 0x0F:										body =	endo$ &	0xFF00000000000000;	head = lo$ &	0x00FFFFFFFFFFFFFF;		out$Y =head|	body;	break;\
+\
+/* 2x0 */	case 0x10:										out$Y =	endo$ &	0x000000000000FFFF;															break;\
+/* 2x1 */	case 0x11:										body =	endo$ &	0x0000000000FFFF00;	head = lo$ &	0x00000000000000FF;		out$Y =head|	body;	break;\
+/* 2x2 */	case 0x12:										body =	endo$ &	0x00000000FFFF0000;	head = lo$ &	0x000000000000FFFF;		out$Y =head|	body;	break;\
+/* 2x3 */	case 0x13:										body =	endo$ &	0x000000FFFF000000;	head = lo$ &	0x0000000000FFFFFF;		out$Y =head|	body;	break;\
+/* 2x4 */	case 0x14:										body =	endo$ &	0x0000FFFF00000000;	head = lo$ &	0x00000000FFFFFFFF;		out$Y =head|	body;	break;\
+/* 2x5 */	case 0x15:										body =	endo$ &	0x00FFFF0000000000;	head = lo$ &	0x000000FFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 2x6 */	case 0x16:										body =	endo$ &	0xFFFF000000000000;	head = lo$ &	0x0000FFFFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 2x7 */	case 0x17:										body =	endo$ &	0xFF00000000000000;	head = lo$ &	0x00FFFFFFFFFFFFFF;		out$Y =head|	body;	break;\
+\
+/* 3x0 */	case 0x18:										out$Y=	endo$ &	0x0000000000FFFFFF;															break;\
+/* 3x1 */	case 0x19:										body =	endo$ &	0x00000000FFFFFF00;	head = lo$ &	0x00000000000000FF;		out$Y =head|	body;	break;\
+/* 3x2 */	case 0x1A:										body =	endo$ &	0x000000FFFFFF0000;	head = lo$ &	0x000000000000FFFF;		out$Y =head|	body;	break;\
+/* 3x3 */	case 0x1B:										body =	endo$ &	0x0000FFFFFF000000;	head = lo$ &	0x0000000000FFFFFF;		out$Y =head|	body;	break;\
+/* 3x4 */	case 0x1C:										body =	endo$ &	0x00FFFFFF00000000;	head = lo$ &	0x00000000FFFFFFFF;		out$Y =head|	body;	break;\
+/* 3x5 */	case 0x1D:										body =	endo$ &	0xFFFFFF0000000000;	head = lo$ &	0x000000FFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 3x6 */	case 0x1E:										body =	endo$ &	0xFFFF000000000000;	head = lo$ &	0x0000FFFFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 3x7 */	case 0x1F:										body =	endo$ &	0xFF00000000000000;	head = lo$ &	0x00FFFFFFFFFFFFFF;		out$Y =head|	body;	break;\
+\
+/* 4x0 */	case 0x20:										out$Y=	endo$ &	0x00000000FFFFFFFF;															break;\
+/* 4x1 */	case 0x21:										body =	endo$ &	0x000000FFFFFFFF00;	head = lo$ &	0x00000000000000FF;		out$Y =head|	body;	break;\
+/* 4x2 */	case 0x22:										body =	endo$ &	0x0000FFFFFFFF0000;	head = lo$ &	0x000000000000FFFF;		out$Y =head|	body;	break;\
+/* 4x3 */	case 0x23:										body =	endo$ &	0x00FFFFFFFF000000;	head = lo$ &	0x0000000000FFFFFF;		out$Y =head|	body;	break;\
+/* 4x4 */	case 0x24:										body =	endo$ &	0xFFFFFFFF00000000;	head = lo$ &	0x00000000FFFFFFFF;		out$Y =head|	body;	break;\
+/* 4x5 */	case 0x25:										body =	endo$ &	0xFFFFFF0000000000;	head = lo$ &	0x000000FFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 4x6 */	case 0x26:										body =	endo$ &	0xFFFF000000000000;	head = lo$ &	0x0000FFFFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 4x7 */	case 0x27:										body =	endo$ &	0xFF00000000000000;	head = lo$ &	0x00FFFFFFFFFFFFFF;		out$Y =head|	body;	break;\
+\
+/* 5x0 */	case 0x28:										out$Y =	endo$ &	0x000000FFFFFFFFFF;															break;\
+/* 5x1 */	case 0x29:										body =	endo$ &	0x0000FFFFFFFFFF00;	head = lo$ &	0x00000000000000FF;		out$Y =head|	body;	break;\
+/* 5x2 */	case 0x2A:										body =	endo$ &	0x00FFFFFFFFFF0000;	head = lo$ &	0x000000000000FFFF;		out$Y =head|	body;	break;\
+/* 5x3 */	case 0x2B:										body =	endo$ &	0xFFFFFFFFFF000000;	head = lo$ &	0x0000000000FFFFFF;		out$Y =head|	body;	break;\
+/* 5x4 */	case 0x2C:										body =	endo$ &	0xFFFFFFFF00000000;	head = lo$ &	0x00000000FFFFFFFF;		out$Y =head|	body;	break;\
+/* 5x5 */	case 0x2D:										body =	endo$ &	0xFFFFFF0000000000;	head = lo$ &	0x000000FFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 5x6 */	case 0x2E:										body =	endo$ &	0xFFFF000000000000;	head = lo$ &	0x0000FFFFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 5x7 */	case 0x2F:										body =	endo$ &	0xFF00000000000000;	head = lo$ &	0x00FFFFFFFFFFFFFF;		out$Y =head|	body;	break;\
+\
+/* 6x0 */	case 0x30:										out$Y =	endo$ &	0x0000FFFFFFFFFFFF;															break;\
+/* 6x1 */	case 0x31:										body =	endo$ &	0x00FFFFFFFFFFFF00;	head = lo$ &	0x00000000000000FF;		out$Y =head|	body;	break;\
+/* 6x2 */	case 0x32:										body =	endo$ &	0xFFFFFFFFFFFF0000;	head = lo$ &	0x000000000000FFFF;		out$Y =head|	body;	break;\
+/* 6x3 */	case 0x33:										body =	endo$ &	0xFFFFFFFFFF000000;	head = lo$ &	0x0000000000FFFFFF;		out$Y =head|	body;	break;\
+/* 6x4 */	case 0x34:										body =	endo$ &	0xFFFFFFFF00000000;	head = lo$ &	0x00000000FFFFFFFF;		out$Y =head|	body;	break;\
+/* 6x5 */	case 0x35:										body =	endo$ &	0xFFFFFF0000000000;	head = lo$ &	0x000000FFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 6x6 */	case 0x36:										body =	endo$ &	0xFFFF000000000000;	head = lo$ &	0x0000FFFFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 6x7 */	case 0x37:										body =	endo$ &	0xFF00000000000000;	head = lo$ &	0x00FFFFFFFFFFFFFF;		out$Y =head|	body;	break;\
+\
+/* 7x0 */	case 0x38:										out$Y =	endo$ &	0x00FFFFFFFFFFFFFF;															break;\
+/* 7x1 */	case 0x39:										body =	endo$ &	0xFFFFFFFFFFFFFF00;	head = lo$ &	0x00000000000000FF;		out$Y =head|	body;	break;\
+/* 7x2 */	case 0x3A:										body =	endo$ &	0xFFFFFFFFFFFF0000;	head = lo$ &	0x000000000000FFFF;		out$Y =head|	body;	break;\
+/* 7x3 */	case 0x3B:										body =	endo$ &	0xFFFFFFFFFF000000;	head = lo$ &	0x0000000000FFFFFF;		out$Y =head|	body;	break;\
+/* 7x4 */	case 0x3C:										body =	endo$ &	0xFFFFFFFF00000000;	head = lo$ &	0x00000000FFFFFFFF;		out$Y =head|	body;	break;\
+/* 7x5 */	case 0x3D:										body =	endo$ &	0xFFFFFF0000000000;	head = lo$ &	0x000000FFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 7x6 */	case 0x3E:										body =	endo$ &	0xFFFF000000000000;	head = lo$ &	0x0000FFFFFFFFFFFF;		out$Y =head|	body;	break;\
+/* 7x7 */	case 0x3F:										body =	endo$ &	0xFF00000000000000;	head = lo$ &	0x00FFFFFFFFFFFFFF;		out$Y =head|	body;	break;\
+/*					^ there is no tail						^ isolate high octets					^ isolate low octets						^ rejoin				*/
+
+
 #define SwCASE_LPXOVER_01Y( endo$, lo$, out$Y )		/* "01Y" means	switch case vector 0 starts at zero,
 																switch case vector 1 starts at one,
 																and args[0..1] "Wye into" arg-2, which is the output variable.	*/	\
@@ -558,80 +636,80 @@
 
 
 
-#define SwCASE_XXOVER_01T( endo$,	lo$ )				/* "01T" means	switch case vector 0 starts at zero,
+#define SwCASE_XXOVER_01T( endo$,	exo$ )			/* "01T" means	switch case vector 0 starts at zero,
 																switch case vector 1 starts at one,
 																and arg[0] "Tees into" arg[1], which is also the output variable.	*/	\
-/* 0x0 */	case 0x00:	body =	endo$ & 0x00000000000000FF;    	tail =	lo$  & 0xFFFFFFFFFFFFFF00;      	lo$ =  body|tail;	break;\
-/* 0x1 */	case 0x01:	body =	endo$ & 0x000000000000FF00;    	tail =	lo$  & 0xFFFFFFFFFFFF00FF;      	lo$ =  body|tail;	break;\
-/* 0x2 */	case 0x02:	body =	endo$ & 0x0000000000FF0000;    	tail =	lo$  & 0xFFFFFFFFFF00FFFF;      	lo$ =  body|tail;	break;\
-/* 0x3 */	case 0x03:	body =	endo$ & 0x00000000FF000000;    	tail =	lo$  & 0xFFFFFFFF00FFFFFF;      	lo$ =  body|tail;	break;\
-/* 0x4 */	case 0x04:	body =	endo$ & 0x000000FF00000000;    	tail =	lo$  & 0xFFFFFF00FFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 0x5 */	case 0x05:	body =	endo$ & 0x0000FF0000000000;    	tail =	lo$  & 0xFFFF00FFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 0x6 */	case 0x06:	body =	endo$ & 0x00FF000000000000;    	tail =	lo$  & 0xFF00FFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 0x7 */	case 0x07:	body =	endo$ & 0xFF00000000000000;    	tail =	lo$  & 0x00FFFFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
+/* 0x0 */	case 0x00:	body =	endo$ & 0x00000000000000FF;    	tail =	exo$  & 0xFFFFFFFFFFFFFF00;      	exo$ =  body|tail;	break;\
+/* 0x1 */	case 0x01:	body =	endo$ & 0x000000000000FF00;    	tail =	exo$  & 0xFFFFFFFFFFFF00FF;      	exo$ =  body|tail;	break;\
+/* 0x2 */	case 0x02:	body =	endo$ & 0x0000000000FF0000;    	tail =	exo$  & 0xFFFFFFFFFF00FFFF;      	exo$ =  body|tail;	break;\
+/* 0x3 */	case 0x03:	body =	endo$ & 0x00000000FF000000;    	tail =	exo$  & 0xFFFFFFFF00FFFFFF;      	exo$ =  body|tail;	break;\
+/* 0x4 */	case 0x04:	body =	endo$ & 0x000000FF00000000;    	tail =	exo$  & 0xFFFFFF00FFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 0x5 */	case 0x05:	body =	endo$ & 0x0000FF0000000000;    	tail =	exo$  & 0xFFFF00FFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 0x6 */	case 0x06:	body =	endo$ & 0x00FF000000000000;    	tail =	exo$  & 0xFF00FFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 0x7 */	case 0x07:	body =	endo$ & 0xFF00000000000000;    	tail =	exo$  & 0x00FFFFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
 \
-/* 1x0 */	case 0x08:	body =	endo$ & 0x000000000000FFFF;    	tail =	lo$  & 0xFFFFFFFFFFFF0000;      	lo$ =  body|tail;	break;\
-/* 1x1 */	case 0x09:	body =	endo$ & 0x0000000000FFFF00;    	tail =	lo$  & 0xFFFFFFFFFF0000FF;      	lo$ =  body|tail;	break;\
-/* 1x2 */	case 0x0A:	body =	endo$ & 0x00000000FFFF0000;    	tail =	lo$  & 0xFFFFFFFF0000FFFF;      	lo$ =  body|tail;	break;\
-/* 1x3 */	case 0x0B:	body =	endo$ & 0x000000FFFF000000;    	tail =	lo$  & 0xFFFFFF0000FFFFFF;      	lo$ =  body|tail;	break;\
-/* 1x4 */	case 0x0C:	body =	endo$ & 0x0000FFFF00000000;    	tail =	lo$  & 0xFFFF0000FFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 1x5 */	case 0x0D:	body =	endo$ & 0x00FFFF0000000000;    	tail =	lo$  & 0xFF0000FFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 1x6 */	case 0x0E:	body =	endo$ & 0xFFFF000000000000;    	tail =	lo$  & 0x0000FFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 1x7 */	case 0x0F:	body =	endo$ & 0xFF00000000000000;    	tail =	lo$  & 0x00FFFFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
+/* 1x0 */	case 0x08:	body =	endo$ & 0x000000000000FFFF;    	tail =	exo$  & 0xFFFFFFFFFFFF0000;      	exo$ =  body|tail;	break;\
+/* 1x1 */	case 0x09:	body =	endo$ & 0x0000000000FFFF00;    	tail =	exo$  & 0xFFFFFFFFFF0000FF;      	exo$ =  body|tail;	break;\
+/* 1x2 */	case 0x0A:	body =	endo$ & 0x00000000FFFF0000;    	tail =	exo$  & 0xFFFFFFFF0000FFFF;      	exo$ =  body|tail;	break;\
+/* 1x3 */	case 0x0B:	body =	endo$ & 0x000000FFFF000000;    	tail =	exo$  & 0xFFFFFF0000FFFFFF;      	exo$ =  body|tail;	break;\
+/* 1x4 */	case 0x0C:	body =	endo$ & 0x0000FFFF00000000;    	tail =	exo$  & 0xFFFF0000FFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 1x5 */	case 0x0D:	body =	endo$ & 0x00FFFF0000000000;    	tail =	exo$  & 0xFF0000FFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 1x6 */	case 0x0E:	body =	endo$ & 0xFFFF000000000000;    	tail =	exo$  & 0x0000FFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 1x7 */	case 0x0F:	body =	endo$ & 0xFF00000000000000;    	tail =	exo$  & 0x00FFFFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
 \
-/* 2x0 */	case 0x10:	body =	endo$ & 0x0000000000FFFFFF;    	tail =	lo$  & 0xFFFFFFFFFF000000;      	lo$ =  body|tail;	break;\
-/* 2x1 */	case 0x11:	body =	endo$ & 0x00000000FFFFFF00;    	tail =	lo$  & 0xFFFFFFFF000000FF;      	lo$ =  body|tail;	break;\
-/* 2x2 */	case 0x12:	body =	endo$ & 0x000000FFFFFF0000;    	tail =	lo$  & 0xFFFFFF000000FFFF;      	lo$ =  body|tail;	break;\
-/* 2x3 */	case 0x13:	body =	endo$ & 0x0000FFFFFF000000;    	tail =	lo$  & 0xFFFF000000FFFFFF;      	lo$ =  body|tail;	break;\
-/* 2x4 */	case 0x14:	body =	endo$ & 0x00FFFFFF00000000;    	tail =	lo$  & 0xFF000000FFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 2x5 */	case 0x15:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	lo$  & 0x000000FFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 2x6 */	case 0x16:	body =	endo$ & 0xFFFF000000000000;    	tail =	lo$  & 0x0000FFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 2x7 */	case 0x17:	body =	endo$ & 0xFF00000000000000;    	tail =	lo$  & 0x00FFFFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
+/* 2x0 */	case 0x10:	body =	endo$ & 0x0000000000FFFFFF;    	tail =	exo$  & 0xFFFFFFFFFF000000;      	exo$ =  body|tail;	break;\
+/* 2x1 */	case 0x11:	body =	endo$ & 0x00000000FFFFFF00;    	tail =	exo$  & 0xFFFFFFFF000000FF;      	exo$ =  body|tail;	break;\
+/* 2x2 */	case 0x12:	body =	endo$ & 0x000000FFFFFF0000;    	tail =	exo$  & 0xFFFFFF000000FFFF;      	exo$ =  body|tail;	break;\
+/* 2x3 */	case 0x13:	body =	endo$ & 0x0000FFFFFF000000;    	tail =	exo$  & 0xFFFF000000FFFFFF;      	exo$ =  body|tail;	break;\
+/* 2x4 */	case 0x14:	body =	endo$ & 0x00FFFFFF00000000;    	tail =	exo$  & 0xFF000000FFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 2x5 */	case 0x15:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	exo$  & 0x000000FFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 2x6 */	case 0x16:	body =	endo$ & 0xFFFF000000000000;    	tail =	exo$  & 0x0000FFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 2x7 */	case 0x17:	body =	endo$ & 0xFF00000000000000;    	tail =	exo$  & 0x00FFFFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
 \
-/* 3x0 */	case 0x18:	body =	endo$ & 0x00000000FFFFFFFF;    	tail =	lo$  & 0xFFFFFFFF00000000;      	lo$ =  body|tail;	break;\
-/* 3x1 */	case 0x19:	body =	endo$ & 0x000000FFFFFFFF00;    	tail =	lo$  & 0xFFFFFF00000000FF;      	lo$ =  body|tail;	break;\
-/* 3x2 */	case 0x1A:	body =	endo$ & 0x0000FFFFFFFF0000;    	tail =	lo$  & 0xFFFF00000000FFFF;      	lo$ =  body|tail;	break;\
-/* 3x3 */	case 0x1B:	body =	endo$ & 0x00FFFFFFFF000000;    	tail =	lo$  & 0xFF00000000FFFFFF;      	lo$ =  body|tail;	break;\
-/* 3x4 */	case 0x1C:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	lo$  & 0x00000000FFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 3x5 */	case 0x1D:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	lo$  & 0x000000FFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 3x6 */	case 0x1E:	body =	endo$ & 0xFFFF000000000000;    	tail =	lo$  & 0x0000FFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 3x7 */	case 0x1F:	body =	endo$ & 0xFF00000000000000;    	tail =	lo$  & 0x00FFFFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
+/* 3x0 */	case 0x18:	body =	endo$ & 0x00000000FFFFFFFF;    	tail =	exo$  & 0xFFFFFFFF00000000;      	exo$ =  body|tail;	break;\
+/* 3x1 */	case 0x19:	body =	endo$ & 0x000000FFFFFFFF00;    	tail =	exo$  & 0xFFFFFF00000000FF;      	exo$ =  body|tail;	break;\
+/* 3x2 */	case 0x1A:	body =	endo$ & 0x0000FFFFFFFF0000;    	tail =	exo$  & 0xFFFF00000000FFFF;      	exo$ =  body|tail;	break;\
+/* 3x3 */	case 0x1B:	body =	endo$ & 0x00FFFFFFFF000000;    	tail =	exo$  & 0xFF00000000FFFFFF;      	exo$ =  body|tail;	break;\
+/* 3x4 */	case 0x1C:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	exo$  & 0x00000000FFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 3x5 */	case 0x1D:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	exo$  & 0x000000FFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 3x6 */	case 0x1E:	body =	endo$ & 0xFFFF000000000000;    	tail =	exo$  & 0x0000FFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 3x7 */	case 0x1F:	body =	endo$ & 0xFF00000000000000;    	tail =	exo$  & 0x00FFFFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
 \
-/* 4x0 */	case 0x20:	body =	endo$ & 0x000000FFFFFFFFFF;    	tail =	lo$  & 0xFFFFFF0000000000;      	lo$ =  body|tail;	break;\
-/* 4x1 */	case 0x21:	body =	endo$ & 0x0000FFFFFFFFFF00;    	tail =	lo$  & 0xFFFF0000000000FF;      	lo$ =  body|tail;	break;\
-/* 4x2 */	case 0x22:	body =	endo$ & 0x00FFFFFFFFFF0000;    	tail =	lo$  & 0xFF0000000000FFFF;      	lo$ =  body|tail;	break;\
-/* 4x3 */	case 0x23:	body =	endo$ & 0xFFFFFFFFFF000000;    	tail =	lo$  & 0x0000000000FFFFFF;      	lo$ =  body|tail;	break;\
-/* 4x4 */	case 0x24:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	lo$  & 0x00000000FFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 4x5 */	case 0x25:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	lo$  & 0x000000FFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 4x6 */	case 0x26:	body =	endo$ & 0xFFFF000000000000;    	tail =	lo$  & 0x0000FFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 4x7 */	case 0x27:	body =	endo$ & 0xFF00000000000000;    	tail =	lo$  & 0x00FFFFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
+/* 4x0 */	case 0x20:	body =	endo$ & 0x000000FFFFFFFFFF;    	tail =	exo$  & 0xFFFFFF0000000000;      	exo$ =  body|tail;	break;\
+/* 4x1 */	case 0x21:	body =	endo$ & 0x0000FFFFFFFFFF00;    	tail =	exo$  & 0xFFFF0000000000FF;      	exo$ =  body|tail;	break;\
+/* 4x2 */	case 0x22:	body =	endo$ & 0x00FFFFFFFFFF0000;    	tail =	exo$  & 0xFF0000000000FFFF;      	exo$ =  body|tail;	break;\
+/* 4x3 */	case 0x23:	body =	endo$ & 0xFFFFFFFFFF000000;    	tail =	exo$  & 0x0000000000FFFFFF;      	exo$ =  body|tail;	break;\
+/* 4x4 */	case 0x24:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	exo$  & 0x00000000FFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 4x5 */	case 0x25:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	exo$  & 0x000000FFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 4x6 */	case 0x26:	body =	endo$ & 0xFFFF000000000000;    	tail =	exo$  & 0x0000FFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 4x7 */	case 0x27:	body =	endo$ & 0xFF00000000000000;    	tail =	exo$  & 0x00FFFFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
 \
-/* 5x0 */	case 0x28:	body =	endo$ & 0x0000FFFFFFFFFFFF;    	tail =	lo$  & 0xFFFF000000000000;      	lo$ =  body|tail;	break;\
-/* 5x1 */	case 0x29:	body =	endo$ & 0x00FFFFFFFFFFFF00;    	tail =	lo$  & 0xFF000000000000FF;      	lo$ =  body|tail;	break;\
-/* 5x2 */	case 0x2A:	body =	endo$ & 0xFFFFFFFFFFFF0000;    	tail =	lo$  & 0x000000000000FFFF;      	lo$ =  body|tail;	break;\
-/* 5x3 */	case 0x2B:	body =	endo$ & 0xFFFFFFFFFF000000;    	tail =	lo$  & 0x0000000000FFFFFF;      	lo$ =  body|tail;	break;\
-/* 5x4 */	case 0x2C:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	lo$  & 0x00000000FFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 5x5 */	case 0x2D:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	lo$  & 0x000000FFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 5x6 */	case 0x2E:	body =	endo$ & 0xFFFF000000000000;    	tail =	lo$  & 0x0000FFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 5x7 */	case 0x2F:	body =	endo$ & 0xFF00000000000000;    	tail =	lo$  & 0x00FFFFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
+/* 5x0 */	case 0x28:	body =	endo$ & 0x0000FFFFFFFFFFFF;    	tail =	exo$  & 0xFFFF000000000000;      exo$ =  body|tail;	break;\
+/* 5x1 */	case 0x29:	body =	endo$ & 0x00FFFFFFFFFFFF00;    	tail =	exo$  & 0xFF000000000000FF;      exo$ =  body|tail;	break;\
+/* 5x2 */	case 0x2A:	body =	endo$ & 0xFFFFFFFFFFFF0000;    	tail =	exo$  & 0x000000000000FFFF;      exo$ =  body|tail;	break;\
+/* 5x3 */	case 0x2B:	body =	endo$ & 0xFFFFFFFFFF000000;    	tail =	exo$  & 0x0000000000FFFFFF;      	exo$ =  body|tail;	break;\
+/* 5x4 */	case 0x2C:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	exo$  & 0x00000000FFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 5x5 */	case 0x2D:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	exo$  & 0x000000FFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 5x6 */	case 0x2E:	body =	endo$ & 0xFFFF000000000000;    	tail =	exo$  & 0x0000FFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 5x7 */	case 0x2F:	body =	endo$ & 0xFF00000000000000;    	tail =	exo$  & 0x00FFFFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
 \
-/* 6x0 */	case 0x30:	body =	endo$ & 0x00FFFFFFFFFFFFFF;    	tail =	lo$  & 0xFF00000000000000;      	lo$ =  body|tail;	break;\
-/* 6x1 */	case 0x31:	body =	endo$ & 0xFFFFFFFFFFFFFF00;    	tail =	lo$  & 0x00000000000000FF;      	lo$ =  body|tail;	break;\
-/* 6x2 */	case 0x32:	body =	endo$ & 0xFFFFFFFFFFFF0000;    	tail =	lo$  & 0x000000000000FFFF;      	lo$ =  body|tail;	break;\
-/* 6x3 */	case 0x33:	body =	endo$ & 0xFFFFFFFFFF000000;    	tail =	lo$  & 0x0000000000FFFFFF;      	lo$ =  body|tail;	break;\
-/* 6x4 */	case 0x34:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	lo$  & 0x00000000FFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 6x5 */	case 0x35:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	lo$  & 0x000000FFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 6x6 */	case 0x36:	body =	endo$ & 0xFFFF000000000000;    	tail =	lo$  & 0x0000FFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 6x7 */	case 0x37:	body =	endo$ & 0xFF00000000000000;    	tail =	lo$  & 0x00FFFFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
+/* 6x0 */	case 0x30:	body =	endo$ & 0x00FFFFFFFFFFFFFF;    	tail =	exo$  & 0xFF00000000000000;     	exo$ =  body|tail;	break;\
+/* 6x1 */	case 0x31:	body =	endo$ & 0xFFFFFFFFFFFFFF00;    	tail =	exo$  & 0x00000000000000FF;     	exo$ =  body|tail;	break;\
+/* 6x2 */	case 0x32:	body =	endo$ & 0xFFFFFFFFFFFF0000;    	tail =	exo$  & 0x000000000000FFFF;       exo$ =  body|tail;	break;\
+/* 6x3 */	case 0x33:	body =	endo$ & 0xFFFFFFFFFF000000;    	tail =	exo$  & 0x0000000000FFFFFF;      	exo$ =  body|tail;	break;\
+/* 6x4 */	case 0x34:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	exo$  & 0x00000000FFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 6x5 */	case 0x35:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	exo$  & 0x000000FFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 6x6 */	case 0x36:	body =	endo$ & 0xFFFF000000000000;    	tail =	exo$  & 0x0000FFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 6x7 */	case 0x37:	body =	endo$ & 0xFF00000000000000;    	tail =	exo$  & 0x00FFFFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
 \
-/* 7x0 */	case 0x38:	lo$	=	endo$;																							break;\
-/* 7x1 */	case 0x39:	body =	endo$ & 0xFFFFFFFFFFFFFF00;    	tail =	lo$  & 0x00000000000000FF;      	lo$ =  body|tail;	break;\
-/* 7x2 */	case 0x3A:	body =	endo$ & 0xFFFFFFFFFFFF0000;    	tail =	lo$  & 0x000000000000FFFF;      	lo$ =  body|tail;	break;\
-/* 7x3 */	case 0x3B:	body =	endo$ & 0xFFFFFFFFFF000000;    	tail =	lo$  & 0x0000000000FFFFFF;      	lo$ =  body|tail;	break;\
-/* 7x4 */	case 0x3C:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	lo$  & 0x00000000FFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 7x5 */	case 0x3D:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	lo$  & 0x000000FFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 7x6 */	case 0x3E:	body =	endo$ & 0xFFFF000000000000;    	tail =	lo$  & 0x0000FFFFFFFFFFFF;      	lo$ =  body|tail;	break;\
-/* 7x7 */	case 0x3F:	body =	endo$ & 0xFF00000000000000;    	tail =	lo$  & 0x00FFFFFFFFFFFFFF;      	lo$ =  body|tail;			
+/* 7x0 */	case 0x38:	exo$	=	endo$;																							break;\
+/* 7x1 */	case 0x39:	body =	endo$ & 0xFFFFFFFFFFFFFF00;    	tail =	exo$  & 0x00000000000000FF;     	exo$ =  body|tail;	break;\
+/* 7x2 */	case 0x3A:	body =	endo$ & 0xFFFFFFFFFFFF0000;    	tail =	exo$  & 0x000000000000FFFF;       exo$ =  body|tail;	break;\
+/* 7x3 */	case 0x3B:	body =	endo$ & 0xFFFFFFFFFF000000;    	tail =	exo$  & 0x0000000000FFFFFF;      	exo$ =  body|tail;	break;\
+/* 7x4 */	case 0x3C:	body =	endo$ & 0xFFFFFFFF00000000;    	tail =	exo$  & 0x00000000FFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 7x5 */	case 0x3D:	body =	endo$ & 0xFFFFFF0000000000;    	tail =	exo$  & 0x000000FFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 7x6 */	case 0x3E:	body =	endo$ & 0xFFFF000000000000;    	tail =	exo$  & 0x0000FFFFFFFFFFFF;      	exo$ =  body|tail;	break;\
+/* 7x7 */	case 0x3F:	body =	endo$ & 0xFF00000000000000;    	tail =	exo$  & 0x00FFFFFFFFFFFFFF;      	exo$ =  body|tail;			
 /*					^ isolate external octets					^	isolate internal octets				^ rejoin		*/
 
 
