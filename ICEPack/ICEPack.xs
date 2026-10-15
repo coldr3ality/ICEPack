@@ -173,7 +173,7 @@ void icepack_init(){/*	printf("\nICEPack is cold\n");	*/
 //#define	CUBE(	$iC )   									SvPVbyte( *( AvARRAY( avICE) +$iC ), CS	)
 //#define	CUBEvc(	$iC )(  		__builtin_clzll( *( (ui64*) (	cube =	SvPVbyte( *( AvARRAY( avICE) +$iC ), CS	) ) +1 ) )	>>3)
 
-SV* zRange(		SV*	rvICE,	SV* sviC		){
+SV* zcIndex(		SV*	rvICE,	SV* sviC		){
 	svtype			t0 = SvTYPE(	rvICE ),
 					t1 = SvTYPE(	sviC	);	if(	t0 != SVt_RV		|| !SvROK(	rvICE	) ){	printf( arg_err[1], __FUNCTION__, 0,  t0< svtype_cnt? svtype_names[t0 ]: "UNKNOWN",		t1< svtype_cnt? svtype_names[t1 ]: "UNKNOWN" );						return &PL_sv_undef; }
 										if( (	t1 != SVt_IV &&
@@ -386,12 +386,12 @@ SV*	strikes(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;	 //	cut matches from avAr
 extern short xcª, ixº;
 extern bool trace;
 SV*	set(			SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;
-	_set240();		ui64		ok = za +1 -hit;
+	_set_rebal();		ui64		ok = za +1 -hit;
 	SV	*	svOK=newSVuv(	ok );
 	return	svOK;
 	}
 SV*	unset(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;
-	_unset();
+	_unset_rebal();
 	return newSViv( za +1 -miss );
 	}
 SV*	sweep(		SV* rvICE,	SV* rvArg	){	BOILERPLATE_3PS;
@@ -636,7 +636,7 @@ insortIV (rvArg, svX)
 	SV *	svX
 
 SV *
-zRange (rvArg, sviC)
+zcIndex (rvArg, sviC)
 	SV *	rvArg
 	SV *	sviC
 
