@@ -18,10 +18,9 @@
 
 //	#define		DEBUG_SvCOMMIT_L2		//		PRIMOLOC, ANTELOC, INTERLOC, INTRaLOC, INTRaLOC1up, EPILOC markers
 										//		bulk q-data operations (XLOAD, ICEPACK, ReFLOW) in terms of total ranges	(one line ea.)
-	//	#define	DEBUG_SvCOMMIT_L2X	//		CoANTELOC, CoINTERLOC, ReINTERLOC, ReINTRaLOC
-										//		bulk q-data operations (XLOAD, ICEPACK, ReFLOW) in terms of unit ranges	(multi-line)
+	//	#define	DEBUG_SvCOMMIT_L2X	//		bulk q-data operations (XLOAD, ICEPACK, ReFLOW) in terms of unit ranges	(multi-line)
 	//	#define	DEBUG_SvCOMMIT_L2XX	//		bulk q-data operations (XLOAD, ICEPACK, ReFLOW) as atomic assignments	(many lines)
-										//		simple Co***LOC ƒsub markers
+
 //	#define		DEBUG_SvCOMMIT_L3		//		dBUGmx (_print_mx(...) )
 	//	#define	DEBUG_SvCOMMIT_L4		//	?	audit SvCOMMIT bulk SV ops (NEW_CUBE_X_AS_MODSxHPASS etc.)
 	//	#define	DEBUG_SvCOMMIT_L4	// mining for 1F4 triggers
@@ -29,18 +28,21 @@
 	//	#define	DEBUG_AvCOMMIT_L2		//		explicit _av_commit() procedure
 	//	#define	DEBUG_AvCOMMIT_L3		//	?
 	//	#define	DEBUG_ACCESS_L0		//		multi-SV cube run Co****LOC case messages		?crashing?
+										//		simple Co***LOC ƒsub markers
 //	#define		DEBUG_ACCESS_L1
-	//!//	#define	DEBUG_ACCESS_L2		//	!	location and relocation events, any time cube focus changes
+	//	#define	DEBUG_ACCESS_L2		//	!	location and relocation events, any time cube focus changes
 		/*	I believe _excludes() is crashing when AvDBUG_PRINT is set to log errors as SVs in global (SV*) avDBUG[],
 			specifically when the cube_err[8] string is passed to sprintf, and I think it has to do with the value of *Edge( cubeΩ ).	*/
 
 	//	#define	DEBUG_ACCESS_L2X		//		args
+										//		CoANTELOC, CoINTERLOC, ReINTERLOC, ReINTRaLOC
+										//		
 										//		[T]RACK
 	//	#define	DEBUG_ACCESS_L2XX		//		co-location sub-functional control logic branch of each argument (ƒSUB)
 	//	#define	DEBUG_ACCESS_L3		//		sanity checks and integrity validations for testing brave architectural changes
-//		#define	DEBUG_ACCESS_L4		//		check all SvCUR_set() calls before & after
+	//	#define	DEBUG_ACCESS_L4		//		check all SvCUR_set() calls before & after
 //	#define		DEBUG_TRUTH_L1
-//	#define		DEBUG_TRUTH_L3
+//	#define		DEBUG_TRUTH_L3	//suspect.  unset precursor #0 was fatal with this on, but now that one's fixed so can't reproduce
 	//	#define	DEBUG_DeICE
 
 

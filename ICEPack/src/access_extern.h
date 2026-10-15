@@ -46,7 +46,7 @@ extern ui08	*	cube,				/*	unsigned char * cube data (of index iC )					*/
 extern ui64	hit, miss;
 
 
-extern short unsigned 	u, v, w,					/*	matrix indeces		iterate		the modification range		in	matrix { A[], B[], E[], L[] }	*/
+extern short 		 	u, v, w,					/*	matrix indeces		iterate		the modification range		in	matrix { A[], B[], E[], L[] }	*/
 	ixº,	/*	ix¹,	ixⁿ,	ix²,	*/	ixΩ,				/*	matrix indeces		mark in		fragment boundaries		in	matrix { A[], B[], E[], L[] }	*/
 		/*	iz¹,	izⁿ,	iz²,	*/	izΩ,				/*	matrix indeces		mark out		fragment boundaries		in	matrix { A[], B[], E[], L[] }	*/
 /*			^localized to:	(void) _sv_commit_1x()

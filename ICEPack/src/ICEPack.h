@@ -29,8 +29,8 @@ extern char		aString[],	ic, zc,
 extern void		_icepack_init(),
 				_toText(),
 				_toTextX(),
-				_set240(),
-				_unset(),
+				_set(),		_set_rebal(),
+				_unset(),		_unset_rebal(),
 				_sweep(),
 				_printHex( 	SV* rvICE);
 extern	SV	*	toHex(		SV* rvICE);

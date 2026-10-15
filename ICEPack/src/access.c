@@ -258,7 +258,7 @@ ui64			x, y, z,				/*	common arguments														*/
 /*						____	object______________________	verb_________	subject_____________________	preposition______________________	*/
 short		oc,	xc,
 			ocª,	xcª;			/*		mark		the [active: ª] indeces		of	char *	cube			*/
-short unsigned u, v, w,			/*	matrix indeces		iterate		the modification range		in	matrix { A[], B[], E[], L[] }	*/
+short 		 u, v, w,			/*	matrix indeces		iterate		the modification range		in	matrix { A[], B[], E[], L[] }	*/
 
 	ixº,	/*	ix¹, ixⁿ, ix², */	ixΩ,		/*	matrix indeces		mark in		fragment boundaries		in	matrix { A[], B[], E[], L[] }	*/
 	izº,	/*	iz¹, izⁿ, iz², */	izΩ,		/*	matrix indeces		mark out		fragment boundaries		in	matrix { A[], B[], E[], L[] }	*/
@@ -282,8 +282,8 @@ SV			*svOp;
 svtype		svt;
 long long int	displacement, d, D;
 
-char *	opStat[]={"null", "del", "ok", "mod", "new", "epi" };
-enum	opStat{	null, del, ok, mod, new, epi }
+char *	opStat[]=	{"null",	"del",	"ok",	"mod",	"new",	"epi"	};
+enum	opStat	{null,	del,		ok,		mod,	new,	epi		}
 /*		THE MATRIX				*/
 		RW[	512 ];				/* read/write status enumerator			*/
 
@@ -298,7 +298,7 @@ ui16		O[	512 ],				/* q-data offsets	which mark	each read position			in	char *	c
 		Oª[	512 ];				/* q-data offsets	which mark	each write position			in	char *	cube			*/
 
 
-/*	Shared context with AvPOST(...), AvCUT(...) & AvCUT2(...) defined in AvSEQ.h,  and _av_commit() defined in _av_commit.c:	*/
+/*	Shared context with AvPOST(...), AvCUT1B4(...) & AvCUT_B4(...) defined in AvSEQ.h,  and _av_commit() defined in _av_commit.c:	*/
 
 	SV		*	rSeq_SV[	512 ]; 	//	temporary holding of SvPVbyte(...) char* "cubes" awaiting batch splice-insertion to AV* avICE
 	long long int	rSeq_iR[	512	], iR,	//	source index of rSeq_SV 		after the destination index	(for each step [asc|dsc] )
@@ -308,7 +308,7 @@ ui16		O[	512 ],				/* q-data offsets	which mark	each read position			in	char *	c
 				rSeqDst[	512	],	//	destination index				
 						dsc,		//	step iterators, ascending/descending
 				rel_iC,			/*	relative difference in active cube index since control index of current step was initialized
-									—This is especially used by AvPOST(...); AvCUT[2](...) to compute running dest. indeces.	*/
+									—This is especially used by AvPOST(...); AvCUT1B4[2](...) to compute running dest. indeces.	*/
 				cut_iC,
 				step_iC =	0;		//	running destination index counter
 				/*,	local to (void) _av_commit():
@@ -320,21 +320,17 @@ ui16		O[	512 ],				/* q-data offsets	which mark	each read position			in	char *	c
 
 
 
-#ifdef DEBUG
-	void _init_mx(){		/*	totally zero-out buffer matrix to improve clarity of debug info	*/
-		ui08	x=255;	ixº=oc=ocª=0; xc= xcª=-1;
 
-		u= v= w= izM =0;	ixM=0xFF;
-		do{	RW[x]=0;
-			A[x]=	B[x]=	E[x]=	0;
-			K[x]=	L[x]=
-			I[x]=		O[x]=	Oª[x]=	0;
-			} while( ++x != 255 );
-		}
-#else
-	void _init_mx( ){	printf("!	_init_mx() called w/o debugging implemented by preprocessor\n");		}
-#endif
+void _init_mx(){		/*	totally zero-out buffer matrix to improve clarity of debug info	*/
+	ui16	x=0;	ixº=oc=ocª=0; xc= xcª=-1;
 
+	u= v= w= izM =0;	ixM=0xFF;
+	do{	RW[x]=0;
+		A[	x ]=	B[	x]=	E[x]=	0;
+		K[	x ]=	L[	x]=	I[x]=		0;
+		O[	x ]=	Oª[	x]=	0;
+		} while( ++x != 511 );
+	}
 void _icepack_init(){	/*	printf("—vUry cold\n\n");	*/
 #if	defined( DEBUG )
 	avDBUG=newAV();
@@ -350,7 +346,7 @@ void _icepack_init(){	/*	printf("—vUry cold\n\n");	*/
 	printf("\r	DEBUG_SvCOMMIT_L3 is defined in %s:	checking integrity within _sv_commit_1x and _sv_commit_nx()\n", __FILE__);
 #endif
 #if defined(DEBUG_AvCOMMIT_L1)
-	printf("\r	DEBUG_AvCOMMIT_L1 is defined in %s:	auditing nominal activity within _av_commit(), AvPOST and AvCUT\n", __FILE__);
+	printf("\r	DEBUG_AvCOMMIT_L1 is defined in %s:	auditing nominal activity within _av_commit(), AvPOST and AvCUT1B4\n", __FILE__);
 #endif
 #if defined(DEBUG_AvCOMMIT_L2)
 	printf("\r	DEBUG_AvCOMMIT_L2 is defined in %s:	auditing verbose activity within _av_commit() \n", __FILE__);

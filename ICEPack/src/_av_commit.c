@@ -95,7 +95,7 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 	* The first descending step after flopping from ascending mode does not shift the control index (special case labeled "_descx").
 	Rather, that assignment is preempted by the first step of the preceding ascending run and prioritized to prevent potential clobbering.
 
-	Inserts and cuts are scheduled by calls to AvPOST and AvCUT,
+	Inserts and cuts are scheduled by calls to AvPOST, AvCUT1, AvCUT1B4 and AvCUT_B4,
 	but the shift parameter can only be computed in-between instantiations of steps.
 	Obviously the final call is never followed by another, so to actually get things started here, the first thing we do is finalize the last step.
 
@@ -233,4 +233,4 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 //	if( xcª -ixº <1 ){ printf( "\r	_av_commit() exit	%s %s line %d\n", __FUNCTION__, __FILE__, __LINE__ ); }
 	}
 
-/*	dogsddddddcdddddddd	*/
+/*	dogsddddddcddddddddd	*/

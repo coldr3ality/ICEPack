@@ -47,7 +47,7 @@ char _vec0x7_add(	ui64 x00,	ui64 xFF,	ui64 _0, char ctx ){	/*	right-shift the le
 	switch( ctx ){
 		case 0:	/*	ctx state 0:	initializing; there is no previous opscope context.			*/
 							zzC=(	zC =	AvFILLp(	avICE ) )-1;	hi =	nC=zC+1;	Aº = AvARRAY( avICE );
-			INIT_MxRACK;	hit =lo =0;						/*	^ value to reset upper boundary (hi) to	*/
+			INIT_MxRACK(64);	hit =lo =0;						/*	^ value to reset upper boundary (hi) to	*/
 			INIT_AvCOMMIT;
 			if( zC==-1){ 	x =	x00|_0;			E[ 0 ]	=	(	A[ 0 ]=x	)+(	B[ 0 ]=1	);		RW[ 0 ]=new;	RT	return 2;	}
 
@@ -71,7 +71,7 @@ char _vec0x7_add(	ui64 x00,	ui64 xFF,	ui64 _0, char ctx ){	/*	right-shift the le
 			}else{ 																	SvCOMMIT1x;
 /*	epi-op	*/							cube	=	SvPVbyte_nolen(	sv = *(++	iC +Aº ) );
 				if(			x00 >=*Edge(	cube	) ){	MxINIT;							INTERLOC(0, 1);
-						x =	x00|_0;													CoANTELOC(__LINE__);	GE goto	_epi_op;
+						x =	x00|_0;													CoANTELOC();	GE goto	_epi_op;
 				}	}
 /*	roll		*/
 		    if(					x00 != *Edge(	cubeΩ	) ){
@@ -92,7 +92,7 @@ char _vec0x7_add(	ui64 x00,	ui64 xFF,	ui64 _0, char ctx ){	/*	right-shift the le
 			if(		Zv >xFF )	{	/* vector x INIT	*/		
 				if(		A[0] >1 )	{	OpV0 ++	*Edge(	cubeΩ);--A[ 0 ];	   ++	B[ 255 ];		ReICEz(255);		
 /*			*/	}else if(	A[0]==1 )	{							A[ 0 ]=A[255];	B[ 0 ]+=B[255]+1;				
-/*	!|+=		*/		if(	zcΩ<1)		{OpV1;	 										AvCUT( iC );	
+/*	!|+=		*/		if(	zcΩ<1)		{OpV1;	 										AvCUT1B4( iC );	
 /*	=|+=	*/		}else			{OpV2;	*Edge(	cubeΩ )-= A[ 255 ]	+	B[ 255 ];		cubeΩ[		O[255] ]=0;	dBUG_SvCUR( svΩ, O[255] );
 /*			*/					/* delete end cyclum */	SvCUR_set( svΩ, O[255] );			cubeΩ[		zcΩ-- ]=0;
 /*			*/						}																
@@ -168,7 +168,7 @@ char _vec0x7_add(	ui64 x00,	ui64 xFF,	ui64 _0, char ctx ){	/*	right-shift the le
 //						E[ 0 ]=	*Edge(	cubeΩ	)	+		Av		+	Bv;
 //	/*	!|+=	 */			if(zcΩ>0){ *Edge(	cubeΩ	)	-=		A[ u ]	+	B[ u ];		cubeΩ[		O[ u ] ]=0;
 //								OpV2;	cubeΩ[ zcΩ-- ]=0;		dBUG_SvCUR( svΩ, O[ u ] );	SvCUR_set( svΩ, O[ u ] );	
-//	/*	=|+= */			}else{	OpV1;		 										AvCUT( iC );	}
+//	/*	=|+= */			}else{	OpV1;		 										AvCUT1B4( iC );	}
 //														/* ¿	u =!= 0 ?  */	B[ 0 ]=Bv+B[ u ] -( !Av );
 //															A[ 0 ]=A[ u ]+1;
 //					}else{								++	A[ u ];					ReICEz( u );
@@ -196,21 +196,21 @@ char _vec0x7_add(	ui64 x00,	ui64 xFF,	ui64 _0, char ctx ){	/*	right-shift the le
 	_ab_wayUp:		ui64								_lo =iC+1, _hi=zC+1;		iC= ( _lo+_hi )>>1;
 /*	_ab_search*/	  do	{					cube 	=	SvPVbyte_nolen(	sv =*(++	iC +Aº ) );
 /*	ABERLOC	*/	if(		x ==*Edge(	cube	) ){						if(	iC !=	zC){	cube¹=SvPVbyte_nolen( *( Aº+iC-1 ) ); E[ v ]=*Edge( cube¹ );	break;	}//	E[ v ]=*EC(	iC-1);	break;	}
-					  --	xcª;							AvCUT2(	zC, iCx );		GE	goto _epiloc;	//B[ u ]=1;		E[ u ]=x+1;	vNUL;	RT return 2;
+					  --	xcª;							AvCUT_B4( zC, iCx );	GE	goto _epiloc;	//B[ u ]=1;		E[ u ]=x+1;	vNUL;	RT return 2;
 /*	ABRALOC	*/	}else if(	x <	*Edge(	cube	) ){	iC=( ( _hi = iC )+_lo )>>1;  if(	iC==_hi ){	cube¹=SvPVbyte_nolen( *( Aº+iC-1 ) ); E[ v ]=*Edge( cube¹ );	break;	}//E[ v ]=*EC(	iC-1 );  	break;	}
 /*	ABRALOC1up	*/	}else{/*	x >	*Edge(	cube)	*/	iC=( ( _lo = iC )+_hi )>>1;  if(	iC==_lo ){
 																		if(	iC != zC){	cube¹=SvPVbyte_nolen( *( Aº+iC++ ) ); E[ v ]=*Edge( cube¹ );	break;	}//E[ v ]=*EC(	iC++ ); 	break;	}
-					  --	xcª;							AvCUT2(	zC, iCx );		GE	goto _epiloc;	}	//B[ u ]=1;		E[ u ]=x+1;	vNUL;	RT return 2;	}
+					  --	xcª;							AvCUT_B4( zC, iCx );	GE	goto _epiloc;	}	//B[ u ]=1;		E[ u ]=x+1;	vNUL;	RT return 2;	}
 						}
 					} while( 1 );																			dBUGvec_ABS
 					}
 				}else if( iC == zC ){
-					  --	xcª;							AvCUT2(	zC, iCx );		GE	goto _epiloc;
+					  --	xcª;							AvCUT_B4( zC, iCx );	GE	goto _epiloc;
 				}else{					cube	=	SvPVbyte_nolen(	sv =*(++	iC +Aº ) );
 	_ab_1Up:			if(		x <	*Edge(	cube	) ){									E[ v ]=*Edge( cube );	dBUGvec_AB1Up
-	_ab_2Up:			}else{							AvCUT(	zC	);										dBUGvec_AB2Up
+	_ab_2Up:			}else{							AvCUT1B4( zC );										dBUGvec_AB2Up
 					--	xcª;												GE	goto _epiloc;
-					}	}							AvCUT2( iC, iCx );
+					}	}							AvCUT_B4( iC, iCx );
 			    ;		ic=-1;	/*icI-=zc;*/	pq =	cube+16;		CS = SvCUR(		sv );
 			    ocª=xcª+1;	xcª+=1+(	zc=zcOf( 	cube	) );	deIce_vKEI( u, v );
 			    oc =xc +1;	xc +=1+	zc;

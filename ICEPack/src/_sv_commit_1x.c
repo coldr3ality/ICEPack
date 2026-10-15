@@ -134,28 +134,27 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 //	char icO	= I[ izM	];	// that won't; because izM can be less than ixH-1 if _sv_commit_?x() is passed a null mod range (ablative). 
 
 
-	if(		/*****	ƒsub 1X0   	*****/	tcª< 0	)		{ /* One cube is annihilated.					*/	dBUGrackCALL(	0 );
+	if(		/*****	ƒsub 1X0   	*****/	tcª< 0	)		{ /* One cube is annihilated.			*/			dBUGrackCALL(	0 );
 	/*	mark element iC for deletion		*/																dBUGmx( xcª+4, ocª, ocª );
-		if( xcª -ixº <1 ||trace){ trace=1;printf( "\r	1X0 enter	%s line %d\n",  __FILE__, __LINE__ ); }
 		//get entire length of  cube # iC and  add it to the negative phase of cyclum 0 in cube iC +1
 		if( iC != zC ){
 			printf("\n%s case 1X0 iC#%lld		in %s line %d \n", __FUNCTION__, iC, __FILE__, __LINE__ );
-			if( iC!=0)						cubeΩ =	SvPVbyte_nolen(	*(Aº+ iC-1 ) );
-			else							cubeΩ =	nube;
-			;							cubeⁿ =	cube;
-			;							cube =	SvPVbyte(	sv = *(Aº+ ++iC ),	CS );
-		/*	MxINIT;	*/	xcª =	zc=zcOf(	cube); 				AvCUT(	iC );					
-			;										pq=cube+16;						O[ 0 ] =16;	I[0]=0;
-			switch( cube[ 0 ] ){ SwCASE_IC2ABQ_init16p(	pq,	A[0],	B[0],	L[0],	cube, pq,	O[ 1 ]		); }
-			;											A[0] += *Edge( cubeⁿ ) - *Edge( cubeΩ );
-			u=0; icO=v=1;					ReICEuO( 0,	1 );
-			ixM=0; izM=0; inM=ixH=1; 		goto _1X1;
+			oCS += CS -	16;					
+			ui64			Ac	= 	*Edge(	cube );			svΩ = *(Aº+ ++iC );								AvCUT1B4( iC );
+			oc =			ocª	= 0;			cube = SvPVbyte(	svΩ,	CS );
+			xc =			xcª	=	zc=zcOf(	cube );
+			u = ixM	= izM = icO	= 0;
+			v = inM	= ixH		= 1;		
+													pq=cube+16;					O[ 0 ] =16;	I[ 0 ]=0;
+			switch( cube[ 0 ] ){ SwCASE_IC2ABQ_init16p(	pq,	A[ 0 ], B[ 0 ], L[ 0 ], 	cube, pq,	O[ 0 ]	); }
+														A[ 0 ] += Ac;
+			ReICEuO( u, v );
+			post_xc	=	0;	goto _1X1;
 
 		}else{
-			printf("\n%s case 1X0-Z iC#%lld		in %s line %d \n", __FUNCTION__, iC, __FILE__, __LINE__ );
-			SvREFCNT_dec( *( Aº +zC ) );		zC=--AvFILLp( avICE);
-			svΩ=*( Aº +zC );
-			cubeΩ= SvPVbyte( svΩ, CSΩ );	zcΩ = zcOf(	cubeΩ );
+		/*	MxINIT;	*/	cubeΩ =	nube;							CS = 		oCS	=	16;		++iC;	AvCUT1B4( iC );
+			zcΩ = -1;		iCI=iC=0;	CSΩ=16;		svΩ=NULL; 
+		/*	printf("\n%s case 1X0-Z iC#%lld		in %s line %d \n", __FUNCTION__, iC, __FILE__, __LINE__ );	*/
 			}
 
 		}/*
@@ -166,23 +165,17 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 
 */
-	else if(	/*****	ƒsub 1X1   	*****/	tcª< 8	)		{ /* One cube in, one cube out.				*/	dBUGrackCALL(	1 );
+	else if(	/*****	ƒsub 1X1   	*****/	tcª< 8	)		{ /* One cube in, one cube out.		*/			dBUGrackCALL(	1 );
 	//	if( xcª -ixº <1 ||trace){ trace=1;printf( "\r	1X1 enter	%s line %d\n",  __FILE__, __LINE__ ); }
 		svΩ			=		sv;																		dBUGmx( xcª+4, ocª, ocª );
-		zcΩ			=		tcª;																		_1X1:
-		post_xc		=		izM		-		ixM;		/* post-op endogenous cycla	(zero-based—	it is used as a vector.)	*/
-	//	pre_xc		= oc	||	icI==-1	?	icO:	icO	-icI;	/* pre mod range limited to last cube in the run		*/
+		post_xc		=		izM		-		ixM;		/* post-op cycla	(zero-based—used as a vector)	*/	_1X1:
+		zcΩ			=		tcª;
 		pre_xc		=		icO		-		icI;
 		rel_c		=		post_xc	-		pre_xc;	
-	//	rel_c		=		xcª		-		xc;		/* pre-to-post relative difference								*/
 		hp_q		=		CS		-	O[	ixH	];	/* high passthrough q-bytes	*/
-		hp_c		=		zc		-		icO;		/* high passthrough cycla	*/						dBUG_1X1
 		rel_q		=	Oª[	inM	]	-	O[	ixH	];	/* relative difference in q pre-to-post op	only used in 1X1 and 1X2L		(where highpass in low cube shifts) */
 		post_q		=	Oª[	inM	]	-	Oª[	ixM	];	/* length of q data to be modified. 		only used in 1X1, 1X2L and 1X2H	(where mod range is confined 	*/
-
-		if( hp_c==0 ){	 *Edge( cube )=E[ izM ];	}
-
-
+																									dBUG_1X1
 /*######	UPDATE ORIGINAL CUBE [iC]	######		(ƒsub 1X1)									*/
 		/*	[iC ]:		OFFSET HIGH PASSTHROUGH VIA  IN-SITU PERISTALSIS	(SHIFT THE DAMN DATA)		*/
 		if(				rel_q >0 )	{	/*	expand	*/				SvCUR_set(	svΩ, 	O[ ixM ]  	);	/* prevent copying obsolete data	*/
@@ -196,17 +189,32 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 		}else			{			/*	shunt	*/
 			CSΩ= CS;									cubeΩ =	cube;
 						}
+//		if(	tcª<= icO )	{	*Edge( cube )=E[ izM ];	cS = sprintf( aString, "\n *Edge( cube ) = ( E[ izM: %d]: %llX );\n", izM, E[izM] ); AvDBUG_PUSH( aString, cS );
+//						}
 
 		/*	[iC ]:		SPLICE KEYBYTE SECTION			(ƒsub 1X1)									*/
 		/*			double-crossover of endogenous data with high and low passthrough data, in-situ			*/
-						lpXen	=	icI |( post_xc<< 3 );
-		if(		rel_c ){
-			if(	rel_c< 0){				bs = ( -rel_c )	<< 3;	hipa = *( (ui64*) cube ) >>bs;	}
-			else{					bs =   rel_c	<< 3;	hipa = *( (ui64*) cube )<< bs;	}
-			switch(		lpXen	){	SwCASE_XXOVER_01K(	hipa, 					*( (ui64*) (K +ixº) ),		*( (ui64*) cubeΩ )	) 	}
-		}else{	//					^dbl-xover dbl-tee		^high passthrough, shifted	^endo inclusion src		^low passthrough / tee output
-			switch(		lpXen	){	SwCASE_XXOVER_01T(							*( (ui64*) (K +ixº) ),		*( (ui64*) cubeΩ )	)	}
-			}	// displacement		^double crossover tee							^endo inclusion src		^exo passthrough / tee output
+		if(	post_xc >=0 ){	lpXen	=	icI |( post_xc<< 3 );
+			if(		rel_c ){
+				if(	rel_c< 0){			bs = ( -rel_c )	<< 3;	hipa = *( (ui64*) cube ) >>bs;	}
+				else{				bs =   rel_c	<< 3;	hipa = *( (ui64*) cube )<< bs;	}
+				switch(	lpXen	){	SwCASE_XXOVER_01K(	hipa, 					*( (ui64*) (K +ixº) ),		*( (ui64*) cubeΩ )	) 	}
+			}else{				/*	^dbl-xover dbl-tee		^high passthrough, shifted	^endo inclusion src		^low passthrough / tee output	*/
+				switch(	lpXen	){	SwCASE_XXOVER_01T(							*( (ui64*) (K +ixº) ),		*( (ui64*) cubeΩ )	)	}
+				}				/*	^double crossover tee							^endo inclusion src		^exo passthrough / tee output	*/
+	//	}else if(	tcª >icO ){
+	//		if(		relΩ_c ){
+	//			if(	relΩ_c< 0){		bs = ( -relΩ_c ) << 3;	hipa = *( (ui64*) cube ) >>bs;	}
+	//			else{				bs =   relΩ_c	<< 3;	hipa = *( (ui64*) cube )<< bs;	}
+	//			switch(	icI		){	SwCASE_XOVER_0T(	hipa,					/**/					*( (ui64*) cubeΩ )	) 	}
+	//		}else{				/*	^crossover tee		^high passthrough, shifted	^no inclusions			^low passthrough / tee output	*/
+	//			switch(	icI		){	SwCASE_XOVER_0T(	*( (ui64*) cube ),			/**/					*( (ui64*) cubeΩ )	) 	}
+	//			}				/*	^crossover tee		^high passthrough			^no inclusions			^low passthrough / tee output	*/
+				if( xcª == izM )		*Edge(	cubeΩ )=E[ xcª ];
+		}else{	if( xcª <= inM )		*Edge(	cubeΩ )=E[ xcª ];
+				switch(	tcª 		){	SwCASE_LOWPASS_1IS(	/**/						/**/					*( (ui64*) cubeΩ )	);		}
+								/*	^in-situ lowpass		^no highpass				^no inclusions			^low passthrough, in-situ		*/
+				}
 
 		/*	[iC ]:		PACK NEW Q-DATA				(ƒsub 1X1)									*/
 		if(		post_q	)	{				pΩ = cubeΩ +16 +O[ ixM ] -oCS;
@@ -222,7 +230,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 
 */
-	else if( 	/*****	ƒsub 1X2   	*****/	tcª< 14	)		{ /* One cube splits in two.					*/	dBUGrackCALL(	2 );
+	else if( 	/*****	ƒsub 1X2   	*****/	tcª< 14	)		{ /* One cube splits in two.			*/			dBUGrackCALL(	2 );
 		zcΩ =	tcª >>1;	ixΩ =	xcª-	zcΩ;
 				izº = 	ixΩ -1;			
 		zcº =	izº -ixº;																				dBUGmx( xcª+4, ocª, ixΩ );
@@ -345,7 +353,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 
 */
-	else if( 	/*****	ƒsub 1X3   	*****/	tcª< 21	)		{ /* One cube splits in three.					*/	dBUGrackCALL(	3 );
+	else if( 	/*****	ƒsub 1X3   	*****/	tcª< 21	)		{ /* One cube splits in three.			*/			dBUGrackCALL(	3 );
 		/*	*	*	*	*	*	*	*	*	*	*	*/	ncª	= tcª +1;
 		/*	*	*	*	*	*	*	*	*	*/	zcΩ = (	ncª /3) -1;		/* 4..7  */
 		/*	*	*	*	*	*	*/	ixΩ = xcª -	zcΩ;
@@ -446,7 +454,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 
 */
-	else if(   	/*****	ƒsub 1X4/N	******/	tcª< 255	)		{ /* One cube splits into four plus.				*/	dBUGrackCALL(	4 );
+	else if(   	/*****	ƒsub 1X4/N	******/	tcª< 255	)		{ /* One cube splits into four plus.		*/			dBUGrackCALL(	4 );
 		int						nCª=(	tcª /7 )-3;													dBUGnCª
 					endo_c	=	nCª *7;																	
 					exo_c	=	tcª %7;
@@ -583,4 +591,4 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 //	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() exit	%s line %d\n", __FUNCTION__, __FILE__, __LINE__ ); }
 	}
 
-/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***	*/
+/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***	**/

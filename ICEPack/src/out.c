@@ -679,7 +679,7 @@ void	_print_mx(		unsigned char mx_max, short ix¹, short izΩ ){
 	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 43, 	B[	x ]		);	p+= cell[ c++ ]+2;	}
 /*6: E-1		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
 //	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 90, 	E[	x ]-1	);	p+= cell[ c++ ]+2;	}
-	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLX[	cell[ c ] ], 90, 	E[	x ]-1	);	p+= cell[ c++ ]+2;	}
+	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLX[	cell[ c ] ], 32, 	E[	x ]-1	);	p+= cell[ c++ ]+2;	}
 /*7: I		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
 	c=1;	for( x=255; x!=mx_max; ++x ){	sprintf( txt +p, fmtLLU[	cell[ c ] ], 35, 	I[	x ]		);	p+= cell[ c++ ]+2;	}
 /*8: O		*/						sprintf( txt +p, fmtStrNl[	lblCell ],    label[++r]		);	p+= lblCell+3;
@@ -706,4 +706,4 @@ void	_print_mx(		unsigned char mx_max, short ix¹, short izΩ ){
 
 
 
-/* meme	*/
+/* melll	*/

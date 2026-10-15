@@ -15,7 +15,7 @@ extern const char	*svtype_names[],
 extern ui08		svtype_cnt;
 
 extern char *	opStat[];
-extern enum	opStat{	null, del, ok, mod, new}
+extern enum	{	null, del, ok, mod, new, epi }
 
 			RW[	512 ];			/* read/write status enumerator			*/
 
@@ -28,7 +28,7 @@ extern ui08 	I[	512 ],			/* cycla indeces	align		pre op / post op keybytes		in	c
 			L[	512 ],	Qc;		/* q-data lengths	which define	each read increment			in	char *	cube			*/
 extern ui16	O[	512 ],			/* q-data offsets	mark		each read position				in	char *	cube			*/
 			Oª[	512 ];			/* q-data offsets	mark		each write position				in	char *	cube			*/
-extern char unsigned 	u, v, w,		/* matrix indeces	iterate		the modification range			in	matrix { A[], B[], E[], L[] }	*/
+extern short		 	u, v, w,		/* matrix indeces	iterate		the modification range			in	matrix { A[], B[], E[], L[] }	*/
 					ixM, izM;		/* matrix indeces	mark in/out	the Modification range			in	matrix { A[], B[], E[], L[] }	*/
 
 

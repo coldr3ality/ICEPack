@@ -28,7 +28,7 @@ bool _addsUp(){
 	#if defined( DEBUG_TRUTH_L1 )
 		#define dBUG3ps_NOPROB			cS = sprintf(aString, "\rok	%s in %s line %d: %s encountered no error.\n",									__FUNCTION__, __FILE__, __LINE__				);	AvDBUG_PUSH( aString, cS );
 		#define dBUG3ps_NOARG			cS = sprintf(aString, 	"\r! 	%s in %s line %d: (AV*) avArg array is empty.\n",								__FUNCTION__, __FILE__, __LINE__				);	AvDBUG_PUSH( aString, cS );
-		#define dBUG3ps_NOCUBE			cS = sprintf(aString, 	"\r! 	%s in %s line %d: (AV*) avICE array is empty.\n",								__FUNCTION__, __FILE__, __LINE__				);	AvDBUG_PUSH( aString, cS );
+		#define dBUG3ps_NOCUBE			cS = sprintf(aString, 	"\r! 	%s in %s line %d: (AV*) avICE array is empty.\n",									__FUNCTION__, __FILE__, __LINE__				);	AvDBUG_PUSH( aString, cS );
 		#define dBUGzc(		$iC )			cS = sprintf(aString, 	"\r! 	%s in %s line %d: cube #%lld is empty.		\n",									__FUNCTION__, __FILE__, __LINE__, $iC				);	AvDBUG_PUSH( aString, cS );
 		#define dBUG3ps_ic(	$iC )			cS = sprintf(aString,	"\r! 	%s in %s line %d: cube #%lld checksum error.	\n",								__FUNCTION__, __FILE__, __LINE__, $iC				);	AvDBUG_PUSH( aString, cS );
 		#define dBUG3ps_CS(	$iC )			cS = sprintf(aString,	"\r! 	%s in %s line %d: cube #%lld STRLEN error.   	( computed: %llu 	stored: %llu  )\n",	__FUNCTION__, __FILE__, __LINE__, $iC, pq-cube, CS	);	AvDBUG_PUSH( aString, cS );
@@ -53,7 +53,7 @@ bool _addsUp(){
 									}		if(*( (ui64*)	cube +1 ) 				!=	Ec ){    		dBUG3ps_ic(	0LL);	return 0; }
 											if(		pq -	cube!=	CS){								dBUG3ps_CS(	0LL);	return 0; }
 
-	for(		iC=1;	iC<=	zC;	++iC ){							svC=*( ICEº +iC ); 	if( svC==NULL){	dBUG3ps_svC( iC );	return 0; }
+	for(		iC=1;	iC<=	zC;	++iC ){							svC=*( ICEº +iC ); 	if( svC==NULL){		dBUG3ps_svC( iC );	return 0; }
 									cube = SvPVbyte(	svC, CS );
 						zc = zcOf(	cube );	deICE0(			Ac, Bc, Qc );	Ec+=Ac +Bc;
 		for(	ic = 1;	ic<=	zc;	++ic )	{		deICE(cube[ ic ],	Ac, Bc, Qc );	Ec+=Ac +Bc;
@@ -253,7 +253,7 @@ _x0_intra:	ic=0;  			zc=zcOf(	cube );
 				} while( 1 );	lo =iC+1;	/*
 _x0_search:	*/						hi =zC +1;	iC=( lo+hi )>>1;
 			}else		{/*cube iC empty; many miss.*/	SvREFCNT_dec( *(	dst = ARGº +a ) );
-_x0_cube_miss: 																						dBUG_6A( cube_err[5], __FUNCTION__, "", iC-1, CSΩ,	__FILE__, __LINE__ );
+_x0_cube_miss: 																						dBUG_5A( cube_err[5], __FUNCTION__, iC, CSΩ,	__FILE__, __LINE__ );
 _x0_cube_overrun: 		if(	iC!=zC )	{	a_=a;						
 									do	{ if(a!=za)	x = ARG( ++a );				else{  off =1+za-a; NX;	goto _none_x;	}
 																	SvREFCNT_dec( *(		ARGº +a ) );
@@ -323,7 +323,7 @@ _next_x:  		if( a!=za )	x = ARG( ++a );	else /* return...	*	*	*	*	*	*	*	*/	{	NX;
 				} while( 1 );			lo =iC+1;
 _search:								hi =zC +1;	iC=( lo+hi )>>1;
 			}else		{ /* cube iC is empty.  all local args miss. */
-_cube_miss:	 																						dBUG_6A( cube_err[5], __FUNCTION__, "", iC-1, CSΩ,	__FILE__, __LINE__ );
+_cube_miss:	 																						dBUG_5A( cube_err[5], __FUNCTION__, iC, CSΩ,	__FILE__, __LINE__ );
 _cube_overrun:				if(	iC!=zC )	{	a_ = a;
 									do	{ if(a!=za)	x = ARG( ++a );				else 		{	NX;	goto _none_x;	}
 																	SvREFCNT_dec( *(		ARGº +a ) );
@@ -423,7 +423,7 @@ _x0_intra:	ic=0;			zc=zcOf(	cube );
 				if(		x == *Edge(	cube ) )	{													goto _x0_intraloc1up;		}
 				} while( 1 );	lo =iC+1;	
 _nth_search:							hi =zC +1;	iC=( lo+hi )>>1;
-			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_5A( cube_err[5], __FUNCTION__,		iC-1, CSΩ,	__FILE__, __LINE__ );
+			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_5A( cube_err[5], __FUNCTION__,		iC, CSΩ,	__FILE__, __LINE__ );
 _x0_cube_miss:			if(	iC!=zC )	{
 									do	{ if(a!=za)	x = ARG( ++a );				else 		{	NX;	goto _none_x;	}
 										} while(	x < *Edge( cube ) );
@@ -483,7 +483,7 @@ _next_x:			if( a!=za )	x = ARG( ++a );										else			{	NX;	goto _none_x;	}
 				if(		x == *Edge(	cube ) )	{						goto	_intraloc1up;							}
 				}while(1);	lo =iC+1;	
 _search:							hi =zC +1;		iC=( lo+hi )>>1;
-			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_5A( cube_err[5], __FUNCTION__, iC-1, CSΩ,	__FILE__, __LINE__ );
+			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_5A( cube_err[5], __FUNCTION__, iC, CSΩ,	__FILE__, __LINE__ );
 _cube_miss:				if(	iC!=zC )	{
 									do	{ if(a!=za)	x = ARG( ++a );				else 		{	NX;	goto _none_x;	}
 										} while(	x < *Edge( cube ) );
@@ -578,7 +578,7 @@ _x0_intra:	ic=0;  			zc=zcOf(	cube );
 				} while( 1 );	lo =iC+1;	/*
 _x0_search:	*/						hi =zC +1;	iC=( lo+hi )>>1;
 			}else		{/*cube iC empty; many miss.*/
-_x0_cube_miss: 																						dBUG_5A( cube_err[5], __FUNCTION__, iC-1, CSΩ,	__FILE__, __LINE__ );
+_x0_cube_miss: 																						dBUG_5A( cube_err[5], __FUNCTION__, iC, CSΩ,	__FILE__, __LINE__ );
 _x0_cube_overrun: 		if(	iC!=zC )	{	a_=a;						
 									do	{ if(a!=za)	x = ARG( ++a );				else{  off =1+za-a; NX;	goto _none_x;	}
 										} while(	x < *Edge( cube ) );
@@ -634,7 +634,7 @@ _next_x:  		if( a!=za )	x = ARG( ++a );	else /* return...	*	*	*	*	*	*	*	*/	{	NX;
 				} while( 1 );			lo =iC+1;
 _search:								hi =zC +1;	iC=( lo+hi )>>1;
 			}else		{ /* cube iC is empty.  all local args miss. */
-_cube_miss:	 																						dBUG_5A( cube_err[5], __FUNCTION__, iC-1, CSΩ,	__FILE__, __LINE__ );
+_cube_miss:	 																						dBUG_5A( cube_err[5], __FUNCTION__, iC, CS,	__FILE__, __LINE__ );
 _cube_overrun:				if(	iC!=zC )	{	a_ = a;
 									do	{ if(a!=za)	x = ARG( ++a );				else 		{	NX;	goto _none_x;	}
 										} while(	x < *Edge( cube ) );
@@ -723,7 +723,7 @@ _x0_intra:	ic=0;			zc=zcOf(	cube );
 				if(		x == *Edge(	cube ) )	{													goto _x0_intraloc1up;		}
 				} while( 1 );	lo =iC+1;	
 _nth_search:							hi =zC +1;	iC=( lo+hi )>>1;
-			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_5A( cube_err[5], __FUNCTION__, iC-1, CSΩ,	__FILE__, __LINE__ );
+			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_5A( cube_err[5], __FUNCTION__, iC, CSΩ,	__FILE__, __LINE__ );
 _x0_cube_miss:			if(	iC!=zC )	{
 									do	{ if(a!=za)	x = ARG( ++a );				else 		{	NX;	goto _none_x;	}
 										} while(	x < *Edge( cube ) );
@@ -779,7 +779,7 @@ _next_x:			if( a!=za )	x = ARG( ++a );										else			{	NX;	goto _none_x;	}
 				if(		x == *Edge(	cube ) )	{						goto	_intraloc1up;							}
 				}while(1);	lo =iC+1;	
 _search:							hi =zC +1;		iC=( lo+hi )>>1;
-			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_6A( cube_err[5], __FUNCTION__, "", iC-1, CSΩ,	__FILE__, __LINE__ );
+			}else		{ /* cube iC is empty.  all local args miss. */										 	dBUG_5A( cube_err[5], __FUNCTION__, iC, CSΩ,	__FILE__, __LINE__ );
 _cube_miss:				if(	iC!=zC )	{
 									do	{ if(a!=za)	x = ARG( ++a );				else 		{	NX;	goto _none_x;	}
 										} while(	x < *Edge( cube ) );

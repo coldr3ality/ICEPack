@@ -24,14 +24,16 @@
 	#define OpA		cS=sprintf(aString, "\r=x|_ 	x[%lld]: %lld ( 0x%llX )	=x|_   	\n\t", a, x, x );  AvDBUG_PUSH( aString, cS );
 	#define OpAz		cS=sprintf(aString, "\r=x|$ 	x[%lld]: %lld ( 0x%llX )	=x|$  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
 	#define OpB		cS=sprintf(aString, "\r_x|_ 	x[%lld]: %lld ( 0x%llX )	_x|_   	\n\t", a, x, x );  AvDBUG_PUSH( aString, cS );
-	#define OpBz		cS=sprintf(aString, "\r_x|$ 	x[%lld]: %lld ( 0x%llX )	_x|$  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
+	#define OpBz		cS=sprintf(aString, "\r_x|$ 	x[%lld]: %lld ( 0x%llX )	_x|$  	%s line %d\n\t", a, x, x, __FILE__, __LINE__ );	 AvDBUG_PUSH( aString, cS );
 	#define OpZ		cS=sprintf(aString, "\r|x|_ 	x[%lld]: %lld ( 0x%llX )	|x|_   	\n\t", a, x, x );  AvDBUG_PUSH( aString, cS );
 	#define OpZz		cS=sprintf(aString, "\r|x|$ 	x[%lld]: %lld ( 0x%llX )	|x|$  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
-	#define OpC		cS=sprintf(aString, "\r=x= 	x[%lld]: %lld ( 0x%llX )	=x=  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
+	#define OpC		cS=sprintf(aString, "\r=x= 	x[%lld]: %lld ( 0x%llX )	=x=  	E[u: %d]==%llX\n\t", a, x, x, u, E[u]);	 AvDBUG_PUSH( aString, cS );
 	#define OpD 		cS=sprintf(aString, "\r=x_ 	x[%lld]: %lld ( 0x%llX )	=x_  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
+	#define OpDz		cS=sprintf(aString, "\r=x|$ 	x[%lld]: %lld ( 0x%llX )	=x|$  	%s line %d\n\t", a, x, x, __FILE__, __LINE__ );	 AvDBUG_PUSH( aString, cS );
 	#define OpE		cS=sprintf(aString, "\r_x= 	x[%lld]: %lld ( 0x%llX )	_x=  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
 	#define OpF		cS=sprintf(aString, "\r_x_ 	x[%lld]: %lld ( 0x%llX )	_x_  	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
 	#define OpX		cS=sprintf(aString, "\r___	x[%lld]: %lld ( 0x%llX )	___   	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
+	#define OpH		cS=sprintf(aString, "\r_!_ 	x[%lld]: %lld ( 0x%llX )	_!_   	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
 #else
 	#define OpA0
 	#define OpB0
@@ -43,7 +45,9 @@
 	#define OpZz
 	#define OpC 
 	#define OpD
+	#define OpDz
 	#define OpE
 	#define OpF
 	#define OpX
+	#define OpH
 #endif

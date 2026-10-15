@@ -77,24 +77,24 @@
 #endif
 #ifdef DEBUG_AvCOMMIT_L3		//	paranoid integrity checks which are silent until there's a problem
 	#define dBUGdscDIR	if(dsc<0 || dsc>zsc)	{	cS=sprintf( aString,		"\n!	dsc is out of bounds 0..%lld (%lld)\n", zsc, dsc);		AvDBUG_PUSH( aString, cS );	\
-											break;	\
+										/*	break;	*/	\
 										}			\
 						if(src >dst )		{	cS=sprintf( aString,		"\n!	going in the wrong direction in \"_desc\" block pf function %s, file %s line %d	src( %lld ) > dst( %lld ), step #%d/%d;	rSeqCut[%lld]: %d	rSeqSrc[%lld]: %d	rSeqDst[%lld]: %d\n",	\
 																									__FUNCTION__, __FILE__, __LINE__,	src - Aº, dst -Aº,	dsc, zsc,		dsc, rSeqCut[dsc],	dsc, rSeqSrc[dsc],	dsc, rSeqDst[dsc]		);	AvDBUG_PUSH( aString, cS );		\
 										/*	if( -pmo< src-Aº )	exit_code=1;	*/	\
-											break;	\
+										/*	break;	*/	\
 										}
 	#define dBUG_PMv( $LBL)  if( pmo< 0 )		{	cS=sprintf( aString,		"\n!	\"pmo\" is negative ( %lld ) in \"%s\" block of function %s, file %s line %d \n",				\
 																					pmo,		$LBL,	__FUNCTION__, __FILE__, __LINE__		);	AvDBUG_PUSH( aString, cS );	\
 										/*	if( -pmo< src-Aº ){ exit_code=1; } */		\
 										}
 	#define dBUGascDIR	if(asc<0 || asc>zsc)	{	cS=sprintf( aString, 	"\n!	asc is out of bounds 0..%lld (%lld)\n", zsc, asc);	AvDBUG_PUSH( aString, cS );	\
-											break;	\
+										/*	break;	*/	\
 										}			\
 						if(src< dst )		{	cS=sprintf( aString, 	"\n!	going in the wrong direction in \"_asce\" block of function %s, file %s line %d    	src( %lld ) < dst( %lld ), step #%d/%d;	rSeqCut[%lld]: %d	rSeqSrc[%lld]: %d	rSeqDst[%lld]: %d\n", 	\
 																									__FUNCTION__, __FILE__, __LINE__,	src - Aº, dst -Aº,	asc, zsc,		asc, rSeqCut[asc],	asc, rSeqSrc[asc],	asc, rSeqDst[asc]		);	AvDBUG_PUSH( aString, cS );	\
 										/*	if( -pmo< src-Aº )	exit_code=1;	*/	\
-											break;	\
+										/*	break;	*/	\
 										}
 //	if( zC!= AvFILLp( avICE ) ){zzC=( zC = AvFILLp( avICE ) )-1;	cS=sprintf( aString, 	"\n!	zC( %llu ) was out-of-sync with AvFILLp( avICE )( %llu )\n", zC, AvFILLp( avICE ) );	AvDBUG_PUSH( aString, cS );			}
 //	if(dsc<0){											cS=sprintf( aString, 	"\n!	dsc( %llu )< 0\n", dsc );													AvDBUG_PUSH( aString, cS );	return;	}
