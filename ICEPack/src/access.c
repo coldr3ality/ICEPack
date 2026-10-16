@@ -33,8 +33,7 @@ extern	void	_av_commit(),
 			_sv_commit_1x(),
 			_sv_commit_nx(),
 			printAvDBUG(),
-			_print_mx( unsigned char mx_max, short ix¹, short izΩ ),
-			_init_mx();
+			_print_mx( unsigned char mx_max, short ix¹, short izΩ );
 
 
 #if defined( DEBUG_SvCOMMIT_L0 ) || defined( DEBUG_SvCOMMIT_L1 ) || defined( DEBUG_SvCOMMIT_L1X )
@@ -318,18 +317,19 @@ ui16		O[	512 ],				/* q-data offsets	which mark	each read position			in	char *	c
 						pmo	/*	[p]eristaltic [mo]ve run length (formerly jmp for "jump", which was an oversimplified )
 									—"peristaltic move" refers to reflow / compaction or expansion of subsequent indeces.	*/
 
-
-
+void __init_mx(){
+	++xcª;
+	}
 
 void _init_mx(){		/*	totally zero-out buffer matrix to improve clarity of debug info	*/
-	ui16	x=0;	ixº=oc=ocª=0; xc= xcª=-1;
+	short	x=xcª;	ixº=oc=ocª=0; xc= xcª=-1;
 
 	u= v= w= izM =0;	ixM=0xFF;
 	do{	RW[x]=0;
 		A[	x ]=	B[	x]=	E[x]=	0;
 		K[	x ]=	L[	x]=	I[x]=		0;
 		O[	x ]=	Oª[	x]=	0;
-		} while( ++x != 511 );
+		} while( --x != -1 );
 	}
 void _icepack_init(){	/*	printf("—vUry cold\n\n");	*/
 #if	defined( DEBUG )
@@ -365,15 +365,16 @@ void _icepack_init(){	/*	printf("—vUry cold\n\n");	*/
 #endif
 	hvICE		= gv_stashpv(	"ICEPack",			0);
 	avOut		= get_av(		"ICEPack::avOut",		GV_ADD);
-	A[	512 ]=255;
-	B[	512 ]=255;
-	O[	512 ]=16;
-	Oª[	512 ]= 0;
-	L[	512 ]= 0;
-	for( x=0; x< 32; ++x)	*( (ui64*) K+x )	= 0;
+	A[	256 ]=255;
+	B[	256 ]=255;
+	O[	256 ]=16;
+	Oª[	256 ]= 0;
+	L[	256 ]= 0;
+
 	u=v=w=255;
 	int x;
-	for( x=0; x<32; ++x){
+	for( x=0; x<64; ++x){
+		*( (ui64*) K		+x )= 0;
 		*( (ui64*) RW		+x )=null;
 		*( (ui64*) rSeq_iR	+x )=-1;
 		*( (ui64*) rSeqIns	+x )=0;

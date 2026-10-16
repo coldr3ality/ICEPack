@@ -12,11 +12,12 @@
 void	_set(){	
 							Aº	= AvARRAY(	avICE );	a =	hit =0;							dBUGavCLR	dBUGinit_mx
 	ui64						x	= ARG0;				za =	AvFILLp(	avArg);	if( za ==-1){	/*	no args */	return;	}
-	_start:			zzC=(	zC	= AvFILLp(	avICE ) )-1;					if( zC ==-1){	a=E_=0;	AvICExt( x, pq, pk, buf, E_, avArg, a, za );	return;	}
+	_start:			zzC=(	zC	= AvFILLp(	avICE ) )-1;					if( zC ==-1){	printf("\n%s: populating empty array...	%s line %d\n", __FUNCTION__, __FILE__, __LINE__ );
+																					a=E_=0;	AvICExt( x, pq, pk, buf, E_, avArg, a, za );	return;	}
 	ui64				nC = 	zC+1,					lo=0, hi=nC;		
 	bool		run_iC;
 
-	INIT_MxRACK(1);		/*	^ value to reset upper boundary (hi) to	*/
+	INIT_MxRACK(64);		/*	^ value to reset upper boundary (hi) to	*/
 	INIT_AvCOMMIT;						cube	=	SvPVbyte_nolen(	*Aº );	// so, x is probably not in cube 0, but we handle it now to eliminate a special case within INTRaLOC, which is a search entrance.
  if( 	/*	x not in cube 0	*/	x >= *Edge(	cube	) ){							iC= hi>>1;
    do	{/*	search	*/		sv=*( Aº+	iC );	cube	=	SvPVbyte_nolen(	sv );				
@@ -89,14 +90,12 @@ void	_set(){
 	_exit_2:						if( dsc || rSeqIns[0] || rSeqCut[0] ) 						_av_commit();
 
 	}
-
 void	_set_rebal(){	
 							Aº	= AvARRAY(	avICE );	a =	hit =0;							dBUGavCLR	dBUGinit_mx
 	ui64						x	= ARG0;				za =	AvFILLp(	avArg);	if( za ==-1){	/*	no args */	return;	}
 	_start:			zzC=(	zC	= AvFILLp(	avICE ) )-1;					if( zC ==-1){	a=E_=0;	AvICExt( x, pq, pk, buf, E_, avArg, a, za );	return;	}
 	ui64				nC = 	zC+1,					lo=0, hi=nC;		
 	bool		run_iC;
-
 	INIT_MxRACK(64);		/*	^ value to reset upper boundary (hi) to	*/
 	INIT_AvCOMMIT;						cube	=	SvPVbyte_nolen(	*Aº );	// so, x is probably not in cube 0, but we handle it now to eliminate a special case within INTRaLOC, which is a search entrance.
  if( 	/*	x not in cube 0	*/	x >= *Edge(	cube	) ){							iC= hi>>1;
@@ -187,4 +186,4 @@ U+8304
 */
 
 
-/*	cat	*/
+/*	cat	cat */

@@ -6,6 +6,7 @@ extern	void	_av_commit(),
 			_print_mx_hex(	unsigned char mx_max, short ix¹, short izΩ ),
 			printAvDBUG(),
 			_init_mx(),
+			__init_mx(),
 			deIce_vEI(), deIce_vKE(), deIce_vKI(), deIce_vKEI(), deIce_vKEI2(),
 			reIce_uO(	ui16 u, ui16 v ),
 			reIce_uOx(	ui16 u, ui16 v );

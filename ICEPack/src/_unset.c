@@ -10,7 +10,7 @@
 #include "dBUG.h"
 #include	"_unset.h"
 void	_unset(){
-	bool		run_iC;			Aº	= AvARRAY(	avICE );	a =	miss =0;							dBUGavCLR	//dBUGinit_mx;
+	bool		run_iC;			Aº	= AvARRAY(	avICE );	a =	miss =0;							dBUGavCLR	dBUGinit_mx;
 	ui64						x	= ARG0, x1 = x+1;		za =	AvFILLp(	avArg);	if( za ==-1){	/*	no args	*/	return;	}
 	_start:			zzC=(	zC	= AvFILLp(	avICE ) )-1;					if( zC ==-1){	miss+=1+( za-a );	return;	}
 	ui64				nC = 	zC+1,					lo=0, hi=nC;			if( za >=247 ){	printf("!	_unset(): too many arguments for non-rebalancing variant (%lld > 246 )\n", za);	return;	}
@@ -132,7 +132,7 @@ if( 	/*	x1 not in cube 0	*/	x1>=*Edge(	cube	) ){							iC= hi>>1;
 
 
 void	_unset_rebal(){
-	bool		run_iC;			Aº	= AvARRAY(	avICE );	a =	miss =0;							dBUGavCLR	_init_mx();
+	bool		run_iC;			Aº	= AvARRAY(	avICE );	a =	miss =0;							dBUGavCLR	dBUGinit_mx;
 	ui64						x	= ARG0, x1 = x+1;		za =	AvFILLp(	avArg);	if( za ==-1){	/*	no args	*/	return;	}
 	_start:			zzC=(	zC	= AvFILLp(	avICE ) )-1;					if( zC ==-1){	miss+=1+( za-a );	return;	}
 	ui64				nC = 	zC+1,					lo=0, hi=nC;		
@@ -347,4 +347,4 @@ if( 	/*	x1 not in cube 0	*/	x1>=*Edge(	cube	) ){							iC= hi>>1;
 ///* ___	*/	}else				{	OpX;
 //					 ++	miss;	}/*	Op#	E []				A []			B []				RW []	O/I []		L []	*/
 
-/*	ok	......,,.	*/
+/*	ok	...................	*/

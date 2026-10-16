@@ -38,7 +38,7 @@
 				RW[ v ] = null;
 
 #define INIT_MxRACK( $0LL )	/*	RW[ 0 ] =null;	u= v= w= izM =0;	*/	ixM=0xFF; /*<— how we know there's nothing to commit	*/	\
-		ui08	i = 0;	do{	*( (ui64*) RW + i )=0;	} while( ++i != $0LL );
+	/*	ui08	i = 0;	do{	*( (ui64*) RW + i )=0;	} while( ++i != $0LL );	*/
 
 #define INIT_AvCOMMIT	rSeqCut[0]= rSeqIns[0]= rel_iC= step_iC= dsc=	0;	\
 						rSeq_iR[0]= iR=							-1;
@@ -577,16 +577,18 @@
 		if(		RW[ v ] >ok	)	{	MkIn;			ReICEuO( u, v );	u=v++; ReICEuOx( u, v );	MkOut(1);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
 		}else if(	RW[ u ] >ok	)	{	MkIn;			ReICEuO( u, v );							MkOut(2);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
 		}else if(	RW[ u ]!=del	)	{	/* no mods */		cubeΩ= cube; CSΩ=CS; svΩ=sv; zcΩ= zc;		/* nothing to commit */		 									/*	ixM=0xFF; */	\
-		}else					{	MkIn;			Oª[ v ] =Oª[ u ] =O[ u ];						MkOut_(3);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
-								}															\
+		}else /*	ablative		*/	{	MkIn;			Oª[ v ] =Oª[ u ] =O[ u ];						MkOut_(3);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
+				RW[ xcª+1 ]=null;	}															\
 	}else if(		RW[ v ] >ok	)	{					ReICEuOx( u, v );	u=v++; ReICEuOx( u, v );	MkOut(4);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
 	}else if(		RW[ u ] >ok	)	{					ReICEuOx( u, v );							MkOut(5);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
 	}else if(		RW[ u ]==ok	)	{					Oª[ v ] =Oª[ u ]+L[ u ];						MkOut(6);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
 	}else if(		RW[ u ]==null	)	{					Oª[ v ] =Oª[ u ];							MkOut(8);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
-	}else						{					Oª[ v ] =Oª[ u ];							MkOut_(9);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
-								}					\
-/*	if( run_iC ){ */	oCS=16;		run_iC=ixº=oc=ocª=0;		\
-/*			} */
+	}else 	/*	ablative		*/	{					Oª[ v ] =Oª[ u ];							MkOut_(9);	if( run_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;	\
+				RW[ xcª+1 ]=null;	}					\
+
+/*	NOTE: Optimal Function Stack for SvCOMMIT Abstraction	*/
+/*	*/
+	
 
 
 /*		SvCOMMIT1x		Mark-out the modification range and call function to re-balance the SV[s]					*/

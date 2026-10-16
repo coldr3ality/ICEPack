@@ -137,24 +137,20 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 	if(		/*****	ƒsub 1X0   	*****/	tcª< 0	)		{ /* One cube is annihilated.			*/			dBUGrackCALL(	0 );
 	/*	mark element iC for deletion		*/																dBUGmx( xcª+4, ocª, ocª );
 		//get entire length of  cube # iC and  add it to the negative phase of cyclum 0 in cube iC +1
-		if( iC != zC ){
-			printf("\n%s case 1X0 iC#%lld		in %s line %d \n", __FUNCTION__, iC, __FILE__, __LINE__ );
+		if( iC==zC ){																				/*	printf("\n\x9Fsub 1X0-Z iC#%lld		in %s line %d \n", iC, __FILE__, __LINE__ );	*/
+			oCS =CS = CSΩ =16;									/*	++iC; */	AvCUT1( iC );
+			zcΩ = -1;							svΩ=NULL;	cubeΩ =	nube;
+		}else{																						printf("\n\x9Fsub 1X0 iC#%lld		in %s line %d \n", iC, __FILE__, __LINE__ );
 			oCS += CS -	16;					
-			ui64			Ac	= 	*Edge(	cube );			svΩ = *(Aº+ ++iC );								AvCUT1B4( iC );
+			ui64			Ac	= 	*Edge(	cube );			svΩ = *(Aº+	++iC );	AvCUT1B4( iC );
 			oc =			ocª	= 0;			cube = SvPVbyte(	svΩ,	CS );
 			xc =			xcª	=	zc=zcOf(	cube );
 			u = ixM	= izM = icO	= 0;
 			v = inM	= ixH		= 1;		
 													pq=cube+16;					O[ 0 ] =16;	I[ 0 ]=0;
-			switch( cube[ 0 ] ){ SwCASE_IC2ABQ_init16p(	pq,	A[ 0 ], B[ 0 ], L[ 0 ], 	cube, pq,	O[ 0 ]	); }
+			switch( cube[ 0 ] ){	SwCASE_IC2ABQ_init16p(	pq,	A[ 0 ], B[ 0 ], L[ 0 ], 	cube, pq,	O[ 0 ]	); }
 														A[ 0 ] += Ac;
-			ReICEuO( u, v );
-			post_xc	=	0;	goto _1X1;
-
-		}else{
-		/*	MxINIT;	*/	cubeΩ =	nube;							CS = 		oCS	=	16;		++iC;	AvCUT1B4( iC );
-			zcΩ = -1;		iCI=iC=0;	CSΩ=16;		svΩ=NULL; 
-		/*	printf("\n%s case 1X0-Z iC#%lld		in %s line %d \n", __FUNCTION__, iC, __FILE__, __LINE__ );	*/
+			post_xc	= 0;		ReICEuO( u, v );													goto	_1X1;
 			}
 
 		}/*
@@ -195,6 +191,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 		/*	[iC ]:		SPLICE KEYBYTE SECTION			(ƒsub 1X1)									*/
 		/*			double-crossover of endogenous data with high and low passthrough data, in-situ			*/
 		if(	post_xc >=0 ){	lpXen	=	icI |( post_xc<< 3 );
+		/*	post_xc is always >=0 for non-ablative ICEPack setters; e.g: this can occur for unset(), but not set().		*/
 			if(		rel_c ){
 				if(	rel_c< 0){			bs = ( -rel_c )	<< 3;	hipa = *( (ui64*) cube ) >>bs;	}
 				else{				bs =   rel_c	<< 3;	hipa = *( (ui64*) cube )<< bs;	}
@@ -202,19 +199,19 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 			}else{				/*	^dbl-xover dbl-tee		^high passthrough, shifted	^endo inclusion src		^low passthrough / tee output	*/
 				switch(	lpXen	){	SwCASE_XXOVER_01T(							*( (ui64*) (K +ixº) ),		*( (ui64*) cubeΩ )	)	}
 				}				/*	^double crossover tee							^endo inclusion src		^exo passthrough / tee output	*/
-	//	}else if(	tcª >icO ){
-	//		if(		relΩ_c ){
-	//			if(	relΩ_c< 0){		bs = ( -relΩ_c ) << 3;	hipa = *( (ui64*) cube ) >>bs;	}
-	//			else{				bs =   relΩ_c	<< 3;	hipa = *( (ui64*) cube )<< bs;	}
-	//			switch(	icI		){	SwCASE_XOVER_0T(	hipa,					/**/					*( (ui64*) cubeΩ )	) 	}
-	//		}else{				/*	^crossover tee		^high passthrough, shifted	^no inclusions			^low passthrough / tee output	*/
-	//			switch(	icI		){	SwCASE_XOVER_0T(	*( (ui64*) cube ),			/**/					*( (ui64*) cubeΩ )	) 	}
-	//			}				/*	^crossover tee		^high passthrough			^no inclusions			^low passthrough / tee output	*/
-				if( xcª == izM )		*Edge(	cubeΩ )=E[ xcª ];
-		}else{	if( xcª <= inM )		*Edge(	cubeΩ )=E[ xcª ];
+									if( xcª == izM )			*Edge(	cubeΩ )=E[ xcª ];
+		}else if(	tcª<=icO ){			if( xcª <= inM )			*Edge(	cubeΩ )=E[ xcª ];
 				switch(	tcª 		){	SwCASE_LOWPASS_1IS(	/**/						/**/					*( (ui64*) cubeΩ )	);		}
 								/*	^in-situ lowpass		^no highpass				^no inclusions			^low passthrough, in-situ		*/
-				}
+		}else{/*	ablative w/ hpass	*/	if( xcª == izM )			*Edge(	cubeΩ )=E[ xcª ];						printf("\n\x9Fsub 1X1 ablative w/ highpass\n");
+			if(		relΩ_c ){
+				if(	relΩ_c< 0){		bs = ( -relΩ_c ) << 3;	hipa = *( (ui64*) cube ) >>bs;	}
+				else{				bs =   relΩ_c	<< 3;	hipa = *( (ui64*) cube )<< bs;	}
+				switch(	icI		){	SwCASE_XOVER_0T(	hipa,					/**/					*( (ui64*) cubeΩ )	) 	}
+			}else{				/*	^crossover tee		^high passthrough, shifted	^no inclusions			^low passthrough / tee output	*/
+				switch(	icI		){	SwCASE_XOVER_0T(	*( (ui64*) cube ),			/**/					*( (ui64*) cubeΩ )	) 	}
+		}		}				/*	^crossover tee		^high passthrough			^no inclusions			^low passthrough / tee output	*/
+		
 
 		/*	[iC ]:		PACK NEW Q-DATA				(ƒsub 1X1)									*/
 		if(		post_q	)	{				pΩ = cubeΩ +16 +O[ ixM ] -oCS;
