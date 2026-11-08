@@ -6,6 +6,7 @@ while atomically maintaining a constant state of balanced fragmentation,
 amenable to direct packet encapsulation.
 
 While this is a completely original design, it bears certain similarities with previous work.
+Categorically, I think I would define it as a compressed bitvector radix tree.
 
 From a conversation with Claude Haiku 5.5 on Nov. 8th, 2026:
 
