@@ -26,18 +26,14 @@ is the property that matters most for an in-memory footprint.
 
 Some established structures cover parts of the same ground, which may help you position it:
 
-[Structure]						[Keyed lookup]						[Rank (index of a key)]		[Predictable worst case]			[Compact storage]
-Hash table						Yes, O(1) average					No												Only with careful hashing			Moderate, with load-factor slack  
-																																					and resizing	
-B-tree / B+ tree			Yes, O(log n)							Only with subtree counts	Yes													  Good, with page overhead
-
-Skip list (indexable)	Yes, O(log n) expected		Yes, with span counts			Expected, not guaranteed			Higher pointer overhead
-
-Adaptive radix tree		Yes, O(key length)				Only with added counts		Yes, bounded by key width			Good for dense keys
-
-Your structure				Yes, O(d log n)						Yes, O(n) worst 					Yes, bounded by digit count		Very compact, 
-											with running totals				or O(log n)																							digit-level sharing
-            
+[Structure]		[Keyed lookup]		[Rank (index of a key)]		[Predictable worst case]		[Compact storage]
+Hash table		Yes, O(1) average	No				Only with careful hashing and resizing	Moderate, with load-factor slack
+B-tree / B+ tree	Yes, O(log n)		Only with subtree counts	Yes					Good, with page overhead
+Skip list (indexable)	Yes, O(log n) expected	Yes, with span counts		Expected, not guaranteed		Higher pointer overhead
+Adaptive radix tree	Yes, O(key length)	Only with added counts		Yes, bounded by key width		Good for dense keys
+Your structure		Yes, O(d log n)		Yes, O(n) worst or O(log n)	Yes, bounded by digit count		Very compact, digit-level sharing
+						with running totals							
+						
 Your design is closest to an adaptive radix tree with subtree counts, but flattened into sorted arrays, 
 so there are no pointers and the layout is contiguous. 
 That contiguity is probably what makes the footprint predictable, 
