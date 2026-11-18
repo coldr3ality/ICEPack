@@ -27,7 +27,7 @@
 	However, while ixH and inM are nearly always equal, izM and inM can be diminished if the ending vector is deleted outright.
 	This delete condition is the only reason the mod/highpass boundary is treated with separate variables in the pre/post contexts.
 	As of 2026-08-06, there are only two setters developed beyond alpha, and neither of them bring rise to this.
-	—	however, I do anticipate that [un]sweep() and the _vec...() series of methods do fundamentally require it,
+	—	however, I do anticipate that xalloc() and the _vec...() series of methods do fundamentally require it,
 		especially to support self-healing of the higher level prefix-sum structure to be encapsulated by this base class.
 
 		· All  "pre" calculations	must use ixH-1	as the ending index.
@@ -117,11 +117,6 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 								pre¹_q,								preΩ_q,
 			rel_q,/*	relº_q,	*/	rel¹_q,	/*	relⁿ_q,		rel²_q,		relΩ_q,	*/	/*	q-data length difference		compares	pre & post op q-data totals	in	matrix { A[], B[], E[], L[] }	*/
 			rel_c, /*	relº_c,	*/	rel¹_c,		relⁿ_c,		rel²_c,		relΩ_c;		/*	cycla count difference		compares	pre & post op cyclum counts	in	matrix { A[], B[], E[], L[] }	*/
-#ifndef ReBAL_ENABLE
-	assert( ixº==0 );
-//	__builtin_assume( ixº == 0 );		
-//	__builtin_assume( zcº == izº );
-#endif
 
 #ifdef DEBUG_SvCOMMIT_L1	// ƒsub audit (brief)
 	subcase=0;
@@ -175,12 +170,12 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 /*######	UPDATE ORIGINAL CUBE [iC]	######		(ƒsub 1X1)									*/
 		/*	[iC ]:		OFFSET HIGH PASSTHROUGH VIA  IN-SITU PERISTALSIS	(SHIFT THE DAMN DATA)		*/
 		if(				rel_q >0 )	{	/*	expand	*/				SvCUR_set(	svΩ, 	O[ ixM ]  	);	/* prevent copying obsolete data	*/
-			CSΩ = CS +	rel_q;							cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);
-									ReFLOW_DX(	cube,	cubeΩ,	rel_q, hp_q,	CSΩ,	CS,		__LINE__ );	dBUG_SvCUR( svΩ, CSΩ );
+			CSΩ = CS +	rel_q;							cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);				dBUG_SvGROW_MOOT_COPY( cube, cubeΩ, O[ ixM ] );
+									ReFLOW_DX(	cube,	cubeΩ,	rel_q, hp_q,	CSΩ,	CS,		__LINE__ );	dBUGsvCUR( svΩ, CSΩ );
 									cubeΩ[ CSΩ ]=0;				SvCUR_set(	svΩ, 	CSΩ );
 		}else if(			rel_q< 0 )	{	/*	compact	*/		
 			CSΩ = CS +	rel_q;							cubeΩ =	cube;
-									ReFLOW_AC(	cube,	cubeΩ,	rel_q, hp_q,	Oª[ ixH],	O[ ixH],	__LINE__);	dBUG_SvCUR( svΩ, CSΩ );
+									ReFLOW_AC(	cube,	cubeΩ,	rel_q, hp_q,	Oª[ ixH],	O[ ixH],	__LINE__);	dBUGsvCUR( svΩ, CSΩ );
 									cubeΩ[ CSΩ ]=0;				SvCUR_set(	svΩ, 	CSΩ );
 		}else			{			/*	shunt	*/
 			CSΩ= CS;									cubeΩ =	cube;
@@ -251,8 +246,8 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 			rel_c	=		post_xc	-		pre_xc;
 			rel_q	=	Oª[	inM	]	-	O[	ixH	];	/* relative difference in q pre-to-post op	only used in 1X1 and 1X2L		(where highpass in low cube shifts) */
 			post_q	=	Oª[	inM	]	-	Oª[	ixM	];	/* length of q data to be modified. 		only used in 1X1, 1X2L and 1X2H	(where mod range is confined 	*/
-			hpº_q	=	Oª[ 	ixΩ	]	-	Oª[ 	ixH	];
-/*######	CREATE HIGH CUBE [iC+1]:	SV SETUP		(ƒsub 1X2L)									*/	{	
+			hpº_q	=	Oª[ 	ixΩ	]	-	Oª[ 	ixH	];													dBUG_1X2L
+/*######	CREATE HIGH CUBE [iC+1]:	SV SETUP		(ƒsub 1X2L)									*/	{
 									NEW_CUBE_Ω_AS_HIGHPASS();
 			*Edge( cubeº ) =E[	izº	];					/* set Edge of low cube while we're at it			*/
 			AvPOST( iC, svΩ );							/* defer inserting the new element to (AV*) avICE	*/
@@ -272,20 +267,19 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 
 		/*	[iC+0]:	IN-SITU Q-DATA SHIFT				(ƒsub 1X2L )									*/
-			if(		rel_q >0 )	{							SvCUR_set(	sv0, 	O[ ixM ]  	);			/* prevent copying obsolete data	*/
-			/*		expand	*/					cubeº =	SvGROW(	sv0, 	Oª[ ixΩ]+1);
+			if(		rel_q >0 )	{	/*	expand	*/	SvCUR_set(	sv0, 	O[ ixM ]  	);	/* prevent SvGROW from copying obsolete data	*/
+										cubeº =	SvGROW(	sv0, 	Oª[ ixΩ]+1);						dBUG_SvGROW_MOOT_COPY( cube, cubeº, O[ ixM ] );
 							ReFLOW_DX(	cube,	cubeº,	rel_q, hpº_q,	Oª[ ixΩ],	O[ ixΩ],					__LINE__ );
-			}else if(	rel_q< 0 )	{
-			/*		compact	*/					cubeº =	cube;
+			}else if(	rel_q< 0 )	{	/*	compact	*/	cubeº =	cube;
 							ReFLOW_AC(	cube,	cubeº,	rel_q, hpº_q,	Oª[ ixH],	O[ ixH],					__LINE__ );
-			}else			{
-			/*		bypass	*/					cubeº =	cube;										dBUG_SvCUR( sv0, Oª[ixΩ] );
-							} cubeº[ Oª[ixΩ] ]=0;			SvCUR_set(	sv0, 	Oª[ixΩ] );
+			}else			{	/*	bypass	*/	cubeº =	cube;
+							}					dBUGsvCUR(	sv0,		Oª[ixΩ]	);
+			cubeº[ Oª[ixΩ] ]=0;						SvCUR_set(	sv0,		Oª[ixΩ]	);
 
 		/*	[iC+0]:  RE-PACK MOD Q-DATA				(ƒsub 1X2L)									*/
 			if(	post_q	)	{				pº = cubeº +O[ ixM ];
 									ICEPACK( pº, 	ixM, izM, inM,		cubeº );
-							}	/*	^re-pack modified q-data vectors ixM..izº to cubeº[ O[ ixM ]..Oª[ ixΩ ]-1 ] */ }	dBUG_1X2L
+							}	/*	^re-pack modified q-data vectors ixM..izº to cubeº[ O[ ixM ]..Oª[ ixΩ ]-1 ] */ }
 			}
 		else if(	/*	ƒsub 1X2H  	*/	ixM >=	ixΩ )	{	/* mod range contained in right fragment.		*/
 			post_q	=	Oª[	inM	]	-	Oª[	ixM	];	/* length of q data to be modified. 		only used in 1X1, 1X2L and 1X2H	(where mod range is confined 	*/
@@ -304,7 +298,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 /*######	CREATE HIGH CUBE [iC+1]:	SV SETUP		(ƒsub 1X2H)									*/
 		/*	create new cube to serve as the higher fragment											*/
 		//	CSΩ		= CS +rel_q   	-cubeº_q;
-			CSΩ	= Oª[ inM ] + hpΩ_q -cubeº_q;	/* we are excluding deleted q between inM..ixH			*/	dBUG_SvCUR( svΩ, CSΩ );
+			CSΩ	= Oª[ inM ] + hpΩ_q -cubeº_q;	/* we are excluding deleted q between inM..ixH			*/	dBUGsvCUR( svΩ, CSΩ );
 			svΩ		= newSVpvz(		0x6 |	CSΩ	);	/* round to nearest 64-bit modulus +0 / -1		*/
 			SvCUR_set(				svΩ,	CSΩ	);
 			cubeΩ  	= SvPVbyte_nolen(	svΩ	); 
@@ -371,7 +365,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 								} while(	u< ixΩ );	}
 
 /*######	CREATE:	MEDIAL CUBE [iC+1] 	######		(ƒsub 1X3)		######						*/
-		if( ixM >ix¹ ){						CS¹ = 16 +Oª[ ixΩ ] - O[ ix¹ ];										dBUG_SvCUR( sv¹, CS¹ );
+		if( ixM >ix¹ ){						CS¹ = 16 +Oª[ ixΩ ] - O[ ix¹ ];										dBUGsvCUR( sv¹, CS¹ );
 			sv¹		= newSVpvz(	0x6 |	CS¹	);					
 			SvCUR_set(				sv¹,	CS¹	);
 			cube¹  	= SvPVbyte_nolen(	sv¹	);	p¹  = cube¹ +16;											*( (ui64*)	cube¹+1	)	= E[ iz¹ ];
@@ -397,7 +391,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 		/*		}	*/		}	/*	^re-pack modified q-data vectors ixM..iz¹ to cube¹[ 16..16+post¹_q-1 ]  	*/
 			*Edge(	cubeº ) = E[ izº ];	MOD_CUBE_0_AS_LPASS(	ix¹ );										ƒSUBº_A
 
-		}else{							CS¹ = 16 +Oª[ ixΩ ] - Oª[ ix¹ ];									dBUG_SvCUR( sv¹, CS¹ );
+		}else{							CS¹ = 16 +Oª[ ixΩ ] - Oª[ ix¹ ];									dBUGsvCUR( sv¹, CS¹ );
 			sv¹		= newSVpvz(	0x6 |	CS¹	);					
 			SvCUR_set(				sv¹,	CS¹	);
 			cube¹  	= SvPVbyte_nolen(	sv¹	);	p¹  = cube¹ +16;											*( (ui64*)	cube¹+1	)	= E[ iz¹ ];
@@ -451,7 +445,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 
 */
-	else if(   	/*****	ƒsub 1X4/N	******/	tcª< 255	)		{ /* One cube splits into four plus.		*/			dBUGrackCALL(	4 );
+	else if(   	/*****	ƒsub 1X4/N	******/	tcª< 512	)		{ /* One cube splits into four plus.		*/			dBUGrackCALL(	4 );
 		int						nCª=(	tcª /7 )-3;													dBUGnCª
 					endo_c	=	nCª *7;																	
 					exo_c	=	tcª %7;
@@ -484,7 +478,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 		if(			u< ixΩ ){ /*	O[v]=O[u]+L[u];	*/	if( RW[ v ] == null )	deIce_vKEI();
 			do	{	u=v++;		Oª[v]=Oª[u]+L[u];	O[v]=O[u]+L[u];		DeICE_vKEI( u, v );	} while( u< ixΩ );
 			}	
-									CS² = 16 +Oª[ ixΩ ] - Oª[ ix² ];										dBUG_SvCUR( sv², CS² );
+									CS² = 16 +Oª[ ixΩ ] - Oª[ ix² ];										dBUGsvCUR( sv², CS² );
 		sv²		= newSVpvz(	0x6 |	CS²	);					
 		SvCUR_set(				sv²,	CS²	);
 		cube²  	= SvPVbyte_nolen(	sv²	);		p²  = cube² +16;											*Edge( cube² ) = E[ iz² ];
@@ -524,7 +518,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 
 		/*	[iC+1]:	SUBCASE 1X4L-1:	NEW CUBE 1 AS LOWPASS x MODS								*/
-		if( ixM >ix¹ ){						CS¹ = 16 +Oª[ ixⁿ ] - O[ ix¹ ];										dBUG_SvCUR( sv¹, CS¹ );
+		if( ixM >ix¹ ){						CS¹ = 16 +Oª[ ixⁿ ] - O[ ix¹ ];										dBUGsvCUR( sv¹, CS¹ );
 			sv¹		= newSVpvz(	0x6 |	CS¹	);														ƒSUB¹_B
 			SvCUR_set(				sv¹,	CS¹	);
 			cube¹  	= SvPVbyte_nolen(	sv¹	);	p¹  = cube¹ +16;											*Edge( cube¹ ) = E[ iz¹ ];
@@ -542,7 +536,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 									MOD_CUBE_0_AS_LPASS(	ix¹ );	 									ƒSUBº_A
 
 		/*	[iC+1]:	SUBCASE 1X4L-2:	NEW CUBE 1 AS MODS 										*/
-		}else{							CS¹ = 16 +Oª[ ixⁿ ] - Oª[	ix¹ ];										dBUG_SvCUR( sv¹, CS¹ );
+		}else{							CS¹ = 16 +Oª[ ixⁿ ] - Oª[	ix¹ ];										dBUGsvCUR( sv¹, CS¹ );
 			sv¹		= newSVpvz(	0x6 |	CS¹	);														ƒSUB¹_C
 			SvCUR_set(				sv¹,	CS¹	);
 			cube¹  	= SvPVbyte_nolen(	sv¹	);	p¹  = cube¹ +16;											*Edge( cube¹ ) = E[ iz¹ ];
@@ -562,7 +556,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 		/*	[iC+X]:	SUBCASE 1X4X:	NEW CUBE X AS MODS 										*/
 		if( nCª){		
 		  do	{		_ixⁿ = ixⁿ+7;
-										CSⁿ = 16 +Oª[ _ixⁿ ] - Oª[ ixⁿ ];									dBUG_SvCUR( svⁿ, CSⁿ );
+										CSⁿ = 16 +Oª[ _ixⁿ ] - Oª[ ixⁿ ];									dBUGsvCUR( svⁿ, CSⁿ );
 			svⁿ		= newSVpvz(	0x6 |	CSⁿ	);					
 			SvCUR_set(				svⁿ,	CSⁿ	);
 			cubeⁿ  	= SvPVbyte_nolen(	svⁿ	);	pⁿ  = cubeⁿ +16;											*Edge( cubeⁿ ) = E[ izⁿ ];
@@ -581,11 +575,11 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 																									dBUG_1X4;
 		}
 	else	{	cS = 	sprintf(	aString,		lightning );
-			cS +=	sprintf(	aString +cS,	"\n	%s: ( tc\xA6: %d) overflows vector map!  Cannot commit changes!\n\n", __FUNCTION__, tcª );
+			cS +=	sprintf(	aString +cS,	"\n	%s: ( tc\xA6: %d) overruns vector map!  Cannot commit changes!\n\n", __FUNCTION__, tcª );
 			AvDBUG_PUSH(	aString, cS );
 			return;
 		}																							dBUGmx( xcª+4, ocª, ixΩ );
 //	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() exit	%s line %d\n", __FUNCTION__, __FILE__, __LINE__ ); }
 	}
 
-/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***	**/
+/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***	***	***	**/

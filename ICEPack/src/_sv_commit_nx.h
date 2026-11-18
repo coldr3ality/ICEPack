@@ -110,12 +110,12 @@ extern	unsigned short 	subcase;
 							64+( (subcase>>6)&7),	64+( (subcase>>9)&7), ixM, izM,				postº_xc,				 post¹_xc,			 post²_xc,			 postΩ_xc,				CSI,	CS¹, CS², CSΩ	);	\
 							cS+=sprintf( aString +cS,		"			iCI..iC\xA6: %5d..%-5d	\10	  rel\xA7_c: %3d	\10	   rel1_c: %3d	\10	\10	   rel\xFD_c: %3d \10	   rel\xEA_c: %3d	\n",		\
 																iCI, iCª,					zcº-zc,				   rel¹_c,				   rel²_c,				   relΩ_c				);	\
-							cS+=sprintf( aString +cS,		"			 oc /xc : %5d/%-5d	\10	\10	   lp\xA7_c: n/a	\10	    lp\xA7_c: %3d	\10	    lp\xFD_c: n/a	\10	    lp\xEA_c: n/a	\n",		\
+							cS+=sprintf( aString +cS,		"			 oc /xc : %5d/%-5d	\10	\10	   lp\xA7_c: n/a	\10	    lp1_c: %3d	\10	\10	    lp\xFD_c: n/a	\10	    lp\xEA_c: n/a	\n",		\
 																oc,			 xc,								    lp¹_c														);	\
 							cS+=sprintf( aString +cS,		"			 oc\xA6/xc\xA6: %5d/%-5d	   hp\xA7_c: n/a	\10	    hp1_c: n/a	\10	\10	    hp\xFD_c: %3d \10	    hp\xEA_c: %3d	\n",		\
 																 ocª,			xcª,													    hp²_c,				    hpΩ_c				);	\
 							cS+=sprintf( aString +cS,		"			  zc/zc\xEA: %5d/%-5d	\10	  pre\xA7_q: n/a	\10	   pre1_q: n/a	\10	\10	   pre\xFD_q: n/a \10	   pre\xEA_q: %3d	\n",		\
-																  zc,			zcΩ,			  				  											   preΩ_q				);	\
+																  zc,			zcΩ,			  				  										   preΩ_q				);	\
 							cS+=sprintf( aString +cS,					"						 post\xA7_q: %3d \10	  post1_q: %3d	\10	  post\xFD_q: %3d \10	  post\xEA_q: %3d	\n",		\
 																						 postº_q,				  post¹_q,				  post²_q,				  postΩ_q			);	\
 							cS+=sprintf( aString +cS,					"						  rel\xA7_q: n/a	\10	   rel1_q: n/a	\10	\10	   rel\xFD_q: n/a \10 \10	   rel\xEA_q: %3d	\n",		\
@@ -311,9 +311,9 @@ extern	unsigned short 	subcase;
 #define	MOD_CUBE_I_AS_LPASSxMODS( ix$ )	\
 					CSº= 16+ Oª[	ix$ ] - O[ ixº ];															dBUG_MOD_Bº( ix$ )	\
 			if(		CSº >CSI )	{	cubeº  =	SvGROW(	svI, CSº +1 );	\
-											SvCUR_set(	svI, CSº );	cubeº[ CSº ]=0;					dBUG_SvCUR( svI, CSº );	\
+											SvCUR_set(	svI, CSº );	cubeº[ CSº ]=0;					dBUGsvCUR( svI, CSº );	\
 			}else{					cubeº =	SvPVbyte_nolen( svI);		\
-				if(	CSº != CSI )	{ 			SvCUR_set(	svI, CSº );	cubeº[ CSº ]=0;					dBUG_SvCUR( svI, CSº );	\
+				if(	CSº != CSI )	{ 			SvCUR_set(	svI, CSº );	cubeº[ CSº ]=0;					dBUGsvCUR( svI, CSº );	\
 				}				}																	\
 		/*	pº =cubeº +16 +O[ ixM ] -O[ ixº ];	*/	\
 			pº =cubeº+ O[ ixM ];		\
@@ -337,7 +337,7 @@ extern	unsigned short 	subcase;
 				/*		switch(		ix$ ){	SwCASE_LOWPASS_0IS(	*( (ui64*)		cubeº 			) ) }	*/	\
 				/*		switch(		zcº ){	SwCASE_LOWPASS_1IS(	*( (ui64*) (	cubeº +I[ ixº ]	)	) ) }	*/	\
 						switch(		zcº ){	SwCASE_LOWPASS_1IS(	*( (ui64*) 	cubeº			) ) }		\
-			if( CSI != CSº )	{																			dBUG_SvCUR( svI, CSº );	\
+			if( CSI != CSº )	{																			dBUGsvCUR( svI, CSº );	\
 											SvCUR_set(	svI,	CSº );  cubeº[ CSº ]=0;						\
 						}																			\
 	/*		cS=sprintf( aString, "\n!	CSI: %d	( CS\xA7: %d ) =16 +( O[ ix$: %d]: %d } - ( O[ ix\xA7: %d ]: %d )\n\n",		\
@@ -356,7 +356,7 @@ extern	unsigned short 	subcase;
 			}else if(		relΩ_q< 0 )	{/*	compact	*/		cubeΩ =	cube;		/*		^dstLim	^srcLim	*/			\
 									ReFLOW_AC(	cube,	cubeΩ,	relΩ_q, hpΩ_q,		16,		CS - hpΩ_q,	__LINE__ );	\
 			}else		{			/*	nuh	*/	cubeΩ =	cube;				/*		^dst0	^src0	*/			\
-						}			cubeΩ[ CSΩ ]=0;														dBUG_SvCUR( svΩ, CSΩ );	\
+						}			cubeΩ[ CSΩ ]=0;														dBUGsvCUR( svΩ, CSΩ );	\
 														SvCUR_set(	svΩ,	CSΩ );					\
 		/*	[iCZ ]: 	UNSHIFT KEYBYTE SECTION															*/	\
 			if(		zcΩ< zc		){	bs =( zc-zcΩ )<< 3;		*( (ui64*) cubeΩ )>>= bs;	/*	cS=sprintf( aString, "\r	*( (ui64*) cube\xEA	) >>=%d\n	%016llX\n	%016llX\n\n", bs,	Kc, *( (ui64*) cubeΩ ) );	AvDBUG_PUSH( aString, cS );	*/	\
@@ -386,7 +386,7 @@ extern	unsigned short 	subcase;
 			}else if(		relΩ_q< 0 )	{/*	compact	*/		cubeΩ =	cube;		/*	^dstLim		^srcLim	*/					\
 									ReFLOW_AC(	cubeΩ,	cubeΩ,	relΩ_q, hpΩ_q,	16+postΩ_q,	CS-hpΩ_q,	__LINE__ );		\
 			}else		{			/*	shunt	*/		cubeΩ =	cube;		/*	^dst0		^src0	*/					\
-						} cubeΩ[ CSΩ ]=0;		pΩ	 	=	cubeΩ+16;											dBUG_SvCUR( svΩ, CSΩ );	\
+						} cubeΩ[ CSΩ ]=0;		pΩ	 	=	cubeΩ+16;											dBUGsvCUR( svΩ, CSΩ );	\
 																SvCUR_set(	svΩ, CSΩ );									\
 		/*	[iCI ]: 	SPLICE KEYBYTE SECTION														*/						\
 			if( hpΩ_c ){	enXhp	=	postΩ_xc| ( hpΩ_c<< 3 );															/*	*Edge( cubeΩ ) = *Edge( cube ); 	*/	\

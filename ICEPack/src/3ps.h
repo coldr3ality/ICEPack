@@ -10,3 +10,16 @@ extern char		aString[];
 extern void		deIce_vKEI();
 extern STRLEN	cS, CS;
 extern ui08		nube[	16];
+extern ui64	hit, miss;
+enum Errs{	null_element,
+			null_svp,
+			sv_not_ok,
+			svpv_not_ok,
+			svcur_low,
+			cube_empty,
+			cube_corrupt,
+			cube_overrun,
+			bad_checksum,
+			key_miss,
+			nErrs
+			};

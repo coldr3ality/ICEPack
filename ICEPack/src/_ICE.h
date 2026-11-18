@@ -27,8 +27,8 @@
 #define	zcOf(	$cube)	7-( 	__builtin_clzll( *( (ui64*)	$cube)	) >>3)
 #define	ncOf(	$cube)	8-( 	__builtin_clzll( *( (ui64*)	$cube)	) >>3)
 
-#define	ARG( $a )	SvIVX( *(	AvARRAY(	avArg)+ $a	) )
-#define	ARG0		SvIVX( *	AvARRAY(	avArg)		)
+#define	ARG( $a )	SvUVX( *(	AvARRAY(	avArg)+ $a	) )
+#define	ARG0		SvUVX( * 	AvARRAY(	avArg)		)
 
 
 
@@ -93,13 +93,19 @@
 				else		{	K[$u] =  		0xC0 |( (	q1=zOf( 		B[$u] ) )<< 3 ) | ( q0=zOf( 	A[$u] ) );		Oª[$v] = Oª[$u] +(	L[$u]=2 +q0 +q1	);	}	\
 		}
 
-#define	ReICEz(				$v )			dBUG_ReICEz($v );		ui08	Qc,	*pqz;	\
+#define	_ReICEΩz(			$v	)		dBUG_ReICEΩz($v );		ui08	Qc,	*pqz;	\
 	if( A[$v]< 8){	if( B[$v]< 8 ){	cubeΩ[zcΩ]=/*0x00 |*/	(			B[$v]    << 3 ) |			A[$v];		CSΩ-=L[$v];				L[$v]=0;			}	\
 				else		{	cubeΩ[zcΩ]=  	0x80 |( (	q=zOf( 		B[$v] ) )<< 3 ) |			A[$v];		cS=CSΩ-L[$v];	Qc=L[$v];	L[$v]=1 +q;		CSΩ=cS+L[$v];	if(Qc< L[$v] ) cubeΩ= SvGROW( svΩ, CSΩ+1	);	pqz=cubeΩ+cS;	switch( q ){ lluiCASTa(	B[$v],			pqz ); }	}	\
 	}else{		if( B[$v]< 8 ){	cubeΩ[zcΩ]=  	0x40 |(				B[$v]    << 3 ) | ( q=zOf(  	A[$v] ) );		cS=CSΩ-L[$v];	Qc=L[$v];	L[$v]=1 +q;		CSΩ=cS+L[$v];	if(Qc< L[$v] ) cubeΩ= SvGROW( svΩ, CSΩ+1	);	pqz=cubeΩ+cS;	switch( q ){ lluiCASTa(			A[$v],	pqz ); }	}	\
 				else		{	cubeΩ[zcΩ]=  	0xC0 |(	q=( (	q1=zOf( 	B[$v] ) )<< 3 ) | ( q0=zOf( 	A[$v] ) ) );	cS=CSΩ-L[$v];	Qc=L[$v];	L[$v]=2 +q0 +q1;	CSΩ=cS+L[$v];	if(Qc< L[$v] ) cubeΩ= SvGROW( svΩ, CSΩ+1	);	pqz=cubeΩ+cS;	switch( q ){ lluiCASTab(	B[$v],	A[$v], 	pqz ); }	}	\
-		}		dBUG_SvCUR(	svΩ, CSΩ);	\
-	cubeΩ[CSΩ]=0;	SvCUR_set(	svΩ, CSΩ );
+		}
+#define	ReICEΩz	\
+		_ReICEΩz(			255			)	dBUGsvCUR(		svΩ, CSΩ		);	\
+		cubeΩ[CSΩ]=0;						SvCUR_set(		svΩ, CSΩ		);
+
+#define	ReICEΩz_RET( $RET )		\
+		_ReICEΩz(			255			)	dBUGsvCUR_RET(	svΩ, CSΩ, $RET	);	\
+		cubeΩ[CSΩ]=0;						SvCUR_set(		svΩ, CSΩ );
 
 
 #define	reICE(	$pq, $pk, $a, $b )			\
@@ -252,12 +258,12 @@
 //	#define DeICEz_uKEI_(	$u,	$v	) K[$u]	= cubeΩ[	zcΩ	];					DeICEzu_(	$u		);				E[$u] =*Edge( cubeΩ ); 		I[ $u ] =zc;	
 
 
-#define INIT_AvEXT( $E0 )	zc=-1;	  	$pq =(	$pk =	$cube ) +	16;			/* reset cube buffer				*/	
-
+			/*	AvICExt_FIRST	*/
 #define			AvICExt_FIRST(	$x,	$pq, 	$pk, 	$cube,	$E0		)	\
 						zc=-1;	  	$pq =(	$pk =	$cube ) +	16;			/* reset cube buffer				*/	\
-						Ec	=	$x+1;				Ac =	$x -	$E0;	Bc=1;	/* init coordinates of first ic			*/	\
+						Ec	=	$x+1;				Ac =	$x -	$E0;	Bc=1;	/* init coordinates of first ic			*/
 
+			/*	AvICExt_NEXT	*/
 #define			AvICExt_NEXT(	$x,	$pq, 	$pk, 	$cube			)	\
 				if(		Ec	<	$x	){									/* x starts next ic					*/	\
 							reICE(	$pq,		$pk, 	Ac,			Bc	);	/* encode this ic					*/	\
@@ -270,7 +276,7 @@
 				}else if(	Ec	==	$x	)	{   			   		  ++	Bc;		/* x extends this ic					*/	\
 					 ++	Ec;				}																	\
 
-
+			/*	AvICExt_LAST	*/
 #define			AvICExt_LAST(	$x,	$pq, 	$pk, 	$cube			)										\
 				if(		Ec	<	$x	){									/* x starts last ic					*/	\
 							reICE(	$pq,		$pk, 	Ac,			Bc	);	/* encode this ic					*/	\
@@ -286,13 +292,13 @@
 							reICE(	$pq,		$pk, 	Ac,			Bc	);	/* encode this/last ic				*/	\
 									*$pq=0;	*Edge(	$cube ) =	Ec;			/* finalize last cube; create last SV		*/	av_push( avICE, newSVpvn( $cube, $pq -$cube ) );	Aº=AvARRAY( avICE );	\
 					}
-
+			/*	AvICExt_ONLY	*/
 #define			AvICExt_ONLY(	$x,	$pq, 	$pk, 	$cube,	$E0		)	\
 													Ac =$x -	$E0;	Bc=1;	\
 							reICE00(	$pq,		$cube,	Ac,			Bc	);	\
 									*$pq=0;	*Edge(	$cube ) =	$x+1;		/* create only cube; create only SV	*/	av_push( avICE, newSVpvn( $cube, $pq -$cube ) );	Aº=AvARRAY( avICE );
 
-#define							CONCAT( a, b) a##b
+#define						CONCAT( a, b) a##b
 #define SYM(	$name, $n	)	CONCAT( $name, $n)
 
 #define	AvICExt_IMPL(	$n,		$x,	$pq, 	$pk, 	$cube,	$E0,	$avArg,		$a, $za )	\

@@ -152,23 +152,23 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 		hp_q		= 		xCS		-	O[	ixH	];		/* high passthrough q-bytes					*/
 		lpΩ_q		=	O[	ixM	]-16;					/* low passthrough q-bytes					*/	dBUG_NX1
 
-	//	relΩ_q=rel_q	+		oCS 	-		16;			/* relative difference in pre-to-post q for cube Ω		*/
+	//	relΩ_q=rel_q	+		oCS 	-		16;			/* relative difference in pre-to-post q for cube Ω	*/
 	//	preΩ_q = inM>ocª?	O[	inM	]	-		oCS:	0;
 	//	postΩ_q		=	Oª[	inM	]	-	O[	ixº	];
 	//	hpΩ_q		=
-	//		ocª< ixH	?		xCS		-	O[	ixH	]		/* high passthrough q-bytes						*/
+	//		ocª< ixH	?		xCS		-	O[	ixH	]		/* high passthrough q-bytes					*/
 	//				:		xCS		-	O[	ocª	];
 
-	//	pre_q		=	O[	inM	]	-	O[	ixM	];		/* length of mod q-data pre-op.					*/
+	//	pre_q		=	O[	inM	]	-	O[	ixM	];		/* length of mod q-data pre-op.				*/
 
-		/*	[iC+0]:	IN-SITU HIGHPASS REFLOW			(CASE NX1)									*/
+		/*	[iC+0]:	IN-SITU HIGHPASS REFLOW			(ƒsub NX1)									*/
 		
 		if(			relΩ_q >0 ){	/*	expand	*/					SvCUR_set(	svΩ, 	O[ ixM ]  	);	/* prevent copying obsolete data	*/
-														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);
+														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);			dBUG_SvGROW_MOOT_COPY( cube, cubeΩ, O[ ixM ] );
 				if(	hp_q	)	{	ReFLOW_DX(	cube,	cubeΩ,	relΩ_q, hp_q,	CSΩ,	CS,				__LINE__ );	}
 		}else if(		relΩ_q< 0 ){	/*	compact	*/			cubeΩ =	cube;				hpΩ_o =16 +O[ ixH ] -oCS;
 				if(	hp_q	)	{	ReFLOW_AC(	cube,	cubeΩ,	relΩ_q, hp_q,	Oª[ ixH],	hpΩ_o,			__LINE__ );	}
-		}else						/*	shunt	*/		cubeΩ =	cube;								dBUG_SvCUR( svΩ, CSΩ );
+		}else						/*	shunt	*/		cubeΩ =	cube;								dBUGsvCUR( svΩ, CSΩ );
 		cubeΩ[ CSΩ ]=0;											SvCUR_set(	svΩ, 	CSΩ );
 
 	//	if(	tcª<= icO )	{	*Edge( cube )=E[ izM ];	cS = sprintf( aString, "\n *Edge( cube ) = ( E[ izM: %d]: %llX );\n", izM, E[izM] ); AvDBUG_PUSH( aString, cS );
@@ -179,7 +179,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 		if(		lpΩ_q	)	{		XLOAD( 	pΩ,	16,			lpΩ_q,	cubeº,	cubeΩ );				
 							}	/*	^ crossload lowpass from cubeº (first) to cubeΩ (last)					*/
 
-		/*	[iC+0]:	SPLICE KEYBYTE SECTION			(CASE NX1)									*/
+		/*	[iC+0]:	SPLICE KEYBYTE SECTION			(ƒsub NX1)									*/
 		/*	double-crossover re-encoded keybytes with low passthrough from cubeº and high passthrough in-situ	*/
 		if(	post_xc >=0 ){	lpXen	=	icI|( post_xc<< 3 );
 		/*	post_xc is always >=0 for non-ablative ICEPack setters; e.g: this can occur for unset(), but not set().		*/
@@ -204,7 +204,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 		}		}				/*	^crossover wye		^high passthrough			^no inclusions			^low passthrough	^wye output		*/
 			
 
-		/*	[iC+0]:	PACK NEW Q-DATA				(CASE NX1)									*/
+		/*	[iC+0]:	PACK NEW Q-DATA				(ƒsub NX1)									*/
 		if(		post_q	)	{				pΩ = cubeΩ +O[ ixM ];
 									ICEPACK( pΩ, 	ixM, izM, inM,		cubeΩ );						
 							}	/*	^re-pack modified q-data vectors [ ixM..inM ] in-situ					*/
@@ -233,14 +233,14 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 				if( ixM!=0xFF)	do	{		u=v++;		Oª[v] =Oª[u] +L[u];		/* nerf	*/	deIce_vKEI( u, v );	
 								} while(	u<	ixΩ );
 				else  		do	{		u=v++;	/*	Oª[v] =Oª[u] +Lx[u]; */	/*nothin'	*/	deIce_vKEI( u, v );	
-								} while(	u<	ixΩ );	}
-		/*	[iCI ]: 	RESIZE LOW CUBE 					(CASE NX2L )								*/	
+								} while(	u<	ixΩ );	}												dBUG_NX2L;
+		/*	[iCI ]: 	RESIZE LOW CUBE 					(ƒsub NX2L )								*/	
 			if(		CSI	<  Oª[ ixΩ ]	)	{					SvCUR_set(	svI,	 	O[ ixM ]  	);	/* prevent copying obsolete data	*/
-					/*	 expand cubeº	*/			cubeº =		SvGROW(	svI,	 			Oª[ ixΩ]+1	);
-			}else								cubeº =		SvPVbyte_nolen( svI );	cubeº[	Oª[ ixΩ] ]=0;	dBUG_SvCUR( svI, Oª[ixΩ] );
+					/*	 expand cubeº	*/			cubeº =		SvGROW(	svI,	 			Oª[ ixΩ]+1 );	dBUG_SvGROW_MOOT_COPY( cube, cubeº, O[ ixM ] );
+			}else								cubeº =		SvPVbyte_nolen( svI );	cubeº[	Oª[ ixΩ] ]=0;	dBUGsvCUR( svI, Oª[ixΩ] );
 					/* set Edge of cubeº*/	*Edge(	cubeº )=E[ izº];	SvCUR_set(	svI,	/*	CSº = */	Oª[ ixΩ] );
 
-		/*	[iCI ]: 	SPLICE LOW CUBEº KEYBYTE SECTION		(CASE NX2L)								*/
+		/*	[iCI ]: 	SPLICE LOW CUBEº KEYBYTE SECTION		(ƒsub NX2L)								*/
 		/*	In NX2L only, I skip a heinous lot of ctrl logic by copying already-assembled K[ ixº..izº ] mod+hp keybytes	*/
 			;				char			posthpº_xc = izº - ixM;
 			if( icI >0){			lpXen =	icI |(	posthpº_xc<< 3 );
@@ -249,12 +249,12 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 				switch(	posthpº_xc ){	SwCASE_LOWPASS_1I(		*( (ui64*)( K +ixº ) ), 	*( (ui64*) cubeº )	)	}
 				}				/*	^lowpass inline assignment	^definitive src			^low passthrough	*/	
 
-		/*	[iCI ]:	RE-ENCODE LOW CUBE MODS			(CASE NX2L)								*/
+		/*	[iCI ]:	RE-ENCODE LOW CUBE MODS			(ƒsub NX2L)								*/
 				post_q	=Oª[ inM ] -Oª[ ixM ];	pº=	cubeº +O[ ixM ];
 			if(	post_q	)	{		ICEPACK( pº,	 	ixM, izM, inM,		cubeº );						
 							}	/*	^re-pack vectors ixM..izM q-data to cubeº[ Oª[ ixM ]..Oª[ inM ]-1 ]		*/
 
-		/*	[iCZ ]:	HIGH CUBE REFLOW and CROSSLOAD	(CASE NX2L )								*/
+		/*	[iCZ ]:	HIGH CUBE REFLOW and CROSSLOAD	(ƒsub NX2L )								*/
 			if(			 O[	ixΩ ] >	oCS ){	/* rebalance shifts pre-q high-to-low; highpass may crossload down	*/
 				relΩ_q	=O[	ixΩ ] -	oCS;											CSΩ = CS - relΩ_q;
 
@@ -268,10 +268,10 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 			}else				{													CSΩ = CS;		dBUG_ASSERT_relΩ_q_GTEQ_oCS
 								}							SvCUR_set(		svΩ,	CSΩ	);
 
-		/*	[iCZ ]: 	UNSHIFT HIGH CUBE KEYBYTE SECTION	(CASE NX2L)								*/
+		/*	[iCZ ]: 	UNSHIFT HIGH CUBE KEYBYTE SECTION	(ƒsub NX2L)								*/
 			if(		oc<	I[ ixΩ ]	)	{	bs =( I[ ixΩ ] -oc )<< 3;	*( (ui64*) cubeΩ )>>= bs;
 			}else if(	oc >I[ ixΩ ]	)	{	bs =( oc - I[ ixΩ ] )<< 3;	*( (ui64*) cubeΩ )<<= bs;
-									}																dBUG_NX2L;
+									}
 			}																						
 /*NX2H*/else if(	/*	ƒsub NX2H  	*****/	ixM >=	ixΩ )	{	/* mod range contained in right fragment.	*/
 	//	if( xcª -ixº <1 || trace ){ trace=1;	printf( "\r	NX2H enter	%s line %d\n",  __FILE__, __LINE__ ); }
@@ -288,21 +288,21 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 			postΩ_q	=	Oª[	inM	]	-	Oª[	ixM	];	/* length of q data to be modified. 		only used in NX1, NX2L and NX2H	(where mod range is confined 	*/
 
 											dBUG_NX2H
-		/*	UPDATE HI-CUBE [ iC ]						(CASE NX2H)									*/
-		/*	[iCZ ]:	IN-SITU HIGHPASS REFLOW			(CASE NX2H)									*/
+		/*	UPDATE HI-CUBE [ iC ]						(ƒsub NX2H)									*/
+		/*	[iCZ ]:	IN-SITU HIGHPASS REFLOW			(ƒsub NX2H)									*/
 			if(			relΩ_q >0) {	/*	expand	*/				SvCUR_set(	svΩ, 	O[ ixM ]  	);	/*	prevent copying obsolete data	*/
 		//	if(			relΩ_q >0) {	/*	expand	*/				SvCUR_set(	svΩ, 	16  	);		/*	try this instead!	*/
-														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);
+														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);			dBUG_SvGROW_MOOT_COPY( cube, cubeΩ, O[ ixM ] );
 									ReFLOW_DX(	cube,	cubeΩ,	relΩ_q, hpΩ_q,		CSΩ,	CS,		__LINE__ );
 			}else if(		relΩ_q< 0) {	/*	compact	*/		cubeΩ =	cube;
 									ReFLOW_AC(	cube,	cubeΩ,	relΩ_q, hpΩ_q,	16+Oª[ ixH]-O[ixΩ],	16+O[ ixH]-oCS,	__LINE__ );
-			}else		{			/*	shunt	*/		cubeΩ =	cube;								dBUG_SvCUR( svΩ, CSΩ );
+			}else		{			/*	shunt	*/		cubeΩ =	cube;								dBUGsvCUR( svΩ, CSΩ );
 						} cubeΩ[ CSΩ ]=0;		pΩ 		=	cubeΩ+16; SvCUR_set(	svΩ, 	CSΩ );
 											
 #define dBUG_NX2H_ΩSw0	/*	cS=sprintf( aString, "\rNX2H \xEA SwCASE 0 lpXen: 0x%02X\n", lpXen ); AvDBUG_PUSH( aString, cS );	*/
 #define dBUG_NX2H_ΩSw1	/*	cS=sprintf( aString, "\rNX2H \xEA SwCASE 1 lpXen: 0x%02X\n", lpXen ); AvDBUG_PUSH( aString, cS );	*/
 #define dBUG_NX2H_ΩSw2	/*	cS=sprintf( aString, "\rNX2H \xEA SwCASE 2 lpXen: 0x%02X\n", lpXen); AvDBUG_PUSH( aString, cS );	*/
-		/*	[ Ω ]: 	SPLICE KEYBYTE SECTION			(CASE NX2H)									*/
+		/*	[ Ω ]: 	SPLICE KEYBYTE SECTION			(ƒsub NX2H)									*/
 		/*	cross high half of modified key data (from K) with passthrough (from char * cubeº)					*/
 						lpXen	=	lpΩ_c| ( post_xc<< 3 );
 			if(		zc == icO	){	/*	no high passthrough;	izM is the new end			Edge changes -->	*/	dBUG_NX2H_ΩSw0								*Edge( cubeΩ )	= E[ izM ];
@@ -317,13 +317,13 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 				switch(	lpXen	){	SwCASE_XXOVER_01W(	hipa,  					*( (ui64*)( K +ixΩ ) ),	*( (ui64*)(cubeº+I[ ixΩ])), *( (ui64*) cubeΩ )  )  }
 			}					/*	^dbl xover dbl wye		^high passthrough, shifted	^endo inclusion src		^low passthrough src	^double-wye output	*/
 
-		/*	[iCZ ]: 	CROSSLOAD LP & ENCODE MODS	(CASE NX2H)									*/
+		/*	[iCZ ]: 	CROSSLOAD LP & ENCODE MODS	(ƒsub NX2H)									*/
 			if(	lpΩ_q	)	{		XLOAD(	pΩ,		O[ixΩ],	lpΩ_q,	cubeº,	cubeΩ	);
 							}	/*	^crossload (lpΩ_q) low-pass bytes from *(cube+O[ ixΩ ]) to *pΩ			*/
 			if(	postΩ_q	)	{		ICEPACK( pΩ, 	ixM, izM, inM,				cubeΩ	);
 							}	/*	^re-pack modified q-data vectors ixΩ..izM to cubeΩ[ 16+lpΩ_q..16+lpΩ_q+postΩ_q-1 ] 	*/
 
-		/*	UPDATE LOW CUBE [iCI ]					(CASE NX2H)									*/
+		/*	UPDATE LOW CUBE [iCI ]					(ƒsub NX2H)									*/
 									MOD_CUBE_I_AS_LPASS(	ixΩ );
 		}
 /*NX2M*/else		/*	ƒsub NX2M	*****/					{	/* mod range across both fragments.		*/
@@ -341,16 +341,16 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 		//	preΩ_q	=	O[	ixH	]	-		oCS;
 		//	relΩ_q	=		postΩ_q	-		preΩ_q;		/* alt. relΩ_q calc, dependent on preΩ_q			*/
 									
-		/*	[iCZ ]:	IN-SITU HIGH CUBE HIGHPASS REFLOW	(CASE NX2M)								*/
+		/*	[iCZ ]:	IN-SITU HIGH CUBE HIGHPASS REFLOW	(ƒsub NX2M)								*/
 			if(			relΩ_q >0 ){	/*	expand	*/				SvCUR_set(	svΩ, 	O[ ixM ]  	);	/* prevent copying obsolete data	*/
-														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);
+														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);			dBUG_SvGROW_MOOT_COPY( cube, cubeΩ, O[ ixM ] );
 									ReFLOW_DX(	cube,	cubeΩ,	relΩ_q, hpΩ_q, CSΩ,				CS,				__LINE__ );
 			}else if(		relΩ_q< 0 ){	/*	compact	*/		cubeΩ =	cube;
 									ReFLOW_AC(	cube,	cubeΩ,	relΩ_q, hpΩ_q, 16+Oª[ ixH]-Oª[ixΩ],	16+O[ ixH]-oCS,	__LINE__ );
-			}else		{			/*	shunt	*/		cubeΩ =	cube;								dBUG_SvCUR( svΩ, CSΩ );
+			}else		{			/*	shunt	*/		cubeΩ =	cube;								dBUGsvCUR( svΩ, CSΩ );
 						}			cubeΩ[ CSΩ ]=0;				SvCUR_set(	svΩ, 	CSΩ );
 			
-		/*	[iCZ ]:	SPLICE KEYBYTE SECTION			(CASE NX2M)									*/
+		/*	[iCZ ]:	SPLICE KEYBYTE SECTION				(ƒsub NX2M)								*/
 		/*			crossover endogenous data with high passthrough data, in-situ							*/
 			if( hpΩ_c ){		enXhp =	postΩ_xc| ( hpΩ_c<< 3 );										/*	*Edge( cubeΩ ) = *Edge( cube ); 	Edge of [iC] unchanged	*/
 				if(		relΩ_c ){	/*	can't use a pointer+index here; index may underrun pointer.	*/
@@ -367,7 +367,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 									iCEpACK( pΩ,	ixΩ, izM, inM,		cubeΩ );
 							}	/*	^re-pack modified q-data vectors ixΩ..izM to cubeΩ[ 16..16+postΩ_q-1 ]	*/									\
 
-		/*	UPDATE LO-CUBE [ iCI ]						(CASE NX2M)									*/
+		/*	UPDATE LO-CUBE [ iCI ]							(ƒsub NX2M)								*/
 									MOD_CUBE_I_AS_LPASSxMODS( 	ixΩ);							
 			cubeΩ[ CSΩ	] = 0;																		dBUG_NX2M
 			}
@@ -399,9 +399,9 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 								} while(	u< ixΩ );	}
 		cubeº = SvPVbyte_nolen( svI );						*Edge(	cubeº ) = E[ izº ];
 
-		/*	CREATE:	MEDIAL CUBE [iC+1] 				(CASE NX3)								*/
+		/*	CREATE:	MEDIAL CUBE [iC+1] 				(ƒsub NX3)								*/
 		if( ixM >ix¹ ){ /* lowpass ix¹..ixM-1	*/	CS¹ = 16 +Oª[ ixΩ ] - O[ ix¹ ];
-			sv¹		= newSVpvz(	0x6 |	CS¹	);														dBUG_SvCUR( sv¹, CS¹ );
+			sv¹		= newSVpvz(	0x6 |	CS¹	);														dBUGsvCUR( sv¹, CS¹ );
 			SvCUR_set(				sv¹,	CS¹	);
 			cube¹  	= SvPVbyte_nolen(	sv¹	);	p¹  = cube¹ +16;											*Edge( cube¹ ) = E[ iz¹ ];
 			;		post¹_q	=		Oª[	ixΩ ]	-	Oª[	ixM	];
@@ -437,7 +437,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 							}		MOD_CUBE_I_AS_LPASS(	ix¹ );										ƒSUBº_A;
 
 		}else{ /* no lowpass */				CS¹ = 16 +Oª[ ixΩ ] - Oª[ ix¹ ];	//	printf("\n CS¹=16 +( O\xA6[ ix\xEA: %d ]: %d ) - ( O\xA6[ ix\xB9: %d ]: %d );\n\n", ixΩ, Oª[ixΩ], ix¹, Oª[ ix¹ ] );
-			sv¹		= newSVpvz(	0x6 |	CS¹	);														dBUG_SvCUR( sv¹, CS¹ );
+			sv¹		= newSVpvz(	0x6 |	CS¹	);														dBUGsvCUR( sv¹, CS¹ );
 			SvCUR_set(				sv¹,	CS¹	);
 			cube¹  	= SvPVbyte_nolen(	sv¹	);	p¹  = cube¹ +16;											*Edge( cube¹ ) = E[ iz¹ ];
 
@@ -490,7 +490,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 
 
 */
-	else if( 	/*****	ƒsub NX4/N	*****/	tcª< 255	)		{ /* One cube splits into four plus.	*/	iCx=iCI+1;	dBUGrackCALL(	4 );
+	else if( 	/*****	ƒsub NX4/N	*****/	tcª< 512	)		{ /* One cube splits into four plus.	*/	iCx=iCI+1;	dBUGrackCALL(	4 );
 	//	if( xcª -ixº <1 || trace ){ trace=1;	printf( "\r	NXN enter	%s line %d\n",  __FILE__, __LINE__ ); }
 		int						nCª=(		tcª /7 )-3;													dBUGnCª
 					endo_c	=	nCª *7;																	
@@ -566,7 +566,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 
 
 		/*	[iC+1]:	ƒsub NXN-xBxx:	NEW CUBE¹ AS LOWPASS x MODS								*/
-		if( ixM >ix¹ ){						CS¹ = 16 +Oª[ ixⁿ ] - O[ ix¹ ];										ƒSUB¹_B	dBUG_SvCUR( sv¹, CS¹ );
+		if( ixM >ix¹ ){						CS¹ = 16 +Oª[ ixⁿ ] - O[ ix¹ ];										ƒSUB¹_B	dBUGsvCUR( sv¹, CS¹ );
 			if( CS¹<16 || CS¹ >144 ){	printf( "\n(CS1: %lld) = 16 +( O\xA6[ ix\xFC: %d ]: %d ) - ( O\xA6[ ix1: %d]: %d );\n",	CS¹, ixⁿ, Oª[ ixⁿ ], ix¹, Oª[ ix¹ ] );	}
 			sv¹		= newSVpvz(	0x6 |	CS¹	);								
 			SvCUR_set(				sv¹,	CS¹	);
@@ -587,7 +587,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 		/*	[iC+1]:	ƒsub NXN-xCxx:	NEW CUBE¹ AS MODS 											*/
 		}else{							CS¹ = 16 +Oª[ ixⁿ ] - Oª[	ix¹ ];
 			if( CS¹<16 || CS¹ >144 ){	printf( "\n(CS1: %lld) = 16 +( O\xA6[ ix\xFC: %d ]: %d ) - ( O\xA6[ ix1: %d]: %d );\n",	CS¹, ixⁿ, Oª[ ixⁿ ], ix¹, Oª[ ix¹ ] );	}
-																									ƒSUB¹_C;	dBUG_SvCUR( sv¹, CS¹ );
+																									ƒSUB¹_C;	dBUGsvCUR( sv¹, CS¹ );
 		//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\rNXN-xCxx	CS1: %lld\n", CS¹); }
 			sv¹		= newSVpvz(	0x6 |	CS¹	);														
 			SvCUR_set(				sv¹,	CS¹	);
@@ -616,7 +616,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 			if( CS²<16 || CS² >144 ){	printf( "\n(CS\xB2: %lld) = 16 +( hp\xB2_q: %d ) +( O\xA6[ ix\xEA: %d ]: %d ) - ( O\xA6[ ix\xB2: %d]: %d );\n",
 											CS²,			hp²_q,			ixΩ, O[ ixΩ ],			ix², O[ ix² ] ); }
 
-			sv²		= newSVpvz(	0x6 |	CS²	);														dBUG_SvCUR( sv², CS² );
+			sv²		= newSVpvz(	0x6 |	CS²	);														dBUGsvCUR( sv², CS² );
 			SvCUR_set(				sv²,	CS²	);	/*2026-09-24: differentiated xxDx CS² calc from xxCx	*/
 			cube²  	= SvPVbyte_nolen(	sv²	);	p²  = cube² +16;
 
@@ -638,7 +638,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 			/* only after XLOAD:	*/	MOD_CUBE_Ω_AS_HIGHPASS();										ƒSUBΩ_E;
 
 		/*	[iC+1]:	ƒsub NX4-xxCx: 	NEW CUBE² AS MODS											*/
-		}else{							CS² = 16 +Oª[ ixΩ ] - Oª[ ix² ];									ƒSUB²_C;	dBUG_SvCUR( sv², CS² );
+		}else{							CS² = 16 +Oª[ ixΩ ] - Oª[ ix² ];									ƒSUB²_C;	dBUGsvCUR( sv², CS² );
 			if( CS²<16 || CS² >144 ){	printf( "\n(CS\xB2: %lld) = 16 +( O\xA6[ ix\xEA: %d ]: %d ) - ( O\xA6[ ix\xB2: %d]: %d );\n",
 									CS²,					ixΩ, Oª[ ixΩ ], 		ix², Oª[ ix² ] );	}
 		//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\rNXN-xxCx	CS2: %lld\n", CS²); }						
@@ -660,7 +660,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 		  do	{		_ixⁿ = ixⁿ+7;			CSⁿ = 16 +Oª[ _ixⁿ ] - Oª[ ixⁿ ];
 			if( CSⁿ<16 || CSⁿ >144 ){	printf( "\n(CS\xFC: %lld) = 16 +( O\xA6[ _ix\xFC: %d ]: %d ) - ( O\xA6[ ix\xFC: %d]: %d );\n",
 										CS¹,					_ixⁿ, Oª[ _ixⁿ ], 		ixⁿ, Oª[ ixⁿ ] );	}
-																									dBUG_SvCUR( svⁿ, CSⁿ );	//"CS\xFC"
+																									dBUGsvCUR( svⁿ, CSⁿ );	//"CS\xFC"
 			svⁿ		= newSVpvz(	0x6 |	CSⁿ	);														
 			SvCUR_set(				svⁿ,	CSⁿ	);
 			cubeⁿ  	= SvPVbyte_nolen(	svⁿ	);	pⁿ  = cubeⁿ +16;											*Edge( cubeⁿ )= E[ izⁿ ];
@@ -681,7 +681,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 
 */
 	else	{	cS = 	sprintf(	aString,		lightning );
-			cS +=	sprintf(	aString +cS,	"\n	%s: ( tc\xA6: %d) overflows vector map!  Cannot commit changes!\n\n", __FUNCTION__, tcª );
+			cS +=	sprintf(	aString +cS,	"\n	%s: ( tc\xA6: %d) overruns vector map!  Cannot commit changes!\n\n", __FUNCTION__, tcª );
 			AvDBUG_PUSH(	aString, cS );
 			return;
 		}
@@ -690,4 +690,4 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 
 	}
 
-/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***/
+/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***	***	*/

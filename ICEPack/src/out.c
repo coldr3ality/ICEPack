@@ -308,11 +308,11 @@ void _toTextX(){
 
 	Ec=0;
 	for( iC=0; iC <= zC;  ++iC){
-		sviC = *( ICEº +iC );				if(NULL	==	sviC		){ pvS =sprintf( aString, "\r[%llu]: NULL\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+		sviC = *( ICEº +iC );					if(NULL	==	sviC		){ pvS =sprintf( aString, "\r[%llu]: NULL\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 										if( !SvOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvOK\n",				iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 										if( !SvPOK( sviC )		){ pvS =sprintf( aString, "\r[%llu]: ! SvPOK\n",			iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 										if( SvTYPE( sviC )!=3	){ pvS =sprintf( aString, "\r[%llu]: SVTYPE != SVt_RV\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
-		cube=SvPVbyte( sviC,  CS );	if( cube==NULL		){ pvS =sprintf( aString, "\r[%llu]: SvPVbyte(...)==NULL\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
+		cube=SvPVbyte( sviC,  CS );			if( cube==NULL		){ pvS =sprintf( aString, "\r[%llu]: SvPVbyte(...)==NULL\n",	iC); av_push( avOut, newSVpvn( aString, pvS ) );	continue;	}
 		pq	= cube +16;
 		zc= zcOf( cube );
 		

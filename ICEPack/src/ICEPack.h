@@ -6,6 +6,7 @@ extern HV	*	hvICE,
 			*	hvOut;
 extern AV	*	avOut,
 			*	avDBUG;	extern long long int	zd;
+extern AV	*	avRdx;
 extern AV	*	avICE;		extern long long int	iC, iCI, iCO, post_C, zC, zzC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
 extern AV	*	avICE_;		extern long long int	zCs;
 extern AV	*	avArg;		extern long long int	a, za; 					//	a list of integer value[s] to operate on.
@@ -29,9 +30,16 @@ extern char		aString[],	ic, zc,
 extern void		_icepack_init(),
 				_toText(),
 				_toTextX(),
-				_set(),		_set_rebal(),
-				_unset(),		_unset_rebal(),
-				_sweep(),
+				_set(),			_set_norebal(),	_set_ea(),	_set_all(),
+				_unset(),			_unset_norebal(),
+				_scroll_l(),
+			//	_alloc0x7(),
+			//	_alloc0x7dsc(),
+				_xalloc0x7(),		_xalloc0x7_norebal(),
+			//	_xalloc0x7dsc(),
+				_xalloc_ea(),		_xalloc_ea_norebal(),
+				_radix0x7_set(),
+			//	_radix0x7_unset(),
 				_printHex( 	SV* rvICE);
 extern	SV	*	toHex(		SV* rvICE);
 extern bool		_addsUp(),
@@ -40,8 +48,7 @@ extern bool		_addsUp(),
 				_excludes(),
 				_contains(),
 				_encompasses(),
-				_fits(),
-				_hits(),
+				_checksOut(),
 				_strikes();
 extern ui64		x, y, z,				/*	common method arguments													*/
 				Ac, Bc, Ec, E_,

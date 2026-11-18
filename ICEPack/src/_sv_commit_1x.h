@@ -13,6 +13,7 @@
 	limitations under the License.
 */
 #include	"_ICE.h"
+
 #ifdef DEBUG_SvCOMMIT_L1X
 	#define dBUG_1X1	{cS =sprintf( aString, "\n_sv_commit_1x(%3d):	locus : %3lld.%d..%lld.%-3d	 pre_c: %3d+1	\10	\10	 pre_q: %3d	 CS: %-3lld bytes\n",	\
 												xcª,			iCI, icI,		iC, icO,		pre_xc,				 pre_q,		 CS );				\
@@ -271,7 +272,7 @@
 			preΩ_q	=	O[	ixH	]	-		oCS;	/* oCS is a ticking timebomb 2026-09-13 precursor #97 */	\
 		/*	preΩ_q	=	O[	ixH	]	-	O[	ocª	];	*/				hpΩ_q	=		CS-16	-		preΩ_q;		\
 			postΩ_q	=	Oª[	inM ]	-	Oª[	ixΩ	];		CSΩ=16+	hpΩ_q + postΩ_q;					\
-			pΩ=( cubeΩ	= SvPVbyte_nolen(	svΩ = newSVpvz(	CSΩ |0x6 ) ) )+16;	SvCUR_set( svΩ, CSΩ );			dBUG_SvCUR( svΩ, CSΩ );	\
+			pΩ=( cubeΩ	= SvPVbyte_nolen(	svΩ = newSVpvz(	CSΩ |0x6 ) ) )+16;	SvCUR_set( svΩ, CSΩ );			dBUGsvCUR( svΩ, CSΩ );	\
 			postΩ_xc	= 		izM		-		ixΩ;			cubeΩ[	CSΩ ]=0;							\
 			relΩ_c		=	postΩ_xc	-		icO;			\
 			hpΩ_c		=		zc		-		icO;													dBUG_NEW_DΩ	\
@@ -291,7 +292,7 @@
 /*		NEW_CUBE_Ω_AS_HIGHPASS()		*/
 #define	NEW_CUBE_Ω_AS_HIGHPASS()									hpΩ_q=CS-O[ ixΩ ];				\
 														CSΩ=16+	hpΩ_q;							dBUG_NEW_EΩ	\
-			pΩ=( cubeΩ	= SvPVbyte_nolen(	svΩ = newSVpvz(	CSΩ |0x6 ) ) )+16;	SvCUR_set( svΩ, CSΩ );			dBUG_SvCUR( svΩ, CSΩ );	\
+			pΩ=( cubeΩ	= SvPVbyte_nolen(	svΩ = newSVpvz(	CSΩ |0x6 ) ) )+16;	SvCUR_set( svΩ, CSΩ );			dBUGsvCUR( svΩ, CSΩ );	\
 												cubeΩ[	CSΩ ]=0;										*Edge( cubeΩ ) = *Edge( cube );	/* set Edge() of high cube	(there is a displacement, so Edge() of pre-op cube is conserved)	*/\
 			switch(	zcΩ		){		SwCASE_LOWPASS_1I(	*( (ui64*)( cube +I[	ixΩ ] ) ),						*( (ui64*)	cubeΩ )	);	 }	\
 								/*	^inline lowpass		^high passthrough src							^lowpass output	*/		\
@@ -302,13 +303,13 @@
 /*		MOD_CUBE_0_AS_LPASS(		ix$ )	*/
 #define	MOD_CUBE_0_AS_LPASS( 		ix$ )	/*	if( ixM >izº ){	*/											dBUG_MOD_Eº	\
 				switch(		zcº ){	SwCASE_LOWPASS_1IS(	*( (ui64*) cubeº )	)		}					\
-				if( CS != O[	ix$ ] ){			SvCUR_set(	sv,	O[	ix$ ] );	cubeº[	O[	ix$ ] ]=0;			dBUG_SvCUR( sv,  O[ ix$] );	}	\
+				if( CS != O[	ix$ ] ){			SvCUR_set(	sv,	O[	ix$ ] );	cubeº[	O[	ix$ ] ]=0;			dBUGsvCUR( sv,  O[ ix$] );	}	\
 																									dBUG_MOD_Eº
 /*		MOD_CUBE_0_AS_LPASSxMODS()	*/
 #define	MOD_CUBE_0_AS_LPASSxMODS( ix$ )																dBUG_MOD_Aº	\
-				if( CS <  Oª[	ix$ ] ){ cubeº  =	SvGROW(	sv,	Oª[	ix$ ] +1 );								\
-											SvCUR_set(	sv,	Oª[	ix$ ] );	cubeº[	Oª[	ix$ ] ]=0;			dBUG_SvCUR( sv, Oª[	ix$ ] );	}	\
-			else	if( CS != Oª[	ix$ ] ){			SvCUR_set(	sv,	Oª[	ix$ ] );	cubeº[	Oª[	ix$ ] ]=0;			dBUG_SvCUR( sv, Oª[	ix$ ] );	}	\
+				if( CS <  Oª[	ix$ ] ){ cubeº  =	SvGROW(	sv,	Oª[	ix$ ] +1 );								dBUG_SvGROW_MOOT_COPY( cube, cubeº, O[ ixM ] );	\
+											SvCUR_set(	sv,	Oª[	ix$ ] );	cubeº[	Oª[	ix$ ] ]=0;			dBUGsvCUR( sv, Oª[	ix$ ] );	}	\
+			else	if( CS != Oª[	ix$ ] ){			SvCUR_set(	sv,	Oª[	ix$ ] );	cubeº[	Oª[	ix$ ] ]=0;			dBUGsvCUR( sv, Oª[	ix$ ] );	}	\
 																									\
 			pº =cubeº +O[	ixM	];			postº_xc	= izº - ixM;											\
 						lpXen	=	icI 	|(	postº_xc<< 3 );											\

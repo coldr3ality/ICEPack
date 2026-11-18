@@ -11,8 +11,9 @@ extern	void	_av_commit(),
 			reIce_uO(	ui16 u, ui16 v ),
 			reIce_uOx(	ui16 u, ui16 v );
 
-extern AV	*	avDBUG;	extern bool			run_iC;
-extern AV	*	avICE;		extern long long int	iC,	iCI,		iCO, /*iCx, post_C, */zC, zzC, rel_iC;
+extern AV	*	avDBUG;	
+extern AV	*	avRdx;		extern bool	bal_iC;
+extern AV	*	avICE;		extern long long int	iC,	iCI,		iCO, /*iCx, post_C, */zC, zzC, nC, rel_iC;
 extern AV	*	avArg;		extern long long int	a, za; 					//	a list of integer value[s] to operate on.
 extern SV	**	Aº,
 			**	src,
@@ -43,8 +44,7 @@ extern ui08	*	cube,				/*	unsigned char * cube data (of index iC )					*/
 				q, q0, q1,		/*	q-field lengths, used generically	*/
 				buf[];
 
-
-extern ui64	hit, miss;
+extern ui64	hi, lo, hit, miss;
 
 
 extern short 		 	u, v, w,					/*	matrix indeces		iterate		the modification range		in	matrix { A[], B[], E[], L[] }	*/

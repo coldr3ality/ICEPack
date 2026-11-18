@@ -183,8 +183,8 @@ unsigned short 	subcase;
 			*	hvOut;
 		AV	*	avOut,
 			*	avDBUG;	long long int	zd;
-		AV	*	avEnum;
-		AV	*	avICE;		long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
+		AV	*	avRdx;		bool			bal_iC;
+		AV	*	avICE;		long long int	iC, iCI, iCO, iCx, post_C, zC, zzC, nC, rel_iC, less_iC;  	//	iC is the index of the current cube.  zC is the array index of the ending cube.
 		AV	*	avICE_;		long long int	zCs=-1;
 		AV	*	avArg;		long long int	a, za; 					//	a list of integer value[s] to operate on.
 		SV	*	rvOut,				/*	arrayref to AV* avOut									*/
@@ -209,9 +209,6 @@ char			*	lightning = "\n!! !  !   !    !     !      !       !        !         !
 				exit_code=0,
 			*	ps;
 
-#if defined( DEBUG_ACCESS_L0 ) || defined (DEBUG_ACCESS_L1 ) || defined( DEBUG_ACCESS_L2X )
-unsigned long long int		ƒloc;
-#endif
 STRLEN			cS, CS, CSΩ, oCS;
 char	iqZ;
 ui08				*pk,			*pq,		*pΩ,
@@ -248,7 +245,7 @@ ui08 const	cubE[	24]={	0xB8,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,		/* cyclu
 
 ui64			i, hi, lo, n, N, o, s;		/*	global scratch variables used in private contexts									*/
 ui64			x, y, z,				/*	common arguments														*/
-			skip, hit, miss,			/*	the number of misses or collissions counted as a method processes arguments  		*/
+			skip, hit, miss, max,	/*	the number of misses or collissions counted as a method processes arguments  		*/
 			hu, bu, hm, lm; 	 	/*	high-unit, base-unit, high-mask, low-mask:
 									used to quantize keys for each unitary digit of numeric base (BASEBITS).		 		*/
 
@@ -296,7 +293,72 @@ ui08 	I[	512 ],				/* cycla indeces	which align	pre/post op keybytes		in	char *	
 ui16		O[	512 ],				/* q-data offsets	which mark	each read position			in	char *	cube			*/
 		Oª[	512 ];				/* q-data offsets	which mark	each write position			in	char *	cube			*/
 
+struct arg	{	char					stat;
+				unsigned short		fwd_vc,	rev_vc,
+									gt,		lt,		next;
+				unsigned long long int	x;
+			}	X[	0xFFFF ];				/* global arguments sorting buffer: 786,432 bytes	*/
+int		Xmin = -1,
+		Xmax = -1;
 
+/*	Failed experiment: a linked-list based argument sorting construct (a linked list cannot be searched)
+	As I thought through how this would have to work, as a layered hierarchy / regression matrix, I realized
+	I am recreating ICEPack.  *Edge is our 1:1 regular vector space for searching, and *( (ui64*) cube ) is our bucket.
+	Our cube construct is not optimized or even designed for temporary sorting, and neither is our encoding.
+	However, if I made the encoding layer modular, I could create a set of variant accessors which use uncompressed cubes—
+	dynamically allocated vector maps, just like the main one, but only (8) elements wide.
+	When we call ReICEuOx, it would just copy data from the main vmap to the dynamic one.
+	Is that saving us any much time?  Only the cost of encoding the keybyte, and the L2 cache load of those "switch" statements.
+	*/
+/*
+void _avArg_init( ui64 x ){									printf("\n %s( %lld )\n", __FUNCTION__, x );
+		Xmin			=
+		Xmax			= 0x7FFF; 	//absolute value:	the medial index is the first to be assigned
+	X[	0x7FFF	].fwd_vc	= 0x8000; 	//relative value:	undefined indeces following	medial index 0x7FFF in NS 0xFFFF
+	X[	0x7FFF	].rev_vc	= 0x7FFE; 	//relative value:	undefined indeces preceding	medial index 0x7FFF in NS 0xFFFF
+	X[	0x7FFF	].next	=
+	X[	0x7FFF	].gt    	=
+	X[	0x7FFF	].lt		= 0;
+	X[	0x7FFF	].x    	= x;
+	}
+void _avArg_ins( ui64 x ){	unsigned short	i=0x7FFF, iº, i¹, d;	printf("\n %s( %lld )\n", __FUNCTION__, x );
+	while(1){						// drill down while there is an existing binary path
+		if(		X[ i ].x<	x	){	if(		X[ i	].gt	)		{	printf("\r	(x: %lld )	> ( X[ i:%d ].x: %lld )...	\n", x, i, X[i].x );	i = X[ i ].gt;
+								}else{
+									if(	X[ i	].fwd_vc )	{	d =	X[ i	].fwd_vc	>>1;
+														iº=i +( 	X[ i	].fwd_vc	- d	);
+																X[ iº	].fwd_vc	= d;
+														;		X[ i	].fwd_vc	=		X[ iº	].rev_vc	= d-1;
+															printf("\r*	(x: %lld )	> ( X[ i: %d ].x: %lld );	i\xA7==%d	\n", x, i, X[i].x, iº );
+									}else /* rebal *//* 		{	printf("\r*	(x: %lld )	> ( X[ i: %d ].x: %lld );	i\xA7==%d	*rebal* \n", x, i, X[i].x, iº );
+														}
+									X[ iº	].x	= x;
+									X[ iº	].lt	= X[ iº ].gt	= 0;
+									X[ i	].gt	= iº;
+									if( iº >Xmax ) 	Xmax	= iº;	return;
+									}
+		}else if(	X[ i ].x !=	x	){	if(		X[ i	].lt	)		{	printf("\r	(x: %lld )	< ( X[ i:%d ].x: %lld )...	\n", x, i, X[i].x );	i = X[ i ].lt;
+								}else{
+									if(	X[ i	].rev_vc )  	{	d =	X[ i	].rev_vc	>>1; 	
+														iº=i-	d-1;	X[ iº	].rev_vc	=		X[ i	].rev_vc	- d -1;
+														;		X[ i	].rev_vc	=		X[ iº	].fwd_vc	= d;
+															printf("\r*	(x: %lld )	< ( X[ i: %d ].x: %lld );	i\xA7==%d	\n", x, i, X[i].x, iº );
+									}else /* rebal *//*		{	printf("\r*	(x: %lld )	< ( X[ i: %d ].x: %lld );	i\xA7==%d	*rebal*\n", x, i, X[i].x, iº );
+														}
+									X[ iº	].x	= x;
+									X[ iº	].lt	= X[ iº ].gt	= 0;
+									X[ i	].lt	= iº;
+									if( iº< Xmin ) 	Xmin	= iº;	return;
+									}
+		}else												return;
+		}
+	}
+void _avArg_print(){		unsigned short	i=Xmin;	printf("\n [");
+	if( i!=Xmax)	do	{	printf("%d, ", X[ i ].x );
+						i += X[ i ].fwd_vc +1;
+					}while( i );						printf("]\n");
+	}	*/
+	
 /*	Shared context with AvPOST(...), AvCUT1B4(...) & AvCUT_B4(...) defined in AvSEQ.h,  and _av_commit() defined in _av_commit.c:	*/
 
 	SV		*	rSeq_SV[	512 ]; 	//	temporary holding of SvPVbyte(...) char* "cubes" awaiting batch splice-insertion to AV* avICE
@@ -322,9 +384,8 @@ void __init_mx(){
 	}
 
 void _init_mx(){		/*	totally zero-out buffer matrix to improve clarity of debug info	*/
-	short	x=xcª;	ixº=oc=ocª=0; xc= xcª=-1;
-
-	u= v= w= izM =0;	ixM=0xFF;
+	short	x=xcª;//	ixº=oc=ocª=0; xc= xcª=-1;
+//	u= v= w= izM =0;	ixM=0xFF;
 	do{	RW[x]=0;
 		A[	x ]=	B[	x]=	E[x]=	0;
 		K[	x ]=	L[	x]=	I[x]=		0;
@@ -465,108 +526,26 @@ void	_filterHV(){
 
 #endif
 
-ui08 const	digs0x3	=	32;
-ui64 const	unit0x3[		32]={	},
-			hmask0x3[	32]={	0xFFFFFFFFFFFFFFFF,	0xFFFFFFFFFFFFFFFC,	0xFFFFFFFFFFFFFFF0,	0xFFFFFFFFFFFFFFC0,
-								0xFFFFFFFFFFFFFF00,	0xFFFFFFFFFFFFFC00,	0xFFFFFFFFFFFFF000,	0xFFFFFFFFFFFFC000,
-								0xFFFFFFFFFFFF0000,	0xFFFFFFFFFFFC0000,	0xFFFFFFFFFFF00000,	0xFFFFFFFFFFC00000,
-								0xFFFFFFFFFF000000,	0xFFFFFFFFFC000000,	0xFFFFFFFFF0000000,	0xFFFFFFFFC0000000,
-								0xFFFFFFFF00000000,	0xFFFFFFFC00000000,	0xFFFFFFF000000000,	0xFFFFFFC000000000,
-								0xFFFFFF0000000000,	0xFFFFFC0000000000,	0xFFFFF00000000000,	0xFFFFC00000000000,
-								0xFFFF000000000000,	0xFFFC000000000000,	0xFFF0000000000000,	0xFFC0000000000000,
-								0xFF00000000000000,	0xFC00000000000000,	0xF000000000000000,	0xC000000000000000	};
-ui08	const	digs0x7	=	22;
-ui64	const	unit0x7[		22 ]={	0x0000000000000001,	0x0000000000000008,	0x0000000000000040,	0x0000000000000200,
-								0x0000000000001000,	0x0000000000008000,	0x0000000000040000,	0x0000000000200000,
-								0x0000000001000000,	0x0000000008000000,	0x0000000040000000,	0x0000000200000000,	
-								0x0000001000000000,	0x0000008000000000,	0x0000040000000000,	0x0000200000000000,	
-								0x0001000000000000,	0x0008000000000000,	0x0040000000000000,	0x0200000000000000,	
-								0x1000000000000000,	0x8000000000000000	},
-			hmask0x7[	22]={	0xFFFFFFFFFFFFFFFF,	0xFFFFFFFFFFFFFFF8,	0xFFFFFFFFFFFFFFC0,	0xFFFFFFFFFFFFFE00,
-								0xFFFFFFFFFFFFF000,	0xFFFFFFFFFFFF8000,	0xFFFFFFFFFFFC0000,	0xFFFFFFFFFFE00000,
-								0xFFFFFFFFFF000000,	0xFFFFFFFFF8000000,	0xFFFFFFFFC0000000,	0xFFFFFFFE00000000,
-								0xFFFFFFF000000000,	0xFFFFFF8000000000,	0xFFFFFC0000000000,	0xFFFFE00000000000,
-								0xFFFF000000000000,	0xFFF8000000000000,	0xFFC0000000000000,	0xFE00000000000000,
-								0xF000000000000000,	0x8000000000000000	};
+/*
+I am writing a Perl/XS module in C called ICEPack.  I have a series of macros with a very carefully curated naming convention inspired by Latin, and occasionally I must come up with another thoughtful variant name for a specific edge case.  Currently, there are (10) of these macros, but before I name them and attempt to describe the nuances of what they each do differently, I must provide some context about the program architecture.
 
-ui08 const	digs0xF	=	16;
-ui64 const	unit0xF[		16]={	},
-			hmask0xF[	16]={	0xFFFFFFFFFFFFFFFF,	0xFFFFFFFFFFFFFFF0,	0xFFFFFFFFFFFFFF00,	0xFFFFFFFFFFFFF000,
-								0xFFFFFFFFFFFF0000,	0xFFFFFFFFFFF00000,	0xFFFFFFFFFF000000,	0xFFFFFFFFF0000000,
-								0xFFFFFFFF00000000,	0xFFFFFFF000000000,	0xFFFFFF0000000000,	0xFFFFF00000000000,
-								0xFFFF000000000000,	0xFFF0000000000000,	0xFF00000000000000,	0xFF00000000000000	};
-#define	FIRST_INCL(	$x )
+These macros are called within my methods as an abstraction of the underlying encoding/fragmentation/re-balancing layer.  Each of these macros is suffixed as "LOC" (for the latin root word LOCUS) as they each locate a given argument (value of x) and position the decode cursor within the relevant fragment (or "cube") relative to the previous argument in the arguments list (which has already been decoded, operated on, and buffered, pending re-encoding of the entire batch at once, after all arguments in any one cube run have been buffered).  These macros help make the methods' source code easier to read, as there is much to do with navigating the compressed data fragments which doesn't need to be reviewed there.  Not only does the "LOC" suffix characterize them as a related set of procedures, but the use of Latin distinguishes them strongly from any other set of macros.  I chose to use Latin because it allows me to describe combinations of unique spatial relationships both within the logical namespace of these data points and the allocation space of the fragments which contain them, concisely, as compound nouns.
 
-#define	NEXT_INCL(	$x )
+To give you an idea of what these macros handle, each setter supports batch arguments, and in order to implement re-balancing of the structure, it is necessary to vector map the continuous run of decoded coordinates of any straight run of cubes (for any straight run of arguments spanning them) in order to re-distribute them optimally across a new run of cubes and re-encode them all at once.  As such, these macros also manage the mark-in and mark-out of continuous cube runs, for which there is a run-intializing as well as a run-continuing category.  To further differentiate them, each operation needs to modify two adjacent encode units at once (addressed as vectors [u, v] in the main buffer) which are usually both in the same cube, but are often bridging two adjacent cubes; as such, there is an intra-local as well as an inter-local category.  What's more, if the data points run past the end of the object, that's referred to as the epi-local context.
 
-#define	COMMIT_INCL					 SvCOMMIT;	\
-		if( dsc || rSeqIns[0] || rSeqCut[0] )		_av_commit();
+Here are their names, as well as brief descriptions of what they do:
 
-extern char	 _vec0x7_add(	ui64 x00,	ui64 xFF,	ui64 _0, char ctx );
+ANTELOC and INTERLOC are the only two which handle vectors [u, v] separately.  They handle the "inter-local" context where vector u focuses on the last encode unit of the left- ("ante-") cube, and vector v focuses on the first encode unit of the right- ("dextra-") cube.  If, upon entering the ANTELOC context, we encounter the end of the object, we simply do not call INTERLOC, and instead proceed to EPILOC.
 
-void	_enum0x7_set(  ){
-	char	ctx=0;
-	ui64	x	= ARG0;	a =	hit =0;	za =	AvFILLp(	avArg);					if( za ==-1){	/*	no args */		return;	}
-	ui64	zx	= ARG(	za ),	xu, xu1, xh;
-	bool				run_iC;
-	ui64				hmask,
-					lmask,
-					unit;
-					
-	SV	**	pAv;
-	si08		zDig 	= AvFILLp(  	avEnum );
-//	ui08		xDig 	= digs0x3 	-( __builtin_clzll( zx ) >>2 );
-	ui08		xDig 	= digs0x7 	-( __builtin_clzll( zx ) >>3 );
-//	ui08		xDig 	= digs0xF 	-( __builtin_clzll( zx ) >>4 );
-	ui08		d;
-	if(		xDig<=	zDig)						pAv = AvARRAY(	avEnum );
-	else	{			  AvINIT(  	avEnum, xDig );	pAv = AvARRAY(	avEnum );
-		for(	d =	zDig +1; d <= xDig; ++d )	{	*(	pAv +d )= (SV*) newAV();			
-				zDig =xDig;				}
-		}
-	for( d =1; d<=	zDig; ++d ){					xu1 =(	xu= (	xh=	ARG0	& hmask0x7[	d ] )	+unit0x7[ d ] );
-		avICE = (AV*) *(pAv+d);		FIRST_INCL(	xu );
-		for(		a=	s=1; a<= za; ++a )
-			if(										xu==(	xh=	ARG( a )	& hmask0x7[	d ] ) ) ++s;
-			else	{			ctx=	_vec0x7_add(	xu1, 	xu,	s,	ctx );
-											xu1 =(	xu	=	xh 	)						+unit0x7[	d ];
-				++ a;			NEXT_INCL(	xu);
-				for(	s=1; a<= za; ++a)
-					if(						xu==(	xh=	ARG( a )	& hmask0x7[	d ] ) ) ++s;
-					else	{ 	ctx=	_vec0x7_add(	xu1, 	xu,	s,	ctx	);
-								s =1;		xu1 =(	xu	=	xh 	)						+unit0x7[ d ];
-								NEXT_INCL(xu);
-						}		break;
-				}
-		;					ctx=	_vec0x7_add(	xu1, 	xu,	s,	ctx );
-							COMMIT_INCL;
-		}
-	return;
-	}
+CoANTELOC and ReINTERLOC do the same thing, except in continuing a run instead of initializing one.
 
+INTRALOC and CoINTRALOC initialize / continue a cube run in the intra-local context (both located within one cube).
 
+INTRALOC1up is a minor variant of INTRALOC to handle the same locus, for when the search loop breaks one cube too low.
 
-/*	cat
-Dearest Claude, I am working on a Perl/XS module written in C, and it is an instantiable object class for a compressed prefix-sum structure I call ICEPack.  I have a series of macros with a very carefully chosen naming convention inspired by Latin, and I must carefully choose another name for a specific edge case variant.  
+EPILOC and CoEPILOC initialize / continue buffering to the end of the last cube in the object, preparing to append remaining args.
 
-These macros are called within my setter methods as an abstraction layer for locating the relevant compressed fragments  (called "cubes") for given method arguments (values of x), as well as seeking within those fragments to locate relevant encoded units to be decoded, modified and then re-encoded.  These macros help make the source code of the setter methods intelligible, as there is much to do with navigating the compressed data fragments which doesn't need to be reiterated.  The use of Latin , I feel, instantly sets them apart from all the other macros in the program, especially because they all end in "LOC", an abbreviation of "LOCUS".
-
-Each operation needs to modify two adjacent encode units at once (as vectors [u, v], which may both be in the same cube or bridging adjacent cubes).  To further complicate their work, each setter supports batch arguments, and in order to promote the automatic re-balancing of the overall structure, any straight run of arguments located in a straight run of cubes must be tracked and re-encoded at once.  As such, these macros also manage the mark-in and mark-out of continuous cube runs, which has prompted me to create a run-intializing as well as a run-continuing variant to go with each scope type.  In order to make these macro names short, concise and descriptive, I have adopted a shorthand naming convention inspired by Latin.  Currently, there are (8) of these macros, but it has come to my attention that I must come up with a descriptive name for a 9th.  Here are the ones I have so far, as well as brief descriptions of what they do:
-
-ANTELOC and INTERLOC are the only two which handle vectors [u, v] separately.  They bring focus on an "interlocal" operation scope where vector u focuses on the last encode unit of the low cube, and vector v focuses on the first encode unit of the right-hand cube.
-
-Conversely, CoANTELOC and ReINTERLOC do the same for vectors [u, v], but in continuing a run that is already, uh, running.
-
-INTRALOC and CoINTRALOC focus vectors [u, v] on two adjacent cycla which are found within the same one cube.
-
-EPILOC and CoEPILOC focus on the last cube in the array structure, positioning left-hand vector [u] at the end to append remaining args.
-
-Now then, to the point:  it has come to my attention that I have an unnamed edge case which is computationally trivial, yet still needs a descriptive name for debugging purposes.  It is functionally identical to INTRALOC, but specific to cube #0, which requires unique initialization due to the fact that no cube precedes cube 0.
-
-Can you think of a Latin prefix to prepend to INTRALOC which would distinguish it from the others while clearly signifying that it is especially meant for the very first "cube" in the structure?
-
-
-
+The newest addition is PRIMOLOC, which is a special case for marking-in a cube run starting at the 0th cube.
 
 
 */

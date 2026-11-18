@@ -78,6 +78,12 @@ extern	unsigned short 	subcase;
 	#define ƒSUBΩ_D
 	#define ƒSUBΩ_E
 #endif
+#ifdef DEBUG_SvCOMMIT_ARCH
+	#define	dBUG_SvGROW_MOOT_COPY( cubeº, cube¹, o$ )	if( &cubeº != &cube¹ ) if( cubeº[ o$ ] != cube¹[ o$ ] ) printf("\nSvGROW moot copy prevention validated.\n"); 
+#else
+	#define	dBUG_SvGROW_MOOT_COPY( cubeº, cube¹, o$ )
+#endif
+
 #ifdef DEBUG_SvCOMMIT_L2
 	/*		SvCOMMIT OP		glyph			bytes		dst		dst: 1st	dst: last		src		src: 1st	src: last			shift		*/
     #define	dBUG_XLOAD(	/*	X		*/		byte$,		dºcube,	dºq,		/*n/a*/		sºcube,	sÌ		/*n/a*/			/*n/a*/	)	o = dºq-dºcube;			\
@@ -256,8 +262,8 @@ extern	unsigned short 	subcase;
 	/* asc. compaction	*/					ºcuRe = ºcuBe;															\
 					ReFLOW_AC(	ºcuBe,	ºcuRe,	rel$, byte$,	dÌ0,	sÌ0,							$n );					\
 	}else								ºcuRe = ºcuBe;															\
-	/* bypass	*/														dBUG_SvCUR(	$svΩ, dÌn );				\
-										ºcuRe[ dÌn ]=0;					SvCUR_set(		$svΩ, dÌn );
+	/* bypass	*/														dBUGsvCUR(	$svΩ, dÌn );					\
+										ºcuRe[ dÌn ]=0;					SvCUR_set(	$svΩ, dÌn );
 					
 #define	ReFLOW(		$svΩ,		ºcuBe, ºcuRe, 	rel$, byte$,	sÌ0,	dÌ0,	sÌn,	dÌn	)		\
 		_ReFLOW(	$svΩ,		ºcuBe, ºcuRe, 	rel$, byte$,	sÌ0,	dÌ0,	sÌn,	dÌn,	__LINE__	)

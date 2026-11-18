@@ -160,6 +160,7 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 			}										}	juke = dsc-asc;					dBUGiniD;
 
 	if( juke==0)	printf("\n?	2026-09-21 experiment: does it break anything?	in %s line %d\n", __FILE__, __LINE__);
+//							2026-11-10: this seems to have never fired
 
 	do		{	/*	as-needed reversal of normally-descending processing order	("juke" action)	*/
 		if( juke )	/*	2026-09-21 in response to precursor #111 w/ ReBAL_ENABLE defined		*/
