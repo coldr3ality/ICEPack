@@ -12,8 +12,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-ICEPack is an instantiable object class for a data structure I categorically define as a Compressed Truth Vector.  The inspirational concept I was trying to achieve when I set out to develop this data structure was something which combined the access modalities of hashes and arrays without the complexity or overhead of a database, meeting or exceeding a modern standard of computational efficiency.  Elements are addressable by sparse key as in hashes, or by ordered index as in arrays.  The architecture has three abstraction layers, starting with a custom binary encoding I call Inversion Cycle RLE, which is a minimized version of RLE for alternating boolean values.  The second abstraction layer is a fairly basic binary search implementation over a sorted array of these IC-RLE segments, and the third abstraction layer is a stratified/laminar regressive quantization of the second-layer data array, grading the namespace content down into increasingly quantized reductions, storing respective modulus values in the freed up allocation space for each combined unit key, which can be atomically updated by setters as the structure changes, and efficiently summed by getters to compute the sort order of sparse keys on demand.  I want to call it dynamic enumeration.
 
-In a way, it allows for treating defined and undefined namespace as two dimensions of one regular series.  It enables an access modality similar to Perl's range operator (where you specify a series in terms of its starting and ending value), but now those values can be sparse keys, and they can select from either the defined or undefined sparse key namespace efficiently.  This makes mass shuffle practical.  Indeed, the intended application is mass distributed session ID randomization where collision is prevented through true namespace conservation (not merely leveraging astronomical odds) and without introducing a special need or requirement for a core network to maintain sync across edge servers.
+
+I have re-written this description so many times, I'm beginning to feel crazy.  I have recently had a conversation with Claude (4.5) which was very enlightening, though, and a [nearly] final rewrite is in order; while the architecture shares familiar concepts with radix trees, binary search trees and age-old bitmap compression techniques, Claude cannot identify a single data structure that combines these three to do what this does.
+
+ICEPack is a Perl object class for a data structure I categorically define as a compressed bitvector integrated with an octal radix tree, which enables a rich access modality that is simultaneously array-like and hash-like, and it accepts batch arguments as parametric ranges as well as discrete, literal keys and indeces.
+
+It can rank (or get keys by rank) in terms of both used or free namespace.  This, without the need to reflect or mirror two different data sets; it's all one structure, and it's efficient with both processing and RAM.
+
+
+The working concept I was inspired to develop was an ID table which combines the access modalities of hashes and arrays without the complexity or overhead of a database, meeting or exceeding a modern standard of computational efficiency.  True random deterministic ID shuffling is shown, although the full randomness pipeline is crucial.
 
 I first developed a complete proof of concept in 2020 written in Perl.  Since then, I have taken on learning C and giving the specification and architecture the proper treatment to realize an enterprise grade implementation.
+
+In a way, this is a prime example of the old Perl addage that "everything is a number".  Indeed, that sums it up.
