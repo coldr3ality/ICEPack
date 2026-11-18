@@ -1,5 +1,6 @@
-# Inversion Cycle Encoding (ICE) Pack v0.4,2
+# Inversion Cycle Encoding (ICE) Pack v0.4.2
 #	Copyright 2026 Peter Arlen Schmidt
+#	this jam is real
 #
 #	Licensed under the Apache License, Version 2.0 (the "License");
 #	you may not use this file except in compliance with the License.
@@ -44,8 +45,90 @@ our @EXPORT=qw( test_set_recursively );	#printf("\n\nbrrrrr\n");
 use Time::HiRes qw(gettimeofday tv_interval);
 my @avOut=();	my @precursors;	my @unset_precursors;
 my $msec0=gettimeofday; my $msec1=$msec0;
+my	( $min, $max, $nTests,	$nSamps,	$saturation	);
+my	( $window,	$Ct,		$Tsub,		$Tsub_,		$T,		$T_,	$T_stall,	$fpp,	$scale,	$scale100,	$min,	$max,	$nTx100,	$maxZ,	$pass,	$fail,	$perSec, $msec2)=
+	( 0,			0,		0,			0,			0,		-1,	0,		0,		1,		100,			0,		0,		1,		0,		0,		0		);
+my	$format=sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.%df/sec  max \$#ICE: %c-4d  NS: 0x%X..%X\r", 37, 0, 37, 37, 37, 37, 0, 37, 0, 0);
 
-sub test_hits($){
+sub progress(){
+	if(		$T==$T_ )	{		$Tsub =	int( $Ct*$scale100 /$window )/$scale100;
+					if(		$Tsub ==	$Tsub_ ){	
+						if(++	$T_stall==5 )		{	$T_stall=0;
+												if( $fpp< 16){
+													$scale100 =( $scale =10**++$fpp )*100;
+													$format=sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.%df/sec  max \$#ICE: %c-4d  NS: 0x%X..%X\r", 37, $fpp, 37, 37, 37, 37, $fpp, 37, $min, $max);
+											}		}
+					}else{	$Tsub_=$Tsub;	--$T_stall if $T_stall >0; }
+	}else{	$T_ =$T;	}
+	
+	$perSec =( $T + $Tsub ) /( $msec2-$msec0);
+	printf(	$format, ( $T + $Tsub ) /$nTx100,	37, $T, $fail, $perSec, $maxZ );
+	}
+
+
+
+sub test_xalloc0x7(	$$$$$){
+		( $min, $max, $nTests, $nSamps,	$saturation				)=@_;
+		( $window,	$Ct,			$Tsub,	$Tsub_,	$T,		$T_,	$T_stall,	$fpp,	$scale,	$scale100,	$nTx100,		$maxZ,	$pass,	$fail	)=
+		( $max -$min,	0,			0,		0,		$nTests,	-1,	0,		0,		1,		100,			$nTests*0.01,	0,		0,		0	);
+
+	my $nRandSet	= sqrt( ($window*$saturation<<0) ); 
+
+	$format = sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.%df/sec  max \$#ICE: %c-4d  NS: 0x%X..%X\r", 37, $fpp, 37, 37, 37, 37, $fpp, 37, $min, $max);
+
+	TEST: for( $T=0; $T< $nTests; ++$T ){
+		}
+	}
+sub test_xalloc0x7_recursively($$$){	my( $start_bits, $end_bits, $saturation)=@_;	my $saturation_pct=$saturation*100;
+	print("\n recursive test script started ", scalar localtime(), "\n\n");
+	while( 1 ){							
+######			Increasing the sample rate beyond the square root of the NS window 
+		foreach	my	$bits( $start_bits..$end_bits ){	my	$NS=1<<($bits-1);					my	$nSamps = sqrt( $NS )<<2;
+																	my	$nTests	= int( (100000/$saturation )/$nSamps );	$nTests=1 if $nTests==0;
+			printf("\n%d-bit NS (+/-	\10 %-3d) to	\10 %d%c saturation	\10 %3dx, sample rate:	\10 %d/call        \n",
+					 $bits,			$NS,			$saturation_pct, 37,	$nTests,			$nSamps		);
+			foreach my $base2Exp( 8, 16, 24, 32, 40, 48, 56 ){
+				my $byteband=1<<$base2Exp;
+				my $lb	= ($byteband >$NS    					)? $byteband -$NS:		0x0;
+				my $hb	= ($byteband<=0xFFFFFFFFFFFFFFFF-$NS	)? $byteband +$NS:	0xFFFFFFFFFFFFFFFF;
+				test_xalloc0x7( $lb, $hb,	$nTests,	$nSamps, $saturation );
+				print("\n");
+				}
+		}	}#			^NS lowbound		^NS highbound					^NS saturation factor to pass each test
+	}
+sub test_checksOut($){
+	my ( $nTests)=@_;
+	my	($T,	$nTx100,		$hit,	$miss,	$fail,	$ok,	$perSec, $msec0, $msec1, $msec2, $x, $ICE,  @ICE, @args1, @args2 )=
+		(0,	$nTests*0.01,	0,	0,		0,		0	);
+	$msec0=$msec1=gettimeofday;
+
+	TEST:foreach $T(1..$nTests){
+		@args1=();
+		@args2=();
+		for( my $t =11;	 $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args2,		$x )	){	++$t;}
+														else{	insortIV( \@args1,		$x );			}	}
+
+		for( my $t =222;	 $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args2,		$x ) ){	++$t;}	}
+
+		$ICE=av2ICE(			\@args2 );
+		$ok=$ICE->checksOut(	\@args1 );
+	#	$miss=getMissCount;
+		if(!$ok){
+			print(	"\r	($miss) keys not found\n");
+			++$fail;
+			}
+		$msec2=gettimeofday;
+
+		if($msec2-$msec1 >0.1){
+			$perSec =$T /( $msec2-$msec0);
+			printf(	"\rtesting hits():	%6.2f%c completed (%d) test[s] w/ (%d) fail[s]  %11.2f/sec  ", $T/$nTx100,	37, $T, $fail, $perSec );
+			$msec1=$msec2;
+		}	}
+	$perSec =$nTests /( gettimeofday-$msec0);
+	printf(	"\rtesting hits():	%6.2f%c completed (%d) test[s] w/ (%d) fail[s]  %11.2f/sec  \n", 100,	37, $T, $fail, $perSec );
+	}
+
+sub test_has($){
 	my ( $nTests)=@_;
 	my	($T,	$nTx100,		$hit,	$miss,	$fail,	$perSec, $msec0, $msec1, $msec2, $x, $ICE,  @ICE, @args1, @args2 )=
 		(0,	$nTests*0.01,	0,	0,		0,		);
@@ -54,10 +137,10 @@ sub test_hits($){
 	TEST:foreach $T(1..$nTests){
 		@args1=();
 		@args2=();
-		for( my $t =11;  $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args2,		$x )	){	++$t;}
-													else{	insortIV( \@args1,		$x );			}	}
+		for( my $t =11;	$t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args2,		$x )	){	++$t;}
+														else{	insortIV( \@args1,		$x );			}	}
 
-		for( my $t =222;  $t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args2,		$x ) ){	++$t;}	}
+		for( my $t =222;	$t >0;  --$t ){	$x = int( rand( 1024 ) );	if(		insortIV( \@args2,		$x ) ){	++$t;}	}
 
 		$ICE=av2ICE( \@args2 );
 		$hit=$ICE->has( \@args1 );
@@ -191,7 +274,7 @@ sub test_3ps($){
 	printf(	"\rtesting includes():	%6.2f%c completed (%6d) test[s] w/ (%d) fail[s]  %11.2f/sec  \n", 100,	37, $nTests, $fail, $perSec );
 	}
 sub test_set_precursors{
-	my	(@pre_args, @post_args,	$ICE, $ICE_B4, $first, $last);	my $pass=0;	my $fail=0;	my $audit;
+	my	(@pre_args, @post_args,	$ICE, $ICE_B4, $first, $last, $found );	my $pass=0;	my $fail=0;	my $audit;
 	my $max=$#precursors>>1;	my $nTests=$max+1;
 	if(	0<=		$#_ ){	$audit=1;
 						if( $_[0] >$max || $_[0]< 0		){	$first=0;	print("\n!	invalid argument[s] to test_set_precursors()\n");
@@ -213,15 +296,19 @@ sub test_set_precursors{
 		my	$ICE=av2ICE( $ranges );
 
 	#	print( "\n\$ICE->set( [ ", join(', ', @$args ), " ] );	\n");
-		ICEPack::snapshot(	$ICE);
-		ICEPack::set(		$ICE, $args );
+		ICEPack::snapshot(		$ICE);
+	#	ICEPack::set(			$ICE, $args );
+		ICEPack::set_all(		$ICE, $args );
+	#	ICEPack::set_norebal(	$ICE, $args );
+	#	$found = $ICE->has( $args	);
 
-		if(	not	$ICE->encompasses( \@post_args	)
-		or	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
-			or	exitCode()
+		if(	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+		or	not	$ICE->encompasses( $args	)
+	#	or	not	( $found == @$args )
+	#		or	exitCode()
 			){						++$fail;	printf("\t\t\t\t######	fail #%-3d ######", $r>>1);
-		#	next if not $audit;
-
+	#		printf("\n	($found) of %d keys found\n", scalar( @$args ));
+			printf("\naudit:\n\n");	printAvDBUG();	print("\n\n\n\n\n\n");
 			$ICE_B4=ICEPack::getSnapshot();					print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
 
 			printAvDBUG();
@@ -232,18 +319,19 @@ sub test_set_precursors{
 												@{ ICEPack::toHex(	$ICE_B4	)	},
 					"], [	",			join(",", map { sprintf("%X", $_) }	@{	$args	}	), "],	#hex\n\n"	);
 
-		#	$ICE->excludes( \@post_args );
-		#	print(	"#missing keys:\n",
-		#			"		[	",	join(",",							@post_args	), "],  #dec\n",
-		#			"		[	",	join(",", map { sprintf("%X", $_) }		@post_args	), "],  #hex\n\n");
+			$ICE->excludes( \@post_args );
+			print(	"#missing keys:\n",
+					"		[	",	join(",",							@post_args	), "],  #dec\n",
+					"		[	",	join(",", map { sprintf("%X", $_) }		@post_args	), "],  #hex\n\n");
 														printf("\n\n\n\t\t\t\t######	fail #%-3d ######\n\n\n", $r>>1);
 			exit;
 		}else{											printf("\t\t\t\t######	pass #%-3d ######", $r>>1);
-#			print(				"post:",						@{ ICEPack::toTextX(	$ICE	)	}	);
-	#		printf("\naudit:\n\n");	printAvDBUG();	print("\n\n\n\n\n\n");
-				
-	#		$ICE_B4=ICEPack::getSnapshot();		print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
 
+	#		$ICE_B4=ICEPack::getSnapshot();					print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
+	#		print(	"pre:",						@{ ICEPack::toTextX(	$ICE_B4	)	},
+	#				"post:",						@{ ICEPack::toTextX(	$ICE	)	},	"\n\n" );
+	#		printf("\naudit:\n\n");	printAvDBUG();	print("\n\n\n\n\n\n");
+	
 	#		print(	"\n\n",
 	#				"#precursor: \n\n[ #", scalar @precursors >>1, "\n",
 	#											@{ ICEPack::toHex(	$ICE_B4	)	},
@@ -257,11 +345,77 @@ sub test_set_precursors{
 	printf("\n\ntry/pass/fail: $nTests/$pass/$fail\n\n");
 	}
 sub test_unset_precursors{
+	my	(@pre_args, @post_args,	$ICE, $ICE_B4, $first, $last);	my $pass=0;	my $fail=0;	my $audit;
+	my $max=$#unset_precursors>>1;	my $nTests=$max+1;
+	if(	0<=		$#_ ){	$audit=1;
+						if( $_[0] >$max || $_[0]< 0		){	$first=0;	print("\n!	invalid argument[s] to test_unset_precursors()\n");
+						}else{							$first=$_[0];	}
+		if( 1<=	$#_ ){	if( $_[1] >$max || $_[0]< $first	){	$last=$first;	print("\n!	invalid argument[s] to test_unset_precursors()\n");
+						}else{							$last=$_[1];	}
+		}else{			$audit=0;							$last=$max;
+			}
+	}else{				$audit=0;					$first=0;	$last=$max;	}
+	my $nRun=1+$last-$first;
+	print("\ntest_unset_precursors(...): running $nRun of $nTests test[s].\n\n");
+	my $R=$last<<1;
+	for(	my $r=$first<<1;  $r<=$R;  $r+=2 ){
+		my ($ranges, $args) =@unset_precursors[$r..$r+1];
+		@post_args=@$args;
+		if( ref( $ranges ) ne 'ARRAY' or ref( $args ) ne 'ARRAY' ){	printf("\nskipping undefined unset() crash precursor #%-3d... ",	$r>>1 );	next;
+		}else{											printf("\nreplaying unset() crash precursor #%-3d... ",			$r>>1 );	}
+
+		my	$ICE=av2ICE( $ranges );
+
+	#	print( "\n\$ICE->unset_norebal( [ ", join(', ', @$args ), " ] );	\n");
+		ICEPack::snapshot(		$ICE);
+	#	ICEPack::unset_norebal(	$ICE, $args );
+		ICEPack::unset(		$ICE, $args );
+
+		if(		$ICE->contains( \@post_args	)
+		or	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+			or	exitCode()
+			){						++$fail;	printf("\t\t\t\t######	fail #%-3d ######", $r>>1);
+		#	next if not $audit;
+
+			$ICE_B4=ICEPack::getSnapshot();					print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
+
+			printAvDBUG();
+			print("\n...\n");
+			print(	"pre:",						@{ ICEPack::toTextX(	$ICE_B4	)	},
+					"post:",						@{ ICEPack::toTextX(	$ICE	)	},	"\n\n",
+					"#precursor: \n\n[ #", scalar @unset_precursors >>1, "\n",
+												@{ ICEPack::toHex(	$ICE_B4	)	},
+					"], [	",			join(",", map { sprintf("0x%X", $_) }	@{	$args	}	), "],	#hex\n\n"	);
+
+		#	if( $ICE->includes( \@post_args ) ){
+		#		print("\narg keys still set: [",		join(",", map { sprintf("0x%X", $_) } @post_args ), "]\n\n\n\n\n\n\n\n");
+		#		}
+														printf("\n\n\n\t\t\t\t######	fail #%-3d ######\n\n\n", $r>>1);
+			exit;
+		}else{											printf("\t\t\t\t######	pass #%-3d ######", $r>>1);
+#			print(				"post:",						@{ ICEPack::toTextX(	$ICE	)	}	);
+	#		printf("\naudit:\n\n");	printAvDBUG();	print("\n\n\n\n\n\n");
+				
+	#		$ICE_B4=ICEPack::getSnapshot();		print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
+
+	#		print(	"\n\n",
+	#				"#precursor: \n\n[ #", scalar @unset_precursors >>1, "\n",
+	#											@{ ICEPack::toHex(	$ICE_B4	)	},
+	#				"], [	",			join(",", map { sprintf("%X", $_) }	@{	$args	}	), "],	#hex\n\n"	);
+	#		print("\n\n\n\n\n\n\n\n");
+	#		print(										@{ ICEPack::toTextX(	$ICE_B4	)	},	"\n],	[", join(', ',						@$args		), "],\n\n");
+
+	#		print("\n\npost op:\n");				print("\n[\n",	@{ ICEPack::toHex(	$ICE	)	}, "\n],	[", join(",", map { sprintf("0x%X", $_) }	@post_args	), "],\n\n");
+	#										print(		@{ ICEPack::toTextX(	$ICE	)	},	"\n],	[", join(', ',						@post_args	), "],\n\n");
+		}	}
+	printf("\n\ntry/pass/fail: $nTests/$pass/$fail\n\n");
+	}
+sub _test_unset_precursors{
 	my	(@pre_args, @post_args,	$ICE, $ICE_B4, $first, $last);	my $pass=0;	my $fail=0;
 	my $max=$#unset_precursors>>1;	my $nTests=$max+1;
-	if(	0<=		$#_ ){	if( $_[0] >$max || $_[0]< 0		){	$first=0;		print("\n!	invalid argument[s] to test_set_precursors()\n");
+	if(	0<=		$#_ ){	if( $_[0] >$max || $_[0]< 0		){	$first=0;		print("\n!	invalid argument[s] to test_unset_precursors()\n");
 						}else{							$first=$_[0];	}
-		if( 1<=	$#_ ){	if( $_[1] >$max || $_[0]< $first	){	$last=$first;	print("\n!	invalid argument[s] to test_set_precursors()\n");
+		if( 1<=	$#_ ){	if( $_[1] >$max || $_[0]< $first	){	$last=$first;	print("\n!	invalid argument[s] to test_unset_precursors()\n");
 						}else{							$last=$_[1];	}
 		}else{						$last=$max;
 			}
@@ -277,10 +431,10 @@ sub test_unset_precursors{
 		@post_args=@$args;
 
 		my	$ICE=av2ICE( $ranges );
-			$ICE_B4=ICEPack::copy( $ICE );
+		#	$ICE_B4=ICEPack::copy( $ICE );
 
 		ICEPack::snapshot(	$ICE);
-		ICEPack::unset(	$ICE, $args );
+		ICEPack::unset_norebal(	$ICE, $args );
 		if(		$ICE->contains( $args )
 		or	not	$ICE->addsUp()
 	#	or	exitCode()
@@ -313,6 +467,8 @@ sub test_unset_precursors{
 	printf("\n\ntry/pass/fail: $nTests/$pass/$fail\n\n");
 	}
 
+
+
 sub test_prompt{
 	my ($x, @A1, @D1);
 #	my $ICE=av2ICE( $A1 );
@@ -321,7 +477,7 @@ sub test_prompt{
 	0		..7,			10		..15,			20		..27,			30		..36,			40		..47,			50		..58,			60		..67,			72		..75,	
 	77		..99,			100		..111,		200		..222,		300		..333,		400		..414,		500		..555,		600		..666,		700		..777,
 	900		..999,		1000	..1111,		1200	..1222,		1300	..1333,		1400	..1444,		1500	..1555,		1600	..1666,		1700	..1777,
-	1900	..1999,		2000	,,2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
+	1900	..1999,		2000	..2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
 	2900	..2999,		3000	..3111,		3200	..3222,		3300	..3333,		3400	..3444,		3500	..3555,		3600	..3666,		3700	..3777,
 	3900	..3999,		4000	..4111,		4200	..4222,		4300	..4333,		4400	..4444,		4500	..4555,		4600	..4666,		4700	..4777,
 #	99		..100,		110		..111,		120		..122,		130		..133,		140		..144,		150		..155,		160		..166,		170		..177,
@@ -347,13 +503,30 @@ sub test_prompt{
 	while(	$_=<> ){
 		@D1=$_=~ /\d+/g;
 		@A1= map{ int($_) } @D1;
-		if(		ord($_)==45){
+		if(		ord($_)==45){	#	"-"
 				print("\nunset(", join(', ', @A1 ), ")==",	$ICE->unset(	\@A1	)	);
-		}elsif(	ord($_)==62){
-				print("\nsweep(", join(', ', @A1 ), ")==",$ICE->sweep(	\@A1	)	);
-		}else{
+				if( $ICE->includes( \@A1 ) ){
+					print(	"\nkeys not successfully unset:\n",
+							"[",		join(",", map { sprintf("0x%X", $_) }	@A1 ),	"]	#hex\n",	
+							"[",		join(",",							@A1,	"]	#dec\n")	);
+					}
+
+		}elsif(	ord($_)==62){	#	">"
+				print("\nxalloc0x7asc(", join(', ', @A1 ), ")==",$ICE->xalloc0x7asc(	\@A1	)	);
+				
+		}elsif(	ord($_)==64){	#	"@"
+									if( $#A1 >-1 )	{					avArg_init( $A1[0] );
+												my $i=0;
+												while( ++$i <= $#A1 ){	avArg_ins( $A1[$i] );	}
+												}
+																	avArg_print();
+		}else  	{
 				print("\nset(", join(', ', @A1 ), ")==",	$ICE->set(	\@A1	)	);
-			}
+				if( $ICE->excludes( \@A1 ) ){
+					print(	"\nkeys not successfully set:\n",
+							"[",		join(",", map { sprintf("0x%X", $_) }	@A1 ),	"]	#hex\n",	
+							"[",		join(",",							@A1,	"]	#dec\n")	);
+				}	}
 
 		print(	"\n\n",	@{	$ICE->toText() } ,
 		#		"\n\n", @{	$ICE->toHex() },
@@ -362,51 +535,29 @@ sub test_prompt{
 	#	printAvDBUG();
 
 		if(	not $ICE->addsUp()		){	print("\n!	doesn't add up\n");		}
-		if(	not $ICE->excludes( \@A1 )	){	print("\n!	doesn't clear args: [",		join(",", @A1 ), "]\n\n\n");	}
 
 	}	}
 sub test_set($$$$$){		#\	Test ICEPack::set() by saturating the namespace range with random keys until it reaches totality.
+		( $min, $max, $nTests, $nSamps,	$saturation				)=@_;
+		( $window,	$Ct,			$Tsub,	$Tsub_,	$T,		$T_,	$T_stall,	$fpp,	$scale,	$scale100,	$nTx100,		$maxZ,	$pass,	$fail	)=
+		( $max -$min,	0,			0,		0,		$nTests,	-1,	0,		0,		1,		100,			$nTests*0.01,	0,		0,		0	);
 
-	our	( $min, $max, $nTests, $nSamps,	$saturation				)=@_;
-
-	our	( $window,	$Ct,			$Tsub,	$Tsub_,	$T,		$T_,	$T_stall,	$fpp,	$scale,	$scale100,	$nTx100,		$ok,	$batch,	$pass,	$fail,	$replay,					$maxZ,	$perSec, $msec2, $hit, $miss, $r, $R_, $d, $ICE, $ICE_B4, $x, $i, $I, %ICE, @ICE, @ICE_B4, @args, @args_B4, @args_salt, @args_XX, @keyBulk, @row)=
-		( $max -$min,	0,			0,		0,		$nTests,	-1,	0,		0,		1,		100,			$nTests*0.01,	0,	0,		0,		0,		 ["nothing to see here\n"],	0		);
-	our	$saturationCt= int( $saturation*$window );
-	our			$band			= 1;
-	our			$bands			= 1;
-	our			$bandwidth		= $window/$bands;
-	our			$bandwidth_int	=int( $bandwidth );
-	our			$bandwidth_heif	=int( $bandwidth_int>>1 );
-	our			$band_offset;
+	my	( $ok,	$batch,	$ICE, $ICE_B4, $x, $i, @ICE, @ICE_B4, @args, @args_B4 )=
+		( 0,		0		);
+	$format = sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.%df/sec  max \$#ICE: %c-4d  NS: 0x%X..%X\r", 37, $fpp, 37, 37, 37, 37, $fpp, 37, $min, $max);
+	my	$saturationCt= int( $saturation*$window );
+#	my	($band, $bands, $bandwidth, $bandwidth_int, $bandwidth_heif, $band_offset );
 
 	$ICE_B4=bless( \@ICE_B4, 'ICEPack');
 	$msec0=$msec1=gettimeofday;
-our	$format=sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.%df/sec  max \$#ICE: %cd  NS: 0x%X..%X\r", 37, $fpp, 37, 37, 37, 37, $fpp, 37, $min, $max);
-	sub progress(){
-		if(		$T==$T_ )	{		$Tsub =	int( $Ct*$scale100 /$window )/$scale100;
-						if(		$Tsub ==	$Tsub_ ){	
-							if(++	$T_stall==5 )		{	$T_stall=0;
-													if( $fpp< 16){
-														$scale100 =( $scale =10**++$fpp )*100;
-														$format=sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.%df/sec  max \$#ICE: %cd  NS: 0x%X..%X\r", 37, $fpp, 37, 37, 37, 37, $fpp, 37, $min, $max);
-												}		}
-						}else{	$Tsub_=$Tsub;	--$T_stall if $T_stall >0; }
-		}else{	$T_ =$T;	}
-		
-		$perSec =( $T + $Tsub ) /( $msec2-$msec0);
-		printf(	$format, ( $T + $Tsub ) /$nTx100,	37, $T, $fail, $perSec, $maxZ );
-		}
-	TEST:foreach	$T (0..$nTests-1 ){
+
+	TEST: for( $T=0; $T< $nTests; ++$T ){
 
 		$Tsub_	=$T_	=-1;	$T_stall =4;
 		$Tsub			=$batch =0;	$fpp=0;	$scale100 =( $scale =10**++$fpp )*100;
 		$ICE=bless( [], 'ICEPack' );	$Ct =0;
-
-		$band			= 1;
-		$bands			= 1;
-		$bandwidth		= $window/$bands;
-		$bandwidth_int	=int( $bandwidth );
-		$bandwidth_heif	=int( $bandwidth_int>>1 );
+	#	($band,	$bands,	$bandwidth,		$bandwidth_heif,	$band_offset 	)=
+	#	(1,		1,		$window/$bands,	$bandwidth >>1	);
 
 		#\%ICE=();
 
@@ -416,16 +567,15 @@ our	$format=sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.
 ######			This concentrates what would be fairly entropic values for $x into distinct bands in fifth-intervals with the array length.
 ######			See ./scratch_perl/bands.pl for a visual demo.
 ######			This is intended to increase the probability of the extreme case of 5-way fragmentation under nominal entropy.
-		#		$bands			= int($maxZ/5)+1;
-		#		$bandwidth		= $window/$bands;
-		#		$bandwidth_int	=int( $bandwidth );
-		#		$bandwidth_heif	=int( $bandwidth_int>>1 );
-		#		$band_offset=int( $bandwidth*rand( $bands ) );	# choose a band
-		#		$x	= $band_offset						# geomean two random values in an RMS relationship with the band's zero-crossing
-		#			+int( (		(rand( $bandwidth_int )-$bandwidth_heif)
-		#					*	(rand( $bandwidth_int )-$bandwidth_heif)	)/$bandwidth_heif )
-		#			+$bandwidth_heif
-		#			+$min;
+	#			($bands,			$bandwidth,		$bandwidth_int,	$bandwidth_heif,	$band_offset		 	)=
+	#			(int($maxZ/5)+1,	$window/$bands,	int( $bandwidth ),	$bandwidth >>1,	int( $bandwidth_int>>1 )	);
+	#
+	#			# geomean two random values centered on the band's zero-crossing
+	#			$x	= $band_offset
+	#				+int( (		(rand( $bandwidth_int )-$bandwidth_heif)
+	#						*	(rand( $bandwidth_int )-$bandwidth_heif)	)/$bandwidth_heif )
+	#				+$bandwidth_heif
+	#				+$min;
 
 ######			Alternatively, basic rand():
 				$x = int( rand( $window ) ) +$min;
@@ -437,7 +587,6 @@ our	$format=sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.
 		#	print("\n args: ", join(', ', @args ), "\n");
 
 			@args_B4=@args;
-
 			ICEPack::snapshot($ICE);
 		#	$ICE_B4=ICEPack::getSnapshot();	#getting the snapshot creates a new one, using memory
 		#	if( $#ICE_B4!=$#ICE){	print("\n!	snapshot differs in length: $#ICE_B4+1  rather than $#ICE+1\n");	exit;}
@@ -448,11 +597,14 @@ our	$format=sprintf("%c6.%df%cc completed (%c4d) test[s] w/ (%cd) fail[s]  %c11.
 		
 		
 		#	print( "\nset( [ ", join(', ', @args ), "] );\n \$ICE=[", @{ $ICE_B4->toHex }, "];\n\n\n\n\n");
-			$Ct += $ICE->set_rebal( \@args );	
+			$Ct += $nSamps- $ICE->set(			\@args );
+		#	$Ct += $nSamps- $ICE->set_all(		\@args );
+		#	$Ct += $nSamps- $ICE->set_norebal(	\@args );
 
 			if(	#	0
-				not	$ICE->encompasses( \@args	)	
-			or	not	$ICE->addsUp()					# addsUp() checks each cube's stored epsilon value against the sum of its cycla
+		#		not $ICE->checksOut( \@args ) 		# checksOut():	does a checksum (like addsUp) while also verifying all args are set
+				not	$ICE->encompasses( \@args	)	# encompasses():	verifies all args are set
+			or	not	$ICE->addsUp()				# addsUp():		checks each cube's stored epsilon value against the sum of its cycla
 		#		exitCode()
 				){				++$fail;							print("\n\ntest $T failed	 ", scalar localtime(), "\n");
 				printf("\naudit:\n\n");				printAvDBUG();	print("\n\n\n\n\n\n");
@@ -501,30 +653,21 @@ sub test_set_recursively($$$){	my($start_bits, $end_bits, $saturation)=@_;	my $s
 	print("\n recursive test script started ", scalar localtime(), "\n\n");
 	while( 1 ){							
 ######			Increasing the sample rate beyond the square root of the NS window 
-		foreach my $bit_width($start_bits..$end_bits){	my	$W=1<<($bit_width-1);	my $rms=sqrt( $W )<<2;
-		my $nSamps=$rms;	#	$nSamps=0 if $nSamps >120;
-#		foreach my $bit_width(6..8){	my	$W=1<<$bit_width;	my $nSamps=240;
-#		foreach my $bit_width(8..8){			my	$W=4<<$bit_width;	my $nTests=0x0FFF/$bit_width;
-#		foreach my $bit_width(3..4){			my	$W=8<<$bit_width;	my $nTests=0x0FFF/$bit_width;
-
-
-			my $nTests=int( (100000/$saturation )/$rms );	$nTests=1 if $nTests==0;
-		#	printf("\nhit %d%c saturation of %d-bit namespace %3dx at sample rate %3d/call        \n",
-		#			$saturation_pct, 37,  $bit_width, $nTests, $nSamps );
-
-	## quiet for now
-			printf("\n%d-bit NS (+/- %-3d) to %d%c saturation %3dx, sample rate: %d/call        \n",
-					 $bit_width,	$W,	$saturation_pct, 37, $nTests,			$nSamps );
-		#	printf("\n range: 0x%X (%d) x%d test iteration[s]\n", $_=$W<<1, $_, 1 );
+		foreach my $bits($start_bits..$end_bits){	my	$NS=1<<($bits-1);	my $rms=sqrt( $NS )<<2;
+			my $nSamps=$rms;	#	$nSamps=0 if $nSamps >120;
+			my $nTests=int( (0xFFFF/$saturation )/$rms );	$nTests=1 if $nTests==0;
+			printf("\n%d-bit NS (+/-	\10 %-3d) to	\10 %d%c saturation	\10 %3dx, sample rate:	\10 %d/call        \n",
+					 $bits,			$NS,		$saturation_pct, 37,	$nTests,				$nSamps		);
+		#	printf("\n range: 0x%X (%d) x%d test iteration[s]\n", $_=$NS<<1, $_, 1 );
 			#\	Each range intermediates a cyclic boundary, so each key has a 50% chance of a +1 bytewise overflow/carry.
-			#\	Starting with a namespace range of CB +/- $W and ($nTests) test[s], double the range and halve the tests.
+			#\	Starting with a namespace range of CB +/- $NS and ($nTests) test[s], double the range and halve the tests.
 		#	foreach my $base2Exp( 56, 48, 40, 32, 24, 16, 8 ){
 			foreach my $base2Exp( 8, 16, 24, 32, 40, 48, 56 ){
-				my $bytestep=1<<$base2Exp;
-
-			#	printf("\n	NS 0x%-3llX +/- %-3d\n",$bytestep, $_=$W<<1);
-				test_set( $bytestep -$W,	$bytestep +$W,	$nTests,	$nSamps, $saturation )	if( $bytestep >$W && 0xFFFFFFFFFFFFFFFF-$bytestep >$W );
-				printf("\n");
+				my $byteband=1<<$base2Exp;
+				my $lb	= ($byteband >$NS    					)? $byteband -$NS:		0x0;
+				my $hb	= ($byteband<=0xFFFFFFFFFFFFFFFF-$NS	)? $byteband +$NS:	0xFFFFFFFFFFFFFFFF;
+				test_set( $lb, $hb,	$nTests,	$nSamps, $saturation );
+				print("\n");
 				}
 		}	}#			^NS lowbound		^NS highbound					^NS saturation factor to pass each test
 	}
@@ -538,15 +681,18 @@ sub relay_race{	my $NS =	@_>0?	int( $_[0] ):	0x1FFF;	my $NSx1000=$NS/10000;	if( 
 	$msec0=$msec1=gettimeofday;
 
 	TEST: while( 1 ){	$T=0;
-	#	$Ct=0;
+		$Ct=0;
 	#	@ICE=();
 	#	print("\nset\n");
 		while($Ct< $NS){	++$T;
 			@args=();
-			while($#args< $nSet ){ insortIV( $args, int( rand( $NS ) ) );	}
+			while(@args< $nSet ){ insortIV( $args, int( rand( $NS ) ) );	}
 			@args_B4=@args;
 			ICEPack::snapshot($ICE);
-			$Ct +=	ICEPack::set_rebal( $ICE, $args );
+			$Ct += $nSet - ICEPack::set(		 	$ICE, $args );
+		#	$Ct += $nSet - ICEPack::set_norebal(	$ICE, $args );
+
+
 			if(	not	$ICE->encompasses( \@args	)
 			or	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
 #			or	exitCode()
@@ -579,11 +725,12 @@ sub relay_race{	my $NS =	@_>0?	int( $_[0] ):	0x1FFF;	my $NSx1000=$NS/10000;	if( 
 	#	print("\nunset\n");
 		while( $Ct >0 ){	++$T;
 			@args=();
-			while($#args< $nSet){ insortIV( $args, int( rand( $NS ) ) );	}
+			while($#args<=$nSet){ insortIV( $args, int( rand( $NS ) ) );	}
 			@args_B4=@args;
 			ICEPack::snapshot($ICE);				
-			$Ct -=	ICEPack::unset_rebal(	$ICE, $args );
-			if(		$ICE->includes( \@args )
+			$Ct -= $nSet-	ICEPack::unset(		$ICE, $args );
+		#	$Ct -= $nSet-	ICEPack::unset_norebal(	$ICE, $args );
+			if(		$ICE->contains( \@args )
 			or	not	$ICE->addsUp()			# addsUp() checks each cube's stored epsilon value against the sum of its cycla
 #				or	exitCode()
 				){
@@ -593,8 +740,7 @@ sub relay_race{	my $NS =	@_>0?	int( $_[0] ):	0x1FFF;	my $NSx1000=$NS/10000;	if( 
 				print(	"\n#unset_precursor: \n\n[ #", scalar @unset_precursors >>1, "\n",
 													@{ ICEPack::toHex(	$ICE_B4	)	},
 						"], [	",			join(",", map { sprintf("0x%X", $_) }	@args_B4		), "],	#hex\n\n"	);
-
-				if( @args ){
+				if( $ICE->includes( \@args ) ){
 					print("\r!	",	scalar( @args ), " of ", scalar( @args_B4 ), " keys were not unset:\n	",
 								join(",", map { sprintf("0x%X", $_) }	@args	),
 								"\n\n"	);
@@ -615,23 +761,39 @@ sub relay_race{	my $NS =	@_>0?	int( $_[0] ):	0x1FFF;	my $NSx1000=$NS/10000;	if( 
 
 #my	@unset_precursors_off=(
  @unset_precursors=(
-	[
-	0x2,         0xA,         0xC,								undef,
-	0x10..0x11,  0x16..0x18,  0x1A,  0x1C,  0x1E,				undef,
-	0x25,        0x2B..0x2C,									undef,
-	0x3A..0x3B,											undef,
-	0x45,        0x47..0x48,  0x4E,								undef,
-	0x5E,        0x62,										undef,
-	0x6F,												undef,
-	0x7E,        0x80,        0x82,  0x85,  0x88,  0x8A,  0x8D..0x92,	undef,
-	0x9C,        0x9E..0x9F,  0xA4,							undef,
-	0xBA,        0xC1,        0xC4,								undef,
-	0xC8,        0xCA,        0xCD,  0xD5,  0xDA,					undef,
-	0xE0,        0xE3,        0xEA,  0xF0,							undef,
-	0xFB,												undef,
-	0x120,       0x125,										undef,
-	0x136,       0x13C,										
-	],      [12, 22, 24, 25, 30, 36, 37, 44, 45, 54, 60, 83, 96, 106, 124, 137, 152, 170, 173, 175, 188, 210, 222, 228, 238, 243, 246, 259, 277, 279, 283, 288, 290],
+	[	# 2026-11-07: the 5th argument (0x1E) hits _unset_norebal() OpB which was broken after implementing rebalancing
+		# and updating (void) _sv_commit_1x() to handle it.
+		# This was not the initial bug which first generated unset_precursor #0; that was long ago, and I never documented it.
+		#  _unset() was passing this precursor, but _unset_norebal() was not. 
+		# Both methods were invoking _sv_commit_1x() case 1X1.
+		# What I found was that _unset_norebal() lacked the INTERLOC code { oCS=16; },
+		# and that none of the other new variables to do with cube run tracking (oc, ocª, xc, or bal_iC) were affecting anything,
+		# so I deleted those lines in both _set_norebal() and _unset_norebal(). 
+	0x2,			0xA,		0xC,										undef,
+	0x10..0x11,	0x16..0x18,	0x1A,	0x1C,	0x1E,						undef,
+	0x25,		0x2B..0x2C,												undef,
+	0x3A..0x3B,															undef,
+	0x45,		0x47..0x48,	0x4E,										undef,
+	0x5E,		0x62,													undef,
+	0x6F,																undef,
+	0x7E,		0x80,		0x82,	0x85,	0x88,	0x8A,	0x8D..0x92,	undef,
+	0x9C,		0x9E..0x9F,	0xA4,										undef,
+	0xBA,		0xC1,		0xC4,										undef,
+	0xC8,		0xCA,		0xCD,	0xD5,	0xDA,						undef,
+	0xE0,		0xE3,		0xEA,	0xF0,								undef,
+	0xFB,																undef,
+	0x120,		0x125,													undef,
+	0x136,		0x13C,													undef,
+	],	[	0xC,0x16,0x18,0x19,
+			0x1E,	# This argument hits _unset_norebal() OpB (glyph: "_x|_") which was broken after implementing rebalancing.
+								0x24,0x25,0x2C,
+			0x2D,0x36,0x3C,0x53,0x60,0x6A,0x7C,0x89,
+			0x98,0xAA,0xAD,0xAF,0xBC,0xD2,0xDE,0xE4,
+			0xEE,0xF3,0xF6,0x103,0x115,0x117,0x11B,0x120,
+			0x122
+			],	#hex
+
+	#      [30],
 	[
 	0x1..0x7,    0x9..0x1A,   0x1C..0x26,  0x2A..0x42,  0x44..0x49,    0x4C..0x4E,					undef,
 	0x50..0x5A,  0x5C..0x5F,  0x61..0x63,  0x65..0x66,  0x68..0x6A,    0x6C..0x8C,				undef,
@@ -805,7 +967,7 @@ sub relay_race{	my $NS =	@_>0?	int( $_[0] ):	0x1FFF;	my $NSx1000=$NS/10000;	if( 
 	0x2FD,
 
 	],      [0x5,0xE,0x15,0x1E,0x2C,0x3A,0x5D,0x60,0x73,0x7A,0xB3,0xB4,0xC0,0x13E,0x161,0x17C,0x186,0x1A1,0x1AB,0x1E8,0x1FE,0x20D,0x21D,0x223,0x253,0x254,0x261,0x297,0x2C0,0x2E6,0x2E9,0x2EF,0x2FC],
-	[ #11	made changes to _next_a in _unset_rebal(), basically replacing all the "goto _anteloc;" statements with in-place OpBz's
+	[ #11	made changes to _next_a in _unset(), basically replacing all the "goto _anteloc;" statements with in-place OpBz's
 	0x84,  0x1CF,  0x1F5, 0x8B6, 0xDDF, undef,
 	0xE11, 0x1347
 	], [    0x2,0x71,0x84,0xC0,0xC9,0xF3,0x105,0x119,0x133,0x18B,0x1B3,0x1B7,0x23F,0x247,0x284,0x2C3,0x2CD,0x2D8,0x2F0,0x304,0x308,0x368,0x3A0,0x3B2,0x3B3,0x3FA,0x41B,0x465,0x46F,0x48A,0x4E5,0x4F9,0x508,0x52C,0x534,0x546,0x558,0x55B,0x56A,0x56D,0x585,0x59B,0x5BC,0x5C3,0x5E8,0x616,0x618,0x624,0x62E,0x658,0x67E,0x691,0x6AB,0x6E1,0x71A,0x74B,0x760,0x7B2,0x7BD,0x7BF,0x805,0x81F,0x82E,0x849,0x851,0x853,0x87F,0x8B3,0x8DB,0x8EA,0x8F6,0x913,0x939,0x93B,0x955,0x9E9,0x9EA,0xA03,0xA20,0xA22,0xA2E,0xA3C,0xA99,0xAB5,0xADA,0xAE4,0xAEF,0xB42,0xB65,0xB94,0xBAA,0xBE9,0xBF4,0xC13,0xC2A,0xC69,0xCAD,0xD87,0xDBA,0xE06,0xE07,0xE2A,0xE3E,0xE42,0xE57,0xE5B,0xE7B,0xE95,0xEAB,0xEC4,0xED5,0xEF1,0xF07,0xF23,0xF2C,0xF36,0xF71,0xF8A,0xFB2,0xFC0,0xFDD,0xFE0,0xFF2,0xFF3,0x1048,0x10B7,0x10DB,0x10F0,0x110F,0x1126,0x113D,0x11CA,0x11E5,0x11FE,0x1225,0x1232,0x1248,0x1270,0x129B,0x12A5,0x12A6,0x12B8,0x12DA,0x12DE,0x12E5,0x12ED,0x130F,0x1312,0x1321,0x1347,0x1379,0x13C7,0x1416,0x1488,0x14A2,0x14DC,0x14DD,0x14E0,0x14E4,0x1516,0x1561,0x15AC,0x15CD,0x1616,0x1638,0x1640,0x165C,0x1672,0x169C,0x170B,0x172C,0x1745,0x1768,0x176D,0x178C,0x17DF,0x1818,0x183C,0x1841,0x1851,0x185A,0x187A,0x18B4,0x18E5,0x1972,0x1973,0x197F,0x1985,0x19B2,0x19D9,0x19F8,0x1A14,0x1A17,0x1A52,0x1A56,0x1A5A,0x1A62,0x1A91,0x1AC4,0x1AEE,0x1AF0,0x1AFC,0x1B26,0x1B29,0x1B39,0x1B73,0x1BB6,0x1C1B,0x1C25,0x1C42,0x1C4C,0x1C61,0x1C63,0x1C91,0x1CD3,0x1CE4,0x1D13,0x1D2D,0x1D3C,0x1D54,0x1D71,0x1D8F,0x1D9E,0x1DC5,0x1E17,0x1E65,0x1E82,0x1E83,0x1EC6,0x1ED6,0x1F18,0x1F19,0x1F2D,0x1F34,0x1F3A,0x1F49,0x1F61,0x1F99,0x1F9D,0x1FC7,0x1FE4],     #hex
@@ -815,7 +977,7 @@ sub relay_race{	my $NS =	@_>0?	int( $_[0] ):	0x1FFF;	my $NSx1000=$NS/10000;	if( 
 	#		I admit, this doesn't actually make sense; if it was marked in, it should work normally. idk.  to be continued?
 	#	2026-10-14
 	#	It's rather obvious that the entire RW[ 512 ] array should have been getting zeroed upon INIT_MxRACK. 
-	#	I actually can't explain why _set() never had an issue.  The reason debugging was fixing #12
+	#	I actually can't explain why _set_norebal() never had an issue.  The reason debugging was fixing #12
 	#	is the dBUGinit_mx macro zeroes the whole vector map for clarity of output.
 	#	
 	0xCFB,		0xCFD..0xCFF,	0xD02..0xD03,	0xD05..0xD07,	0xD0E..0xD0F,	0xD13..0xD14,	undef,
@@ -1197,46 +1359,7 @@ sub relay_race{	my $NS =	@_>0?	int( $_[0] ):	0x1FFF;	my $NSx1000=$NS/10000;	if( 
 
 	);
 
-my @precursorzs=(
-#	[	# overflows the main buffer, for which rotation still is not implemented 2026/05/10
-	[
-	0xDDE7,           0xE327,  0xF276,  0xF6F1,  0xFA5E,           0xFCC8,  0xFD43,  0xFF6E,
-	0x1013D,          0x101A2, 0x103A3, 0x10586, 0x1062D,          0x106CA, 0x10752, 0x1084C,
-	0x10897,          0x10940, 0x109D2, 0x10AFA, 0x10B03,          0x10C0B, 0x10CA3, 0x10D31,
-	0x10F00,          0x1102A, 0x1110E, 0x1111F, 0x11235,          0x11336, 0x11354, 0x11495,
-	0x11513,          0x11556, 0x1159E, 0x115EA, 0x11623,          0x11825, 0x118CB, 0x119D4,
-	0x11A2C,          0x11A60, 0x11B12, 0x11C91, 0x11CB2,          0x11D0D, 0x11DB5, 0x11E16,
-	0x11E9C,          0x11FD5, 0x12060, 0x1208B, 0x120C4..0x120C5, 0x1214E, 0x121CE, 0x1220E,
-	0x12223,          0x12324, 0x1233B, 0x123C3, 0x12415,          0x12450, 0x12632, 0x1265A,
-	0x126B5,          0x12713, 0x12895, 0x129B7, 0x129F0,          0x12A61, 0x12AEA, 0x12B8A,
-	0x12BDB,          0x12C02, 0x12C1C, 0x12C2F, 0x12E30,          0x12E7A, 0x12EC9, 0x12F03,
-	0x12F07,          0x12F3C, 0x12F51, 0x12FEE, 0x1311C,          0x13156, 0x1318D, 0x131C5,
-	0x13335,          0x1333F, 0x133A3, 0x133FB, 0x1341A,          0x1343C, 0x13445, 0x1346C,
-	0x1348C,          0x134FA, 0x134FF, 0x1359C, 0x135E2,          0x136C1, 0x13788, 0x137DA,
-	0x137DE,          0x1386D, 0x13915, 0x1392D, 0x139D6,          0x13A23, 0x13A8A, 0x13CB9,
-	0x13D4A,          0x13DF5, 0x13E27, 0x13EFB, 0x13FE3,          0x14045, 0x1404B, 0x14125,
-	0x141AE,          0x14367, 0x14396, 0x143B8, 0x143CC,          0x1442A, 0x144EC, 0x14511,
-	0x1451B,          0x145E5, 0x145F3, 0x146F5, 0x14719,          0x14739, 0x14757, 0x14819,
-	0x148B4,          0x148E4, 0x1497F, 0x149BA, 0x14A8C,          0x14B5B, 0x14C99, 0x14CC9,
-	0x14DA0,          0x14DCE, 0x14DD5, 0x14E04, 0x14E39,          0x14E88, 0x14F05, 0x14FB5,
-	0x15003,          0x1512A, 0x15149, 0x151BC, 0x151D7,          0x1520D, 0x15231, 0x15287,
-	0x152C4,          0x153F4, 0x1548E, 0x1560A, 0x15611,          0x15640, 0x15696, 0x156F8,
-	0x15745,          0x1581A, 0x158E1, 0x15908, 0x15B60,          0x15B7D, 0x15CE7, 0x15D91,
-	0x15F19,          0x16032, 0x1603B, 0x160EE, 0x16106,          0x1618C, 0x161AB, 0x161D2,
-	0x16282,          0x162E4, 0x1636B, 0x164CB, 0x1658E,          0x16596, 0x16598, 0x1659E,
-	0x16697..0x16698, 0x1673B, 0x16786, 0x1688E, 0x16895,          0x16947, 0x16956, 0x169E1,
-	0x16AFC,          0x16C67, 0x16C72, 0x16CE4, 0x16D1A,          0x16D70, 0x16E54, 0x17153,
-	0x171B3,          0x17220, 0x17240, 0x17305, 0x173B0,          0x17517, 0x176D3, 0x1772C,
-	0x1776E,          0x177D4, 0x17838, 0x17874, 0x178B3,          0x17951, 0x17A05, 0x17C58,
-	0x17D27,          0x17DA5, 0x17FE9, 0x1800E, 0x18046,          0x1811E, 0x181A3, 0x182E6,
-	0x182E9,          0x183C4, 0x183D2, 0x1843C, 0x18492,          0x1856A, 0x1857D, 0x18620,
-	0x18725,          0x18925, 0x18ACE, 0x18D2E, 0x18F17,          0x18FBA, 0x1981D, 0x1A014,
-	0x1A09D,          0x1A2B9, 0x1A3F4, 0x1AC9C
-	],      [50730, 50794, 50982, 51690, 51778, 51825, 51859, 51932, 52227, 52241, 52312, 52417, 52535, 52704, 52775, 52984, 52988, 52997, 53071, 53207, 53340, 53345, 53392, 53836, 53855, 54035, 54060, 54113, 54244, 54319, 54566, 54717, 55074, 55092, 55430, 55479, 55590, 55639, 55745, 55775, 55914, 55996, 56052, 56130, 56388, 56493, 56557, 56575, 56611, 56663, 56697, 56700, 56835, 56873, 57177, 57228, 57352, 57479, 57505, 57545, 57594, 57672, 57690, 57727, 57845, 57883, 57994, 58368, 58393, 58405, 58542, 58601, 58655, 58728, 59412, 59720, 59908, 60012, 60073, 60354, 60438, 60613, 60685, 60741, 60931, 61037, 61118, 61376, 61416, 61731, 61732, 61746, 61784, 61937, 61939, 62099, 62370, 62392, 62517, 62661, 62687, 62743, 62744, 62799, 62813, 62852, 63017, 63135, 63197, 63257, 63343, 63375, 63459, 63784, 64036, 64161, 64178, 64343, 64344, 64475, 64957, 65153, 65253, 65322, 65352, 65380, 65697, 65834, 65839, 65869, 65972, 66304, 66535, 66755, 67012, 67048, 67196, 67222, 67324, 67415, 67455, 67536, 67625, 67752, 67927, 67937, 68057, 68296, 68472, 68539, 68988, 69026, 69116, 69157, 69175, 69831, 69914, 70268, 70436, 70637, 70835, 70933, 71111, 71164, 71208, 71493, 71822, 71962, 72543, 72592, 72598, 72714, 72781, 73335, 73525, 73778, 73948, 74135, 74241, 74445, 74547, 74567, 74595, 74601, 74824, 74995, 74998, 75382, 75505, 75524, 75663, 75853, 75895, 76436, 76632, 76836, 77027, 77185, 77283, 77675, 77697, 77826, 77908, 77970, 78033, 78268, 78432, 78588, 78629, 78672, 78703, 78875, 79304, 79432, 79441, 79509, 79604, 79630, 79679, 79957, 80048, 80105, 80202, 80238, 80523, 80605, 80779, 80841, 81075, 81103, 81159, 81315, 81317, 81611, 81717, 81724, 81812, 81830, 81985, 82016, 82063, 82461, 82498, 82512, 82546, 82583, 82642, 82761, 83537, 83726, 84038, 84140, 84615, 84680],
-
-
-	);
-	@precursors=(
+@precursors=(
 	[	196..197,  199..200,  204,       207,       209,       211..212,  214,  216..218,		undef,		#0	2026-09-06: failing after imlementing iCI, oc, ocª reset on ixM==0xFF in ReINTERLOC
 		220..227,  230..246,												undef,
 		248..253,															undef,
@@ -1854,9 +1977,8 @@ my @precursorzs=(
 	1099511629074, 1099511629082, 1099511629144, 1099511629162, 1099511629247, 1099511629388, 1099511629401, 1099511629425,
 	1099511629440, 1099511629445, 1099511629529, 1099511629547, 1099511629558, 1099511629650, 1099511629706, 1099511629763
 	],      [1099511625822, 1099511625858, 1099511625894, 1099511626017, 1099511626089, 1099511626156, 1099511626213, 1099511626293, 1099511626375, 1099511626391, 1099511626483, 1099511626513, 1099511626536, 1099511626746, 1099511626849, 1099511626892, 1099511626932, 1099511626948, 1099511627012, 1099511627217, 1099511627233, 1099511627257, 1099511627451, 1099511627496, 1099511627508, 1099511627540, 1099511627546, 1099511627576, 1099511627585, 1099511627666, 1099511627742, 1099511627766, 1099511627773, 1099511627806, 1099511627953, 1099511628018, 1099511628038, 1099511628054, 1099511628104, 1099511628133, 1099511628242, 1099511628244, 1099511628431, 1099511628485, 1099511628501, 1099511628545, 1099511628608, 1099511628625, 1099511628670, 1099511628728, 1099511628874, 1099511629017, 1099511629164, 1099511629183, 1099511629226, 1099511629231, 1099511629374, 1099511629392, 1099511629395, 1099511629412, 1099511629437, 1099511629627, 1099511629632, 1099511629801],
-#	);@precursors=(#
-	#	verify rare subcases of main case 1X4 within _sv_commit()
-	#	each precursor here is commented with a hex code.  The first 3 digits are the subcase, and the last 10 are the trace.
+	#	Following (7) precursors commented with hex codes each verify a rare subcase of main case 1X4 within _sv_commit().
+	#	The first 3 digits are the subcase, and the last 10 are the trace.
 	#	SUBCASE
 	#	bit 1:	cube Y has highpass
 	#	bit 2:	cube Z has mods
@@ -2187,7 +2309,7 @@ my @precursorzs=(
 	0x1DF,       0x1E1,       0x1E5,       0x1E9..0x1EA,0x1ED,         0x1F3,         0x1F7,         0x1FA,						undef,
 	0x1FC,
 	],      [0x2,0x7,0x8,0xB,0xC,0x11,0x15,0x1D,0x27,0x28,0x31,0x39,0x40,0x42,0x44,0x4D,0x50,0x52,0x58,0x5A,0x5C,0x5E,0x5F,0x60,0x62,0x63,0x65,0x67,0x6A,0x6C,0x73,0x76,0x77,0x78,0x79,0x7C,0x7E,0x86,0x8C,0x90,0x9E,0xA9,0xAA,0xAD,0xAF,0xB5,0xB8,0xBC,0xBF,0xC1,0xC2,0xC4,0xC7,0xC8,0xCB,0xCF,0xD3,0xD9,0xDF,0xE5,0xE9,0xEC,0xF0,0xF3,0xF8,0xFA,0xFB,0xFF,0x100,0x101,0x102,0x103,0x104,0x107,0x108,0x10A,0x10B,0x10D,0x110,0x112,0x114,0x115,0x116,0x119,0x11C,0x122,0x125,0x127,0x12F,0x13D,0x141,0x149,0x14A,0x14D,0x14E,0x152,0x153,0x158,0x159,0x15B,0x15D,0x15E,0x15F,0x161,0x168,0x16A,0x16D,0x16E,0x176,0x17D,0x17F,0x180,0x185,0x186,0x187,0x18D,0x18F,0x192,0x198,0x199,0x1A3,0x1AC,0x1AE,0x1BA,0x1C0,0x1C6,0x1C8,0x1D1,0x1D4,0x1D7,0x1DF,0x1E0,0x1E3,0x1E4,0x1F2,0x1F3,0x1F6,0x1F7,0x1F9,0x1FA,0x1FE],
-	[	#74	EPIGEN: 1 key					targets the iC==zC INTERLOC1UP case of _set()
+	[	#74	EPIGEN: 1 key					targets the iC==zC INTERLOC1UP case of _set_norebal()
 	0x0..0x2,    0x4..0x8,    0xA,           0xC,           0xF..0x10,								undef,
 	0x12..0x13,  0x15,        0x17..0x1B,												undef,
 	0x1E..0x25,  0x29..0x34,  0x36..0x37,												undef,
@@ -2259,7 +2381,7 @@ my @precursorzs=(
 	0x1DC,       0x1E1,       0x1E6,       0x1EA..0x1ED,0x1F1,         0x1F3,         0x1F5..0x1F6,  0x1F8,				undef,
 	0x1FA,
 	],      [0x2,0x3,0xB,0xD,0xE,0x10,0x11,0x12,0x19,0x1C,0x26,0x27,0x29,0x40,0x41,0x43,0x44,0x45,0x46,0x4A,0x4D,0x50,0x51,0x53,0x54,0x56,0x58,0x5B,0x5C,0x5D,0x6A,0x6D,0x6F,0x70,0x71,0x74,0x75,0x7D,0x7F,0x84,0x85,0x88,0x8A,0x91,0x95,0x96,0x9D,0x9F,0xA1,0xA7,0xAA,0xAE,0xB1,0xB5,0xB8,0xB9,0xBB,0xBE,0xC0,0xC3,0xC9,0xCA,0xD1,0xD3,0xD8,0xE3,0xE6,0xE7,0xED,0xF4,0xF7,0xFA,0xFC,0x102,0x107,0x10A,0x10E,0x117,0x119,0x11A,0x11B,0x125,0x126,0x128,0x130,0x131,0x134,0x13D,0x141,0x142,0x143,0x144,0x145,0x154,0x155,0x158,0x159,0x16A,0x16F,0x170,0x171,0x172,0x174,0x176,0x179,0x183,0x186,0x189,0x18A,0x18C,0x18E,0x193,0x194,0x195,0x19B,0x1A4,0x1AF,0x1B2,0x1B6,0x1BE,0x1C1,0x1C4,0x1C5,0x1C8,0x1C9,0x1CA,0x1CB,0x1CD,0x1CE,0x1D0,0x1DC,0x1DD,0x1E4,0x1EB,0x1EC,0x1F3,0x1F4,0x1F5,0x1F6,0x1FD,0x1FE],
-	[	#77	EPIGEN: 1 key					targets the iC==zC INTERLOC case of _set()
+	[	#77	EPIGEN: 1 key					targets the iC==zC INTERLOC case of _set_norebal()
 	0x0..0x1,    0x5,         0x7..0xB,    0xE,         0x11..0x19,    0x1B,          0x1E,          0x21,						undef,
 	0x25..0x27,  0x2B..0x2E,  0x31,        0x35,        0x3D..0x3F,    0x41..0x42,    0x44,          0x49,					undef,
 	0x4B..0x4D,  0x4F,        0x52,        0x54,        0x56..0x58,    0x61,          0x64..0x67,    0x69..0x6A,				undef,
@@ -2340,13 +2462,13 @@ my @precursorzs=(
 		#
 		# 	if( x==E[ u ] &&A[v]==1 )	ocª=xc; else ocª=xcª+1;
 		#
-		# It's the same test as set()'s merge operation, but here, the co-intralocation condition is implicitly true.
+		# It's the same test as set_norebal()'s merge operation, but here, the co-intralocation condition is implicitly true.
 		# I'm still thinking about whether this is really the best arrangement for branch prediction, however.
 		#
 #	0		..7,			10		..15,			20		..27,			30		..36,			40		..47,			50		..58,			60		..67,			72		..75,	
 #	77		..99,			100		..111,		200		..222,		300		..333,		400		..414,		500		..555,		600		..666,		700		..777,
 #	900		..999,		1000	..1111,		1200	..1222,		1300	..1333,		1400	..1444,		1500	..1555,		1600	..1666,		1700	..1777,
-#	1900	..1999,		2000	,,2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
+#	1900	..1999,		2000	..2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
 #	2900	..2999,		3000	..3111,		3200	..3222,		3300	..3333,		3400	..3444,		3500	..3555,		3600	..3666,		3700	..3777,
 #	3900	..3999,		4000	..4111,		4200	..4222,		4300	..4333,		4400	..4444,		4500	..4555,		4600	..4666,		4700	..4777,
 	0x0..0x7,      0xA..0xF,      0x14..0x1B,    0x1E..0x24,    0x28..0x2F,    0x32..0x3A,    0x3C..0x43,     0x48..0x4B,
@@ -2360,7 +2482,7 @@ my @precursorzs=(
 	0		..7,			10		..15,			20		..27,			30		..36,			40		..47,			50		..58,			60		..67,			72		..75,	
 	90		..99,			100		..111,		200		..222,		300		..333,		400		..444,		500		..555,		600		..666,		700		..777,
 	900		..999,		1000	..1111,		1200	..1222,		1300	..1333,		1400	..1444,		1500	..1555,		1600	..1666,		1700	..1777,
-	1900	..1999,		2000	,,2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
+	1900	..1999,		2000	..2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
 	2900	..2999,		3000	..3111,		3200	..3222,		3300	..3333,		3400	..3444,		3500	..3555,		3600	..3666,		3700	..3777,
 	3900	..3999,		4000	..4111,		4200	..4222,		4300	..4333,		4400	..4444,		4500	..4555,		4600	..4666,		4700	..4777,
 
@@ -2369,7 +2491,7 @@ my @precursorzs=(
 #	0		..7,			10		..15,			20		..27,			30		..36,			40		..47,			50		..58,			60		..67,			72		..75,	
 #	77		..99,			100		..111,		200		..222,		300		..333,		400		..414,		500		..555,		600		..666,		700		..777,
 #	900		..999,		1000	..1111,		1200	..1222,		1300	..1333,		1400	..1444,		1500	..1555,		1600	..1666,		1700	..1777,
-#	1900	..1999,		2000	,,2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
+#	1900	..1999,		2000	..2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
 #	2900	..2999,		3000	..3111,		3200	..3222,		3300	..3333,		3400	..3444,		3500	..3555,		3600	..3666,		3700	..3777,
 #	3900	..3999,		4000	..4111,		4200	..4222,		4300	..4333,		4400	..4444,		4500	..4555,		4600	..4666,		4700	..4777,
 	0x0..0x7,      0xA..0xF,      0x14..0x1B,    0x1E..0x24,    0x28..0x2F,    0x32..0x3A,    0x3C..0x43,     0x48..0x4B,
@@ -2383,7 +2505,7 @@ my @precursorzs=(
 	0		..7,			10		..15,			20		..27,			30		..36,			40		..47,			50		..58,			60		..67,			72		..75,	
 	77		..99,			100		..111,		200		..222,		300		..333,		400		..414,		500		..555,		600		..666,		700		..777,
 	900		..999,		1000	..1111,		1200	..1222,		1300	..1333,		1400	..1444,		1500	..1555,		1600	..1666,		1700	..1777,
-	1900	..1999,		2000	,,2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
+	1900	..1999,		2000	..2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
 	2900	..2999,		3000	..3111,		3200	..3222,		3300	..3333,		3400	..3444,		3500	..3555,		3600	..3666,		3700	..3777,
 	3900	..3999,		4000	..4111,		4200	..4222,		4300	..4333,		4400	..4444,		4500	..4555,		4600	..4666,		4700	..4777,
 	], [ 38, 69, 71, 113, 115, 120, 130, 140, 150, 333, 678, 800, 888, 1122, 1144 ],
@@ -2391,7 +2513,7 @@ my @precursorzs=(
 	0		..7,			10		..15,			20		..27,			30		..36,			40		..47,			50		..58,			60		..67,			72		..75,	
 	77		..99,			100		..111,		200		..222,		300		..333,		400		..414,		500		..555,		600		..666,		700		..777,
 	900		..999,		1000	..1111,		1200	..1222,		1300	..1333,		1400	..1444,		1500	..1555,		1600	..1666,		1700	..1777,
-	1900	..1999,		2000	,,2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
+	1900	..1999,		2000	..2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
 	2900	..2999,		3000	..3111,		3200	..3222,		3300	..3333,		3400	..3444,		3500	..3555,		3600	..3666,		3700	..3777,
 	3900	..3999,		4000	..4111,		4200	..4222,		4300	..4333,		4400	..4444,		4500	..4555,		4600	..4666,		4700	..4777,
 	], [ 140, 150, 152, 154, 156, 158, 345, 357, 678, 789, 800, 888, 1122, 1144 ],
@@ -2574,7 +2696,7 @@ my @precursorzs=(
 	0		..7,			10		..15,			20		..27,			30		..36,			40		..47,			50		..58,			60		..67,			72		..75,	
 	77		..99,			100		..111,		200		..222,		300		..333,		400		..414,		500		..555,		600		..666,		700		..777,
 	900		..999,		1000	..1111,		1200	..1222,		1300	..1333,		1400	..1444,		1500	..1555,		1600	..1666,		1700	..1777,
-	1900	..1999,		2000	,,2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
+	1900	..1999,		2000	..2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
 	2900	..2999,		3000	..3111,		3200	..3222,		3300	..3333,		3400	..3444,		3500	..3555,		3600	..3666,		3700	..3777,
 	3900	..3999,		4000	..4111,		4200	..4222,		4300	..4333,		4400	..4444,		4500	..4555,		4600	..4666,		4700	..4777,
 	], [234, 345, 456, 567, 789, 910, 1020, 2030, 3040, 4050, 5060 ],
@@ -2819,7 +2941,7 @@ my @precursorzs=(
 	#	0x106A8,0x106CA,0x106DF,0x10735,
 	#	0x1073A,0x10751,0x107B7
 		],
-	[	#102: in _next_x block of _set(),  "oCS+= CS-16;" before "goto _co_epiloc;"  was complete bs, apparently
+	[	#102: in _next_x block of _set_norebal(),  "oCS+= CS-16;" before "goto _co_epiloc;"  was complete bs, apparently
 #	0xF806, 0xF808,          0xF82F,          0xF832,            0xF83D,  0xF860,						undef,
 #	0xF86E, 0xF88B,          0xF8AD,          0xF8AF,            0xF8BE,  0xF8D9,						undef,
 #	0xF8E0, 0xF8F7..0xF8F8,  0xF8FC,          0xF904,            0xF90B,  0xF910,            0xF913,						undef,
@@ -3349,6 +3471,184 @@ my @precursorzs=(
 0xE753,0xE781,0xE7CC,0xE80E,0xE813,0xE854,0xE8D0,0xE93C,0xE95E,0xE9CD,0xEA58,0xEC06,0xEC70,0xEC7C,0xECE1,0xECF3,0xED0E,0xED4B,0xED69,0xEDBC,0xEE37,0xEE3C,0xEE75,0xEEA2,0xEF2A,0xEF69,0xEFA4,0xEFA5,0xF051,0xF072,0xF09A,0xF0A4,0xF0A6,0xF0B2,0xF0D1,0xF0F1,0xF0F2,0xF0FD,0xF102,0xF12F,0xF166,0xF18E,0xF1A4,0xF1B1,0xF1BB,0xF286,0xF294,0xF29C,0xF2F3,0xF2F6,0xF30D,0xF36E,0xF3F7,0xF411,0xF42E,0xF540,0xF57F,0xF5A3,0xF5DB,0xF66D,0xF67B,0xF69A,0xF72E,0xF7A4,0xF7B6,0xF81D,0xF87B,0xF8A6,0xF8B2,0xF943,0xF983,0xF9D8,0xFA62,0xFAC6,0xFAE0,0xFB34,0xFB8B,0xFBF6,0xFBFE,0xFC0F,0xFC49,0xFC6F,0xFC7E,0xFC7F,0xFD1D,0xFD28,0xFD45,0xFD60,0xFDB1,0xFE29,0xFE83,0xFEC0,0xFEE1,0xFF28,0xFF83,0xFFE1,0x1001A,0x10028,0x10046,0x1004E,0x10055,0x100CD,0x10106,0x10137,0x10146,0x1014C,0x101AE,0x10279,0x102BA,0x102C4,0x10349,0x10364,0x103AF,0x10407,0x10412,0x10457,0x1048B,0x104A8,0x105AE,0x105C5,0x105CB,0x105FA,0x10700,0x10717,0x107BA,0x107C9,0x10817,0x10843,0x1086C,0x10886,0x108F9,0x10902,0x1092E,0x109D6,0x10A11,0x10B1D,0x10B4F,0x10B6B,0x10BFA,0x10C63,
 0x10D2F,0x10D78,0x10DA1,0x10DA4,0x10DBA,0x10DC7,0x10E59,0x10EAA,0x10EDA,0x10F54,0x10F62,0x10F65,0x10F73,0x10FCC,0x10FE5,0x1104C,0x11081,0x11088,0x1109E,0x110FD,0x11164,0x111CB,0x111D9,0x11222,0x1126C,0x11296,0x1133B,0x1134B,0x11369,0x113FB,0x11417,0x1142B,0x114A3,0x114DA,0x11579,0x11596,0x115F5,0x115F6,0x11677,0x1167F,0x11700,0x1172B,0x1172E,0x11772,0x11775,0x1177D,0x1177F,0x117F4,0x11825,0x11843,0x118E1,0x118F2,0x11953,0x1196A,0x11983,0x11990,0x11A2A,0x11A90,0x11AC3,0x11ACE,0x11B25,0x11B31,0x11B5F,0x11BA7,0x11BB4,0x11C27,0x11C4A,0x11C9C,0x11CA8,0x11CDB,0x11CF1,0x11D1A,0x11D1D,0x11D3D,0x11D85,0x11DBF,0x11DEC,0x11E07,0x11E26,0x11E41,0x11E62,0x11EFD,0x11F77,0x11FD2,0x11FDF,0x11FED,0x11FF0,0x12004,0x12016,0x1202E,0x1203E,0x120AB,0x12131,0x12188,0x121D0,0x12210,0x12222,0x12261,0x1228D,0x1229E,0x122F9,0x1231A,0x1234D,0x1235E,0x12363,0x12386,0x12390,0x123AC,0x123B8,0x1243E,0x12487,0x124B0,0x12539,0x12542,0x1258A,0x125BB,0x125DB,0x1265D,0x12666,0x1267A,0x12695,0x1270C,0x1274D,0x12762,0x127A4,0x127B0,0x1281A,0x1285C,
 0x12974,0x129AF,0x129EA,0x129EB,0x12A2D,0x12A7F,0x12AB6,0x12ADD,0x12AEA,0x12B03,0x12B15,0x12B56,0x12B9E,0x12BDA,0x12BE7,0x12C13,0x12C26,0x12CC8,0x12D37,0x12D48,0x12DB0,0x12DD6,0x12DDA,0x12DE7,0x12DFF,0x12E45,0x12F8C,0x12FCB,0x13017,0x13091,0x1309B,0x130AE,0x130E8,0x130F5,0x130FB,0x13156,0x13227,0x1336B,0x13373,0x133A0,0x133F0,0x133F7,0x13460,0x13465,0x1347C,0x134D7,0x13530,0x135BC,0x1363E,0x1366B,0x13676,0x136D5,0x1370A,0x13718,0x1374A,0x1375F,0x13771,0x13774,0x137E9,0x13821,0x1382A,0x13870,0x1394A,0x1396A,0x13974,0x13984,0x13991,0x1399F,0x139D5,0x13A23,0x13A4A,0x13A4F,0x13A7F,0x13AA7,0x13AF1,0x13B00,0x13B31,0x13B3B,0x13B45,0x13B96,0x13B9D,0x13C65,0x13CA4,0x13CE9,0x13CF9,0x13D15,0x13D16,0x13D23,0x13D78,0x13D98,0x13DB9,0x13E1A,0x13E3A,0x13EB6,0x13ED1,0x13F74,0x13FB9,0x13FC2,0x13FFA],
+	[	#124	legit!! this has to be nigh impopssible!!!!
+		#> 11-bit NS (+/- 1024) to 100% saturation 781x, sample rate: 128/call
+		#> _sv_commit_nx: ( tcª: 255) overflows vector map! Cannot commit changes!
+	0xFFFFFFFFFC00,				0xFFFFFFFFFC02,				0xFFFFFFFFFC04,				0xFFFFFFFFFC06..0xFFFFFFFFFC0E,	0xFFFFFFFFFC10..0xFFFFFFFFFC18,	0xFFFFFFFFFC1A,			0xFFFFFFFFFC1C..0xFFFFFFFFFC21,	undef,
+	0xFFFFFFFFFC23..0xFFFFFFFFFC24,		0xFFFFFFFFFC26..0xFFFFFFFFFC28,		0xFFFFFFFFFC2A..0xFFFFFFFFFC2C,		0xFFFFFFFFFC2E,			0xFFFFFFFFFC30..0xFFFFFFFFFC35,	0xFFFFFFFFFC37,			0xFFFFFFFFFC39..0xFFFFFFFFFC3B,	undef,
+	0xFFFFFFFFFC3D..0xFFFFFFFFFC42,		0xFFFFFFFFFC44..0xFFFFFFFFFC48,		0xFFFFFFFFFC4A..0xFFFFFFFFFC4C,		0xFFFFFFFFFC4E..0xFFFFFFFFFC5C,	0xFFFFFFFFFC5E..0xFFFFFFFFFC66,	0xFFFFFFFFFC6A..0xFFFFFFFFFC6C,	0xFFFFFFFFFC6E..0xFFFFFFFFFC77,	undef,
+	0xFFFFFFFFFC79..0xFFFFFFFFFC80,		0xFFFFFFFFFC82..0xFFFFFFFFFC90,		0xFFFFFFFFFC93..0xFFFFFFFFFC94,		0xFFFFFFFFFC96..0xFFFFFFFFFC99,	0xFFFFFFFFFC9B..0xFFFFFFFFFCA1,	0xFFFFFFFFFCA5..0xFFFFFFFFFCA9,	0xFFFFFFFFFCAB..0xFFFFFFFFFCB4,	undef,
+	0xFFFFFFFFFCB7..0xFFFFFFFFFCB8,		0xFFFFFFFFFCBB..0xFFFFFFFFFCC5,		0xFFFFFFFFFCC7..0xFFFFFFFFFCCE,		0xFFFFFFFFFCD0,			0xFFFFFFFFFCD2..0xFFFFFFFFFCD5,	0xFFFFFFFFFCD7..0xFFFFFFFFFCDA,	undef,
+	0xFFFFFFFFFCDC..0xFFFFFFFFFCDD,		0xFFFFFFFFFCDF..0xFFFFFFFFFCE3,		0xFFFFFFFFFCE5..0xFFFFFFFFFCE7,		0xFFFFFFFFFCE9..0xFFFFFFFFFCEA,	0xFFFFFFFFFCEC..0xFFFFFFFFFCF2,	0xFFFFFFFFFCF4..0xFFFFFFFFFCFB,	0xFFFFFFFFFCFD,			undef,
+	0xFFFFFFFFFCFF..0xFFFFFFFFFD0B,		0xFFFFFFFFFD0D..0xFFFFFFFFFD0E,		0xFFFFFFFFFD10..0xFFFFFFFFFD1F,		0xFFFFFFFFFD21..0xFFFFFFFFFD23,	0xFFFFFFFFFD25..0xFFFFFFFFFD29,	0xFFFFFFFFFD2B..0xFFFFFFFFFD4E,	0xFFFFFFFFFD50..0xFFFFFFFFFD51,	undef,
+	0xFFFFFFFFFD53..0xFFFFFFFFFD5C,		0xFFFFFFFFFD5E..0xFFFFFFFFFD64,		0xFFFFFFFFFD67..0xFFFFFFFFFD6A,		0xFFFFFFFFFD6C..0xFFFFFFFFFD6E,	0xFFFFFFFFFD70..0xFFFFFFFFFD72,	0xFFFFFFFFFD74..0xFFFFFFFFFD75,	0xFFFFFFFFFD77..0xFFFFFFFFFD7E,	undef,
+	0xFFFFFFFFFD80..0xFFFFFFFFFD8A,		0xFFFFFFFFFD8C..0xFFFFFFFFFDA5,		0xFFFFFFFFFDA7..0xFFFFFFFFFDAE,		0xFFFFFFFFFDB0,			0xFFFFFFFFFDB2..0xFFFFFFFFFDB3,	0xFFFFFFFFFDB5..0xFFFFFFFFFDBD,	undef,
+	0xFFFFFFFFFDBF..0xFFFFFFFFFDC1,		0xFFFFFFFFFDC3..0xFFFFFFFFFDC5,		0xFFFFFFFFFDC7..0xFFFFFFFFFDC9,		0xFFFFFFFFFDCF,			0xFFFFFFFFFDD2..0xFFFFFFFFFDDF,	0xFFFFFFFFFDE1..0xFFFFFFFFFDE4,	undef,
+	0xFFFFFFFFFDE6..0xFFFFFFFFFDEA,		0xFFFFFFFFFDEC,				0xFFFFFFFFFDEE,				0xFFFFFFFFFDF0..0xFFFFFFFFFDF1,	0xFFFFFFFFFDF3..0xFFFFFFFFFDF4,	0xFFFFFFFFFDF6,			0xFFFFFFFFFDF8..0xFFFFFFFFFDFE,	undef,
+	0xFFFFFFFFFE00..0xFFFFFFFFFE08,		0xFFFFFFFFFE0C..0xFFFFFFFFFE0E,		0xFFFFFFFFFE10,				0xFFFFFFFFFE12..0xFFFFFFFFFE13,	0xFFFFFFFFFE15..0xFFFFFFFFFE19,	0xFFFFFFFFFE1B..0xFFFFFFFFFE1E,	0xFFFFFFFFFE20..0xFFFFFFFFFE31,	undef,
+	0xFFFFFFFFFE34..0xFFFFFFFFFE3E,		0xFFFFFFFFFE40..0xFFFFFFFFFE50,		0xFFFFFFFFFE52..0xFFFFFFFFFE5A,		0xFFFFFFFFFE5D..0xFFFFFFFFFE63,	0xFFFFFFFFFE65..0xFFFFFFFFFE6B,	0xFFFFFFFFFE6D..0xFFFFFFFFFE71,	undef,
+	0xFFFFFFFFFE73,				0xFFFFFFFFFE75..0xFFFFFFFFFE78,		0xFFFFFFFFFE7A,				0xFFFFFFFFFE7D,			0xFFFFFFFFFE7F..0xFFFFFFFFFE84,	0xFFFFFFFFFE86..0xFFFFFFFFFE8B,	undef,
+	0xFFFFFFFFFE8D,				0xFFFFFFFFFE90..0xFFFFFFFFFE99,		0xFFFFFFFFFE9B..0xFFFFFFFFFE9C,		0xFFFFFFFFFE9E..0xFFFFFFFFFEA1,	0xFFFFFFFFFEA3..0xFFFFFFFFFEA4,	0xFFFFFFFFFEA7..0xFFFFFFFFFEBA,	0xFFFFFFFFFEBC,			undef,
+	0xFFFFFFFFFEBE..0xFFFFFFFFFEBF,		0xFFFFFFFFFEC1..0xFFFFFFFFFEC4,		0xFFFFFFFFFEC6..0xFFFFFFFFFEC8,		0xFFFFFFFFFECA..0xFFFFFFFFFECC,	0xFFFFFFFFFECF..0xFFFFFFFFFED8,	0xFFFFFFFFFEDA..0xFFFFFFFFFEDE,	0xFFFFFFFFFEE0..0xFFFFFFFFFEE2,	undef,
+	0xFFFFFFFFFEE4..0xFFFFFFFFFEE5,		0xFFFFFFFFFEE7..0xFFFFFFFFFEEB,		0xFFFFFFFFFEED..0xFFFFFFFFFEF4,		0xFFFFFFFFFEF6..0xFFFFFFFFFF05,	0xFFFFFFFFFF08,			0xFFFFFFFFFF0A..0xFFFFFFFFFF0E,	0xFFFFFFFFFF11..0xFFFFFFFFFF13,	undef,
+	0xFFFFFFFFFF16..0xFFFFFFFFFF2A,		0xFFFFFFFFFF2C..0xFFFFFFFFFF2D,		0xFFFFFFFFFF2F..0xFFFFFFFFFF30,		0xFFFFFFFFFF32..0xFFFFFFFFFF36,	0xFFFFFFFFFF38..0xFFFFFFFFFF40,	0xFFFFFFFFFF42..0xFFFFFFFFFF44,	0xFFFFFFFFFF46..0xFFFFFFFFFF4A,	undef,
+	0xFFFFFFFFFF4C..0xFFFFFFFFFF56,		0xFFFFFFFFFF58..0xFFFFFFFFFF5E,		0xFFFFFFFFFF60,				0xFFFFFFFFFF62..0xFFFFFFFFFF65,	0xFFFFFFFFFF67..0xFFFFFFFFFF6D,	0xFFFFFFFFFF6F,			0xFFFFFFFFFF71..0xFFFFFFFFFF76,	undef,
+	0xFFFFFFFFFF78,				0xFFFFFFFFFF7A..0xFFFFFFFFFF80,		0xFFFFFFFFFF82..0xFFFFFFFFFF83,		0xFFFFFFFFFF85..0xFFFFFFFFFF88,	0xFFFFFFFFFF8A..0xFFFFFFFFFF8C,	0xFFFFFFFFFF8E..0xFFFFFFFFFF98,	0xFFFFFFFFFF9B..0xFFFFFFFFFF9C,	undef,
+	0xFFFFFFFFFF9E..0xFFFFFFFFFFA0,		0xFFFFFFFFFFA2..0xFFFFFFFFFFA4,		0xFFFFFFFFFFA7..0xFFFFFFFFFFB2,		0xFFFFFFFFFFB4..0xFFFFFFFFFFB7,	0xFFFFFFFFFFB9..0xFFFFFFFFFFD3,	0xFFFFFFFFFFD5,			0xFFFFFFFFFFD7..0xFFFFFFFFFFD9,	undef,
+	0xFFFFFFFFFFDB..0xFFFFFFFFFFDE,		0xFFFFFFFFFFE0..0xFFFFFFFFFFE2,		0xFFFFFFFFFFE4,				0xFFFFFFFFFFE6..0xFFFFFFFFFFEA,	0xFFFFFFFFFFED..0xFFFFFFFFFFFB,	0xFFFFFFFFFFFD..0xFFFFFFFFFFFF,	0x1000000000001..0x1000000000002,	undef,
+	0x1000000000004..0x1000000000008,	0x100000000000A..0x100000000001A,	0x100000000001E..0x1000000000027,	0x1000000000029..0x1000000000030,	0x1000000000032..0x1000000000035,	0x1000000000037..0x1000000000038,		0x100000000003A..0x100000000003E,	undef,
+	0x1000000000040,			0x1000000000042,			0x1000000000045..0x1000000000046,	0x1000000000048..0x1000000000062,	0x1000000000064..0x100000000006A,	0x100000000006C..0x100000000006E,		0x1000000000072..0x1000000000079,	undef,
+	0x100000000007B..0x100000000007E,	0x1000000000080..0x1000000000091,	0x1000000000093,			0x1000000000096..0x10000000000A5,	0x10000000000A7..0x10000000000AF,	undef,
+	0x10000000000B1..0x10000000000B8,	0x10000000000BA..0x10000000000D2,	0x10000000000D5,			0x10000000000D7..0x10000000000D8,	0x10000000000DA..0x10000000000DF,	undef,
+	0x10000000000E1..0x10000000000E2,	0x10000000000E5..0x10000000000E8,	0x10000000000EA..0x10000000000F1,	0x10000000000F3..0x10000000000F5,	0x10000000000F7,			0x10000000000F9..0x10000000000FA,		0x10000000000FC..0x1000000000100,	undef,
+	0x1000000000102..0x1000000000104,	0x1000000000108..0x100000000010D,	0x100000000010F..0x1000000000113,	0x1000000000115..0x1000000000124,	0x1000000000126,			0x1000000000128..0x100000000012C,		0x100000000012F,			undef,
+	0x1000000000131..0x1000000000143,	0x1000000000145..0x100000000014D,	0x100000000014F..0x1000000000154,	0x1000000000156,			0x1000000000158,			0x100000000015B..0x100000000015C,		undef,
+	0x100000000015E..0x1000000000168,	0x100000000016B..0x1000000000171,	0x1000000000173..0x1000000000176,	0x1000000000178..0x100000000019C,	0x100000000019E,			0x10000000001A0..0x10000000001A4,		undef,
+	0x10000000001A6..0x10000000001AA,	0x10000000001AC..0x10000000001AE,	0x10000000001B0..0x10000000001C6,	0x10000000001C8,			0x10000000001CB..0x10000000001CE,	0x10000000001D1..0x10000000001D2,		0x10000000001D5..0x10000000001E0,	undef,
+	0x10000000001E2..0x10000000001E4,	0x10000000001E6..0x10000000001EB,	0x10000000001ED..0x10000000001FC,	0x10000000001FE,			0x1000000000200,			0x1000000000202..0x100000000020E,		0x1000000000210..0x100000000021A,	undef,
+	0x100000000021C..0x100000000021D,	0x100000000021F,			0x1000000000222..0x1000000000226,	0x1000000000228..0x1000000000229,	0x100000000022B..0x100000000022C,	0x100000000022E..0x1000000000234,		0x1000000000236,			undef,
+	0x1000000000239..0x1000000000240,	0x1000000000243..0x1000000000248,	0x100000000024A..0x100000000024D,	0x100000000024F,			0x1000000000251,			0x1000000000253..0x1000000000254,		0x1000000000256..0x100000000025D,	undef,
+	0x100000000025F,			0x1000000000261,			0x1000000000263..0x1000000000264,	0x1000000000268..0x1000000000270,	0x1000000000273..0x1000000000278,	0x1000000000280,				0x1000000000282..0x1000000000296,	undef,
+	0x1000000000298..0x100000000029A,	0x100000000029C..0x100000000029D,	0x100000000029F..0x10000000002A3,	0x10000000002A6..0x10000000002AA,	0x10000000002AC,			0x10000000002AE..0x10000000002B2,		0x10000000002B4..0x10000000002BD,	undef,
+	0x10000000002BF..0x10000000002C1,	0x10000000002C3..0x10000000002C4,	0x10000000002C6..0x10000000002CB,	0x10000000002CD..0x10000000002CE,	0x10000000002D0,			0x10000000002D2..0x10000000002DD,		0x10000000002DF..0x10000000002F6,	undef,
+	0x10000000002F9..0x1000000000307,	0x100000000030A..0x1000000000314,	0x1000000000317..0x100000000031B,	0x100000000031D..0x100000000031F,	0x1000000000321..0x1000000000327,	0x1000000000329..0x100000000032D,		0x100000000032F..0x1000000000337,	undef,
+	0x1000000000339..0x1000000000352,	0x1000000000354..0x1000000000355,	0x1000000000357..0x100000000035C,	0x100000000035E..0x1000000000370,	0x1000000000372..0x1000000000375,	0x1000000000377..0x100000000037C,		0x100000000037E..0x100000000038A,	undef,
+	0x100000000038C..0x100000000038D,	0x100000000038F..0x100000000039B,	0x100000000039D..0x100000000039E,	0x10000000003A0..0x10000000003A2,	0x10000000003A4..0x10000000003AE,	0x10000000003B0..0x10000000003B1,		0x10000000003B3,			undef,
+	0x10000000003B6,			0x10000000003B8..0x10000000003C4,	0x10000000003C6..0x10000000003E1,	0x10000000003E3..0x10000000003E4,	0x10000000003E7,			undef,
+	0x10000000003E9..0x10000000003EC,	0x10000000003EE,			0x10000000003F0..0x10000000003F5,	0x10000000003F7..0x10000000003FA,	0x10000000003FC..0x10000000003FE,	undef,
+
+	],	[0xFFFFFFFFFC22,0xFFFFFFFFFC3A,0xFFFFFFFFFC3D,0xFFFFFFFFFC4D,0xFFFFFFFFFC58,0xFFFFFFFFFC62,0xFFFFFFFFFC6D,0xFFFFFFFFFC80,0xFFFFFFFFFC8B,0xFFFFFFFFFC96,0xFFFFFFFFFCA3,0xFFFFFFFFFCA5,0xFFFFFFFFFCA7,0xFFFFFFFFFCCE,0xFFFFFFFFFCD9,0xFFFFFFFFFCDB,0xFFFFFFFFFD06,0xFFFFFFFFFD49,0xFFFFFFFFFD4D,0xFFFFFFFFFD52,0xFFFFFFFFFD69,0xFFFFFFFFFD6C,0xFFFFFFFFFD91,0xFFFFFFFFFD95,0xFFFFFFFFFDD4,0xFFFFFFFFFDD5,0xFFFFFFFFFDE0,0xFFFFFFFFFDF1,0xFFFFFFFFFE1D,0xFFFFFFFFFE26,0xFFFFFFFFFE35,0xFFFFFFFFFE3B,0xFFFFFFFFFE40,0xFFFFFFFFFE49,0xFFFFFFFFFE5F,0xFFFFFFFFFE66,0xFFFFFFFFFE7A,0xFFFFFFFFFE7D,0xFFFFFFFFFE92,0xFFFFFFFFFEBC,0xFFFFFFFFFEC0,0xFFFFFFFFFED5,0xFFFFFFFFFEE3,0xFFFFFFFFFEFD,0xFFFFFFFFFF0C,0xFFFFFFFFFF11,0xFFFFFFFFFF21,0xFFFFFFFFFF2F,0xFFFFFFFFFF36,0xFFFFFFFFFF38,0xFFFFFFFFFF54,0xFFFFFFFFFF65,0xFFFFFFFFFF80,0xFFFFFFFFFF9C,0xFFFFFFFFFF9F,0xFFFFFFFFFFB8,0xFFFFFFFFFFB9,0xFFFFFFFFFFBC,0xFFFFFFFFFFCD,0xFFFFFFFFFFD1,0xFFFFFFFFFFE1,0xFFFFFFFFFFE9,0xFFFFFFFFFFEB,0xFFFFFFFFFFEE,0x100000000002B,0x1000000000033,0x1000000000037,0x1000000000058,0x100000000006E,0x1000000000074,0x1000000000081,0x10000000000A3,0x10000000000B9,0x10000000000CD,0x10000000000D3,0x10000000000F0,0x10000000000F5,0x100000000011B,0x1000000000124,0x100000000013A,0x100000000013C,0x1000000000144,0x1000000000165,0x100000000016C,0x1000000000185,0x1000000000193,0x100000000019A,0x10000000001C1,0x10000000001C7,0x10000000001D9,0x10000000001E7,0x10000000001FA,0x1000000000201,0x1000000000203,0x1000000000219,0x100000000022A,0x100000000023C,0x100000000025D,0x1000000000269,0x1000000000273,0x1000000000274,0x100000000027A,0x1000000000281,0x1000000000286,0x100000000028C,0x1000000000294,0x100000000029B,0x10000000002A4,0x10000000002C6,0x10000000002CB,0x10000000002CC,0x10000000002E6,0x10000000002EA,0x10000000002F5,0x1000000000313,0x1000000000316,0x100000000032E,0x100000000033A,0x1000000000342,0x100000000035B,0x1000000000365,0x1000000000376,0x100000000037F,0x1000000000384,0x10000000003B4,0x10000000003D8,0x10000000003E0,0x10000000003FF],
+	[	#125	another lucky break..... crazy
+	#	Originally many lines, this precursor was generated by a bug in alpha v. of _set_ea() effecting Op1, Op2 and Op9
+	#	due to "*ctx=3;" and "return" being omitted in two places,
+	#	I noticed after I whittled it down to the bare minimum like this, that neither _set() nor _set_norebal() were passing it, either.
+	#	It turns out that the literal edge case where x==*Edge( *AvARRAY( avICE ) )  	(a.k.a. the *Edge of cube #0)
+	#	was not being caught and handled by the "E[0] requires special initialization" block,
+	#	and the noise generators were never going to trigger this because it was only triggered by single-argument calls.
+	
+	0x2C5..0x2C8,  0x2CA..0x2CD,  0x2D0,         0x2D4..0x2D5,  0x2DD,         0x2E0..0x2E6,  0x2E8..0x2EC,  undef,
+	],      [	0x2ED	],
+	[	#126	affected iterator-style *_ea() variants.
+#	In the original architecture which loops through the entire avArgs array in one setter call, this isn't an issue, because 
+#	the interlocal procedures are contained in their own loop, so state variables have no chance to re-evaluate between iterations.
+#	When extending the architecture to support iterator interfaces, the value of uint iC became crucial, as it was pre-incremented
+#	in anticipation of exiting that do-loop; when the switch() statement at the head of _set_ea() re-entered the interlocal block,
+#	iC was already advanced, which defeated the "if( iC< zC)" check, which diverted execution to Op3 away from Op0..Op2 and Op9.
+#	The current fix is simply to defer "++iC" incrementation until after state #1 (the interlocal context) was exited.
+#	The code in switch case 1 can be entered via "goto _inter" and "goto _epiloc" besides the basic switch statement,
+#	and so to control an iC-1 offset d
+#	This solution has yet to be thoroughly tested (2026-11-13).
+
+#	0x0,           0x2..0x4,      0x6,           0x8,           0xA,           0xC..0x14,     undef,
+#	0x16..0x1C,    0x1F,          0x22..0x24,    0x26,          0x28..0x2A,    0x2C..0x2F,    undef,
+#	0x31..0x35,    0x37,          0x39..0x3A,    0x3C..0x41,    0x43..0x4F,    0x51..0x52,    undef,
+#	0x54,          0x56,          0x58..0x60,    0x63..0x64,    0x67..0x6B,    0x6F..0x75,    undef,
+#	0x77..0x79,    0x7B..0x7C,    0x7E..0x7F,    0x82,          0x84..0x85,    0x88..0x8C,    0x8E..0x99,    undef,
+#	0x9B,          0x9F..0xA0,    0xA3..0xA8,    0xAA,          0xAC..0xB2,    0xB5..0xBC,    0xC2..0xC5,    undef,
+#	0xC7..0xCD,    0xCF..0xD1,    0xD3..0xD6,    0xD8..0xDA,    0xDC..0xE2,    0xE4..0xE8,    0xEA..0xF2,    undef,
+#	0xF4..0xF6,    0xF8..0xFE,    0x100..0x105,  0x107..0x108,  0x10A,         0x10C..0x10F,  0x111..0x116,  undef,
+#	0x118..0x11D,  0x11F..0x122,  0x125..0x126,  0x128,         0x12A..0x12B,  0x12D,         0x12F..0x130,  undef,
+#	0x133..0x139,  0x13B..0x13E,  0x140,         0x142..0x146,  0x14A..0x14B,  0x14D..0x14F,  0x151,         undef,
+#	0x153..0x154,  0x156..0x157,  0x15A..0x160,  0x163..0x165,  0x167..0x179,  0x17B..0x181,  0x183..0x187,  undef,
+#	0x189..0x191,  0x194..0x196,  0x199..0x19F,  0x1A2..0x1A3,  0x1A5..0x1AE,  0x1B0..0x1B2,  0x1B4..0x1BE,  undef,
+	0x1C0..0x1C3,  0x1C8,         0x1CC,         0x1CE,         0x1D0,         0x1D3..0x1D9,  undef,
+	0x1DD..0x1E7,  0x1E9..0x1EA,  0x1EC..0x1ED,  0x1EF..0x1F7,  0x1F9..0x1FF,  undef,
+
+	],      [
+	#	0xD,0xE,0x15,0x16,0x19,0x1B,0x1C,0x1E,
+	#	0x33,0x44,0x45,0x46,0x48,0x54,0x5A,0x5D,
+	#	0x5F,0x64,0x78,0x7C,0x8A,0x93,0xA1,0xAA,
+	#	0xB0,0xB9,0xD7,0xE6,0xEA,0xED,0xF5,0x102,
+	#	0x105,0x107,0x109,0x10F,0x113,0x121,0x125,0x127,
+	#	0x135,0x138,0x13B,0x13E,0x14C,0x154,0x156,0x159,
+	#	0x165,0x167,0x168,0x176,
+	#	0x17F,0x182,
+	#	0x184,
+		0x1DA,
+		0x1DB,
+	#	0x1DC,
+	#	0x1E1,0x1E2,
+	#	0x1E8,0x1E9,0x1F2,0x1F5
+		],
+	[	#127	Macro "EPI_EA_OVERRUN_PROTECT( $u, $v )" did not reset the context to zero after committing.
+	0xFE62,            0xFE68,            0xFE6B,            0xFE6D..0xFE70,    0xFE73,            0xFE75,            undef,
+	0xFE79,            0xFE7C,            0xFE80,            0xFE85..0xFE88,    0xFE90,            0xFE93,            undef,
+	0xFE98,            0xFE9B,            0xFE9E,            0xFEA0,            0xFEA2,            0xFEA4..0xFEA5,    0xFEA7..0xFEA8,    undef,
+	0xFEAB..0xFEAC,    0xFEAF,            0xFEB2..0xFEB4,    0xFEB8..0xFEBB,    0xFEBE,            0xFEC0,            0xFEC2..0xFEC5,    undef,
+	0xFEC7,            0xFECA..0xFECC,    0xFECF,            0xFED1,            0xFED6,            0xFED9,            0xFEDC..0xFEDE,    undef,
+	0xFEE0,            0xFEE2..0xFEE3,    0xFEE8,            0xFEEA..0xFEEC,    0xFEEF..0xFEF1,    0xFEF3..0xFEF4,    0xFEF6,            undef,
+	0xFEF8,            0xFEFA,            0xFEFD,            0xFEFF,            0xFF01,            0xFF04..0xFF05,    0xFF0A,            undef,
+	0xFF0C..0xFF0D,    0xFF0F,            0xFF12,            0xFF17..0xFF18,    0xFF1B..0xFF1C,    0xFF1E..0xFF1F,    0xFF21,            undef,
+	0xFF27..0xFF29,    0xFF2C,            0xFF2E..0xFF30,    0xFF32..0xFF35,    0xFF37,            0xFF39..0xFF3B,    0xFF3D..0xFF3E,    undef,
+	0xFF44,            0xFF46..0xFF47,    0xFF4A,            0xFF4C,            0xFF4E..0xFF53,    0xFF55..0xFF57,    0xFF59..0xFF5C,    undef,
+	0xFF5E..0xFF60,    0xFF6A..0xFF6F,    0xFF72..0xFF76,    0xFF7A..0xFF7B,    0xFF82..0xFF83,    0xFF86..0xFF87,    0xFF89..0xFF8A,    undef,
+	0xFF8C,            0xFF8F..0xFF91,    0xFF93..0xFF94,    0xFF96..0xFF98,    0xFF9A,            0xFF9F,            0xFFA7..0xFFA8,    undef,
+	0xFFAB,            0xFFAD,            0xFFB1,            0xFFB3,            0xFFB6..0xFFB8,    0xFFBA..0xFFBB,    0xFFBF,            undef,
+	0xFFC2,            0xFFC4..0xFFC6,    0xFFC8..0xFFC9,    0xFFCC..0xFFCD,    0xFFCF,            0xFFD1,            0xFFD3,            undef,
+	0xFFD5..0xFFD7,    0xFFDE,            0xFFE1,            0xFFE7,            0xFFE9,            0xFFEB,            undef,
+	0xFFED..0xFFEE,    0xFFF0..0xFFF1,    0xFFF3,            0xFFF5..0xFFF6,    0xFFFD..0xFFFE,    0x10000..0x10001,  undef,
+	0x10005..0x10006,  0x10009,           0x1000D,           0x1000F,           0x10011,           0x10014..0x10016,  0x1001B,           0x1001D,
+	0x10021..0x10022,  0x10024,           0x10028,           0x1002A,           0x1002C..0x1002D,  0x10034,           0x10036..0x10037,  undef,
+	0x1003B,           0x1003D..0x10042,  0x10045,           0x10047..0x10048,  0x1004A,           undef,
+	0x1004C..0x1004E,  0x10050,           0x10052,           0x10054,           0x10056,           0x10059,           0x1005B..0x1005E,  undef,
+	0x10063,           0x1006E,           0x10072,           0x1007A,           0x1007E,           0x10081..0x10083,  0x10086..0x10088,  undef,
+	0x1008C,           0x1008E,           0x10090,           0x10094..0x10098,  0x1009F..0x100A1,  0x100A6,           0x100A8,           undef,
+	0x100AA..0x100AB,  0x100B2..0x100B3,  0x100B8..0x100BA,  0x100BD,           0x100C0..0x100C2,  0x100C4,           0x100C6,           undef,
+	0x100C9,           0x100CB..0x100CC,  0x100D0..0x100D2,  0x100D5,           0x100D7..0x100D8,  0x100DD..0x100E7,  0x100E9,           undef,
+	0x100ED..0x100EF,  0x100F1..0x100F2,  0x100F5..0x100F7,  0x100F9,           0x100FC,           0x100FE..0x10102,  0x10104,           undef,
+	0x1010A,           0x1010C..0x1010E,  0x10111..0x10112,  0x10117..0x10118,  0x1011A..0x1011B,  0x1011E,           0x10125,           undef,
+	0x10128,           0x1012B..0x1012C,  0x1012F,           0x10133,           0x10136,           0x10138,           undef,
+	0x1013B..0x1013C,  0x1013F,           0x10141..0x10143,  0x10146,           0x10149,           0x10150,           0x10152..0x10153,  undef,
+	0x10156..0x10157,  0x1015F..0x10160,  0x10162..0x10163,  0x10165..0x10168,  0x1016C..0x1016E,  0x10170..0x10175,  0x10177..0x10178,  0x1017D..0x1017F,
+	0x10181,           0x10184,           0x10187..0x10189,  0x1018C..0x1018D,  0x10190..0x10194,  0x10197,           0x1019A,           undef,
+	0x1019E,           0x101A3..0x101A6,  0x101AA..0x101B0,  0x101B2,           0x101B4..0x101B6,  0x101B8..0x101BA,  0x101BC..0x101BD,  undef,
+	0x101BF,           0x101C1..0x101C2,  0x101C4..0x101C5,  0x101C7..0x101C8,  0x101CB,           0x101CE,           0x101D0,           undef,
+	0x101D6,           0x101D9..0x101DD,  0x101E0,           0x101E2,           0x101E4,           0x101E7..0x101E8,  undef,
+	0x101EA,           0x101EC,           0x101EF,           0x101F3..0x101F4,  0x101F7..0x101F9,  0x101FD,           undef,
+
+	],	[
+	#	0xFE06,   	0xFE0C,   	0xFE0D,   	0xFE17,   	0xFE1B,   	0xFE26,    	0xFE34,    	0xFE4D,
+	#	0xFE4F,   #	0xFE65,   	
+	#	0xFE71,   
+		0xFE76, #  	0xFE88,   #	0xFE99,    	0xFE9E,    #	0xFEA1,
+	#	0xFEA3,   # 	0xFEA5,
+		0xFEA7,	
+		0xFEAE,
+		0xFECF,   #	0xFED7,
+		0xFEE3,   #	0xFEEA,
+		0xFF02,    #	0xFF0D,
+		0xFF18,   
+		0xFF3E,
+		0xFF41,   #	0xFF4A,   	0xFF53,   #	0xFF5F,
+		0xFF79,    
+		0xFF90,
+	#	0xFFAC,   #	0xFFBC,   
+		0xFFC0,   #	0xFFC6,   	0xFFD3,   #	0xFFDE,
+		0xFFE9,    
+		0x10001,
+	#	0x1000B,#	0x10014,   #	0x1001A,   
+		0x1001B,   
+		0x10038,   #	0x10043,
+	#	0x10046,#    	0x10056,
+		0x1005F, #	0x1006A,#	0x1006B,   #	0x1006D,   	0x10075,   #	0x1007E,
+	#	0x10080,    
+		0x1008E,
+		0x100B9,
+		0x100D0,#	0x100D6,   #	0x100DA,   	0x100DC,   #	0x100EC,
+		0x100FE,    
+		0x1010D,
+	#	0x10112, #	0x10114, 
+		0x1012C,   #	0x1012E,   	0x1012F,   #	0x10133,
+	#	0x1013D,    #	0x1013E,		
+		0x10140, #	0x1014A,	0x1014C,   #	0x1014D,   	0x10153,   #	0x10154,
+		0x1015B,
+	#  	0x10169,
+		0x1019B,
+	#	0x101A7,	#0x101B0,
+		0x101CD,
+		0x101D6, #  	0x101DE,	0x101F2,
+		0x101FF
+		],
 
 		);
 
