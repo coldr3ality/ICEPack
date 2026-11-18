@@ -23,6 +23,6 @@ It can rank (or get keys by rank) in terms of both used or free namespace.  This
 
 The working concept I was inspired to develop was an ID table which combines the access modalities of hashes and arrays without the complexity or overhead of a database, meeting or exceeding a modern standard of computational efficiency.  True random deterministic ID shuffling is shown, although the full randomness pipeline is crucial.
 
-I first developed a complete proof of concept in 2020 written in Perl.  Since then, I have taken on learning C and giving the specification and architecture the proper treatment to realize an enterprise grade implementation.
+I first developed a complete proof of concept in 2020 written in Perl; in 2024, I had taken on learning C and giving the specification, architecture and implementation a proper treatment.
 
-In a way, this is a prime example of the old Perl addage that "everything is a number".  Indeed, that sums it up.
+In a way, it has become a prime example of the old Perl addage that "everything is a number".  Indeed, that sums it up.
