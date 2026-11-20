@@ -18,7 +18,7 @@
 #include "access_extern.h"
 #include "access.h"	
 
-#ifdef DEBUG_ACCESS_L2X			//	audit nominal activity
+#ifdef DEBUG_ACCESS_L0			//	audit nominal activity
 	#define OpA0	cS=sprintf(aString, "\r=|x=	x[%lld]: %lld ( 0x%llX )	=|x=  	! ! ! A==0 ic#%d cube #%lld \n\t",	a, x, x, ic, iC	); AvDBUG_PUSH( aString, cS );
 	#define OpB0	cS=sprintf(aString, "\r=|x!	x[%lld]: %lld ( 0x%llX )	=|x=  	! ! ! B==0 ic#%d cube #%lld \n\t",	a, x, x, ic, iC	); AvDBUG_PUSH( aString, cS );
 	#define OpA		cS=sprintf(aString, "\r=x|_ 	x[%lld]: %lld ( 0x%llX )	=x|_   	\n\t", a, x, x );  AvDBUG_PUSH( aString, cS );

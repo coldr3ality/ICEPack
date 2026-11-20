@@ -23,18 +23,9 @@ extern ui64 const	unit0x3[		32 ],	unit0x7[		22 ],		unit0xF[		16 ],
 		/*hax*/	}else{		printf("\n! cycle v non-null while locating opscope of vector field 0x%llX..0x%llX, line %d\n", x00, x0F, __LINE__ );	\
 					}
 
-#define RT	printf("\r	return at line %d\n\n\n", __LINE__ );
-#define GI	printf("\ngoto _inter	line %d\n", __LINE__ );
-#define GE	printf("\ngoto _epi		line %d\n", __LINE__ );
-#define GS	printf("\ngoto _search	line %d\n", __LINE__ );
-#define GL	printf("\ngoto _loca 	line %d\n", __LINE__ );
-#define GA	printf("\ngoto _ante	line %d\n", __LINE__ );
-#define AL	printf("\ngoto _anteloc	line %d\n", __LINE__ );
-#define GIa	printf("\ngoto _intra	line %d\n", __LINE__ );
 
 
-
-#ifdef DEBUG_ACCESS_L2X			//	audit nominal activity
+#ifdef DEBUG_ACCESS_L0			//	audit nominal activity
 	#define OpVn		cS=sprintf(aString, "\r_vec_add:	x[%lld]: %lld ( 0x%llX )	=|== 	null boundary between cubes %lld, %lld	line %d\n\t", a, x, x, iC-1, iC, __LINE__ );	 AvDBUG_PUSH( aString, cS );
 	#define OpV0		cS=sprintf(aString, "\r_vec_add:	x[%lld]: %lld ( 0x%llX )	=+|_ 	line %d\n\t", a, x, x, __LINE__  );	 AvDBUG_PUSH( aString, cS );
 	#define OpV1		cS=sprintf(aString, "\r_vec_add:	x[%lld]: %lld ( 0x%llX )	!|+= 	line %d\n\t", a, x, x, __LINE__  );	 AvDBUG_PUSH( aString, cS );

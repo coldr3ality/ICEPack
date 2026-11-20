@@ -71,8 +71,8 @@
 						cS+=sprintf( aString +cS,		"			oc\xA6/xc\xA6: %5d/%-5d	 post\xA7_c: %3d	\10	 post1_xc: %3d 	post\xEA_c: %3d	\n",		\
 															ocª,		xcª,			/*	relº_c,	*/			   rel¹_c,			 relΩ_c				);	\
 						cS+=sprintf( aString +cS,					"						  pre\xA7_q: n/a	\10	   pre1_q: %3d 	 pre\xEA_q: n/a	\n",		\
-																				/*	preº_q,	*/			   pre¹_q		/*	 preΩ_q	*/			);	\
-						cS+=sprintf( aString +cS,					"ix\xA7/iz\xA7:			 post\xA7_q: n/a	\10	  post1_q: %3d 	post\xEA_q: n/a	\n",		\
+																				/*	  preº_q,	*/			   pre¹_q		/*	 preΩ_q	*/			);	\
+						cS+=sprintf( aString +cS,		"			ix\xA7/iz\xA7:			\10	 post\xA7_q: n/a	\10	  post1_q: %3d 	post\xEA_q: n/a	\n",		\
 															ixº,		izº,				 postº_q,				  post¹_q,			postΩ_q				);	\
 						cS+=sprintf( aString +cS,					"						  rel\xA7_q: n/a	\10	   rel1_q: %3d  \10	 rel\xEA_q: n/a	\n",		\
 																				/*	relº_q,	*/			   rel¹_q		/*	 relΩ_q	*/			);	\
@@ -82,18 +82,18 @@
 																				/*	   hpº_i,	*/			    hp¹_i		/*	  hpΩ_i	*/			);	\
 						AvDBUG_RESERVATION( aString, cS, avdbuginx_dmarkcase); 	\
 						}
-	#define dBUG_1X4	{ cS =sprintf( aString,"\n_sv_commit_1x(%3d):	locus : %3lld.%d..%lld.%-3d	  pre\xA7_c: %3d	\10	  pre1_c: %3d	\10	  pre\xFD_c: %3d	  pre\xEA_c: %3d	CS: %-3lld bytes  CS1: %-3lld bytes  CS\xB2: %-3lld bytes  CS\xEA: %-3lld bytes\n",				\
-												xcª,			iCI, icI,		iC, icO,		  preº_c,				pre¹_c,			  pre²_c,			  preΩ_c,		CS,			CS¹,			CS²,			CSΩ				);			\
-						cS+=sprintf( aString +cS,		"	 		matrix: %5d..%-5d \10 \10	 post\xA7_c: %3d	\10	 post1_c: %3d	\10	 post\xFD_c: %3d	 post\xEA_c: %3d \n",			\
-															ixM, izM,					  postº_c,				post¹_c,			 post²_c,			 postΩ_c				);	\
+	#define dBUG_1X4	{ cS =sprintf( aString,"\n_sv_commit_1x(%3d):	 locus : %3lld.%d..%lld.%-3d	  pre\xA7_c: %3d	\10	  pre1_c: %3d	\10	  pre\xFD_c: %3d	  pre\xEA_c: %3d	CS: %-3lld bytes  CS1: %-3lld bytes  CS\xB2: %-3lld bytes  CS\xEA: %-3lld bytes\n",				\
+												xcª,			 iCI, icI,		iC, icO,		  preº_c,				pre¹_c,			  pre²_c,			  preΩ_c,		CS,			CS¹,			CS²,			CSΩ				);			\
+						cS+=sprintf( aString +cS,		"	 		 matrix: %5d..%-5d \10 \10	 post\xA7_c: %3d	\10	 post1_c: %3d	\10	 post\xFD_c: %3d	 post\xEA_c: %3d \n",			\
+															 ixM, izM,    				  postº_c,				post¹_c,			 post²_c,			 postΩ_c				);	\
 						cS+=sprintf( aString +cS,		"			oc /xc : %5d/%-5d			\n",	\
 															oc,		xc				);	\
 						cS+=sprintf( aString +cS,		"			oc\xA6/xc\xA6: %5d/%-5d	\n",	\
 															ocª,		xcª				);	\
 						\
 						cS+=sprintf( aString +cS,	"\t\x9Fsub 1X%d-%c%c%c%c	\10				 post\xA7_q: %3d	\10	 post1_q: %3d	\10	  post\xFD_q: %3d	 post\xEA_q: %3d\n\n",	\
-						endo_c+4, 64+( subcase&7),	64+( (subcase>>3)&7),		\
-						64+( (subcase>>6)&7),		64+( (subcase>>9)&7),					 postº_q,				post¹_q,			  post²_q,			  postΩ_q			);	\
+						nCª+4,	64+( subcase&7),		64+( (subcase>>3)&7),				\
+								64+( (subcase>>6)&7),	64+( (subcase>>9)&7),				 postº_q,				post¹_q,			  post²_q,			  postΩ_q			);	\
 						AvDBUG_RESERVATION( aString, cS, avdbuginx_dmarkcase); \
 						}
 #else
@@ -157,17 +157,17 @@
 															ixº,		izº				);		\
 						AvDBUG_RESERVATION( aString, cS, avdbuginx_dmarkcase); 					\
 						}
-	#define dBUG_1X4	{ cS =sprintf( aString,"\n_sv_commit_1x(%3d):	locus : %3lld.%d..%lld.%-3d	CS: %-3lld bytes  CS1: %-3lld bytes  CS\xB2: %-3lld bytes  CS\xEA: %-3lld bytes\n",				\
-												xcª,			iCI, icI,		iC, icO,		CS,			CS¹,			CS²,			CSΩ				);			\
-						cS+=sprintf( aString +cS,		"	 		matrix: %5d..%-5d \10 \10	\n",		\
-															ixM, izM					);		\
+	#define dBUG_1X4	{ cS =sprintf( aString,"\n_sv_commit_1x(%3d):	 locus : %3lld.%d..%lld.%-3d	CS: %-3lld bytes  CS1: %-3lld bytes  CS\xB2: %-3lld bytes  CS\xEA: %-3lld bytes\n",				\
+												xcª,			 iCI, icI,		iC, icO,		CS,			CS¹,			CS²,			CSΩ				);			\
+						cS+=sprintf( aString +cS,		"	 		 matrix: %5d..%-5d \10 \10	\n",		\
+															 ixM, izM					);		\
 						cS+=sprintf( aString +cS,		"			oc /xc : %5d/%-5d			\n",		\
 															oc,		xc				);		\
 						cS+=sprintf( aString +cS,		"			oc\xA6/xc\xA6: %5d/%-5d	\n",		\
 															ocª,		xcª				);		\
 						cS+=sprintf( aString +cS,	"\t\x9Fsub 1X%d-%c%c%c%c	\10				\n\n",	\
-						endo_c+4, 64+( subcase&7),	64+( (subcase>>3)&7),							\
-						64+( (subcase>>6)&7),		64+( (subcase>>9)&7)					);		\
+				nCª+4,	64+( subcase&7),		64+( (subcase>>3)&7),								\
+						64+( (subcase>>6)&7),	64+( (subcase>>9)&7)						);		\
 						AvDBUG_RESERVATION( aString, cS, avdbuginx_dmarkcase); 					\
 						}
 	#else
@@ -189,11 +189,11 @@
 	#endif
 #endif
 
-#ifdef DEBUG_SvCOMMIT_L2
-	#define dBUG_MOD_Eº			cS=sprintf( aString, "\r<MOD_CUBE_0_AS_LPASS>\n");				AvDBUG_PUSH( aString, cS );
-	#define dBUG_MOD_Eº_CLOSE	cS=sprintf( aString, "\r	</MOD_CUBE_0_AS_LPASS>\n");				AvDBUG_PUSH( aString, cS );
-	#define dBUG_MOD_Aº			cS=sprintf( aString, "\r<MOD_CUBE_0_AS_LPASSxMODS>\n");			AvDBUG_PUSH( aString, cS );
-	#define dBUG_MOD_Aº_CLOSE	cS=sprintf( aString, "\r	</MOD_CUBE_0_AS_LPASSxMODS>\n");		AvDBUG_PUSH( aString, cS );
+#ifdef DEBUG_SvCOMMIT_L4
+	#define dBUG_MOD_Aº			cS=sprintf( aString, "\r<MOD_CUBE_0_AS_LPASS>\n");				AvDBUG_PUSH( aString, cS );
+	#define dBUG_MOD_Aº_CLOSE	cS=sprintf( aString, "\r	</MOD_CUBE_0_AS_LPASS>\n");				AvDBUG_PUSH( aString, cS );
+	#define dBUG_MOD_Bº			cS=sprintf( aString, "\r<MOD_CUBE_0_AS_LPASSxMODS>\n");			AvDBUG_PUSH( aString, cS );
+	#define dBUG_MOD_Bº_CLOSE	cS=sprintf( aString, "\r	</MOD_CUBE_0_AS_LPASSxMODS>\n");		AvDBUG_PUSH( aString, cS );
 //			cS+=	sprintf( aString+cS,	"	( CS\xEA: %d )	\10	= (	CS: %d )		\10	\10	+ ( rel\xEA_q: ! )		\n",	\
 										CSΩ,				CS				/*,	relΩ_q	*/			);	\
 
@@ -248,10 +248,10 @@
 
 	#define dBUG_NEW_DΩ_CLOSE	cS = sprintf( aString, "\r	</NEW_CUBE_\xEA_AS_MODSxHPASS>\n");			AvDBUG_PUSH( aString, cS );
 #else
-	#define dBUG_MOD_Eº
-	#define dBUG_MOD_Eº_CLOSE
 	#define dBUG_MOD_Aº
 	#define dBUG_MOD_Aº_CLOSE
+	#define dBUG_MOD_Bº
+	#define dBUG_MOD_Bº_CLOSE
 	#define dBUG_NEW_EΩ
 	#define dBUG_NEW_EΩ_CLOSE
 	#define dBUG_NEW_DΩ
@@ -301,13 +301,13 @@
 
 
 /*		MOD_CUBE_0_AS_LPASS(		ix$ )	*/
-#define	MOD_CUBE_0_AS_LPASS( 		ix$ )	/*	if( ixM >izº ){	*/											dBUG_MOD_Eº	\
+#define	MOD_CUBE_0_AS_LPASS( 		ix$ )	/*	if( ixM >izº ){	*/											dBUG_MOD_Aº	\
 				switch(		zcº ){	SwCASE_LOWPASS_1IS(	*( (ui64*) cubeº )	)		}					\
 				if( CS != O[	ix$ ] ){			SvCUR_set(	sv,	O[	ix$ ] );	cubeº[	O[	ix$ ] ]=0;			dBUGsvCUR( sv,  O[ ix$] );	}	\
-																									dBUG_MOD_Eº
+																									dBUG_MOD_Aº_CLOSE
 /*		MOD_CUBE_0_AS_LPASSxMODS()	*/
-#define	MOD_CUBE_0_AS_LPASSxMODS( ix$ )																dBUG_MOD_Aº	\
-				if( CS <  Oª[	ix$ ] ){ cubeº  =	SvGROW(	sv,	Oª[	ix$ ] +1 );								dBUG_SvGROW_MOOT_COPY( cube, cubeº, O[ ixM ] );	\
+#define	MOD_CUBE_0_AS_LPASSxMODS( ix$ )																dBUG_MOD_Bº	\
+				if( CS <  Oª[	ix$ ] ){ cubeº  =	SvGROW(	sv,	Oª[	ix$ ] +1 );								\
 											SvCUR_set(	sv,	Oª[	ix$ ] );	cubeº[	Oª[	ix$ ] ]=0;			dBUGsvCUR( sv, Oª[	ix$ ] );	}	\
 			else	if( CS != Oª[	ix$ ] ){			SvCUR_set(	sv,	Oª[	ix$ ] );	cubeº[	Oª[	ix$ ] ]=0;			dBUGsvCUR( sv, Oª[	ix$ ] );	}	\
 																									\
@@ -317,4 +317,4 @@
 								/*	^lowpass crossover tee	^high inclusion src								^low passthrough / tee output	*/				\
 					postº_q		=	Oª[	ix$	]	-	Oª[ 	ixM	];										\
 			if(		postº_q )	{		iCEPACK( pº, 	ixM, izº, ix$,			cubeº ); 							\
-							}	/*	^re-pack modified q-data vectors ixM..izº to cubeº[ O[ ixM ]..O[ izº ] ] 	*/	dBUG_MOD_Aº_CLOSE
+							}	/*	^re-pack modified q-data vectors ixM..izº to cubeº[ O[ ixM ]..O[ izº ] ] 	*/	dBUG_MOD_Bº_CLOSE

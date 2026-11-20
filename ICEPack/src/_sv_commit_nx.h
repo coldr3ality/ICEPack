@@ -106,7 +106,7 @@ extern	unsigned short 	subcase;
 	#define dBUG_NX4 { cS =sprintf( aString,"\n_sv_commit_nx(%3d):	  locus : %3d.%d..%d.%-3d	 pre\xA7_xc: %3d	\10	  pre1_xc: %3d	\10	  pre\xFD_xc: %3d \10	  pre\xEA_xc: %3d	\10	\10	CS: %-3lld bytes	oCS: %-3lld bytes\n",	\
 													tcª,			 iCI, icI,	iC, icO,			preº_xc,			 	 pre¹_xc,				  pre²_xc,				  preΩ_xc,				CS,				oCS	);				\
 						cS+=sprintf( aString +cS,	"\t\x9Fsub NX%3d-%c%c%c%c\t  matrix: %5d..%-5d	post\xA7_xc: %3d	\10	 post1_xc: %3d	\10	 post\xFD_xc: %3d \10	 post\xEA_xc: %3d	\10	\10	CSI/1/Y/Z: %2lld/%2lld/%2lld/%2lld bytes\n", \
-						endo_c+4, 64+( subcase&7),	64+( (subcase>>3)&7),		\
+						nCª+4, 64+( subcase&7),	64+( (subcase>>3)&7),		\
 							64+( (subcase>>6)&7),	64+( (subcase>>9)&7), ixM, izM,				postº_xc,				 post¹_xc,			 post²_xc,			 postΩ_xc,				CSI,	CS¹, CS², CSΩ	);	\
 							cS+=sprintf( aString +cS,		"			iCI..iC\xA6: %5d..%-5d	\10	  rel\xA7_c: %3d	\10	   rel1_c: %3d	\10	\10	   rel\xFD_c: %3d \10	   rel\xEA_c: %3d	\n",		\
 																iCI, iCª,					zcº-zc,				   rel¹_c,				   rel²_c,				   relΩ_c				);	\
@@ -189,7 +189,7 @@ extern	unsigned short 	subcase;
 	#define dBUG_NX4 {cS =sprintf( aString,"\n_sv_commit_nx(%3d):	  locus : %3d.%d..%d.%-3d	CS: %-3lld bytes	oCS: %-3lld bytes\n",	\
 													tcª,			 iCI, icI,	iC, icO,			CS,				oCS	);				\
 						cS+=sprintf( aString +cS,	"\t\x9Fsub NX%3d-%c%c%c%c\t  matrix: %5d..%-5d	CSI/1/Y/Z: %2lld/%2lld/%2lld/%2lld bytes\n", \
-						endo_c+4, 64+( subcase&7),	64+( (subcase>>3)&7),		\
+						nCª+4, 64+( subcase&7),	64+( (subcase>>3)&7),		\
 							64+( (subcase>>6)&7),	64+( (subcase>>9)&7), ixM, izM,				CSI,	CS¹, CS², CSΩ	);	\
 							cS+=sprintf( aString +cS,		"			iCI..iC\xA6: %5d..%-5d	\10	\n",		\
 																iCI, iCª,					);	\

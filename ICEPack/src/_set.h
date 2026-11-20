@@ -18,7 +18,7 @@
 #include "access_extern.h"
 #include "access.h"
 
-#ifdef DEBUG_ACCESS_L2X			//	audit nominal activity
+#ifdef DEBUG_ACCESS_L0			//	audit nominal activity
 	#define Op0		cS=sprintf(aString, "\r=+|_	x[%lld]: %lld ( 0x%llX )	cube #%lld ic#%d 	u=%d	=+|_ 	\n\t", a, x, x, iC, ic, u );	AvDBUG_PUSH( aString, cS );
 	#define Op1 		cS=sprintf(aString, "\r!|+=	x[%lld]: %lld ( 0x%llX )	cube #%lld ic#%d	u=%d	!|+= 	\n\t", a, x, x, iC, ic, u );	AvDBUG_PUSH( aString, cS );
 	#define Op2		cS=sprintf(aString, "\r=|+=	x[%lld]: %lld ( 0x%llX )	cube #%lld ic#%d	u=%d	=|+= 	\n\t", a, x, x, iC, ic, u );	AvDBUG_PUSH( aString, cS );
@@ -47,31 +47,4 @@
 	#define	Op10
 #endif
 
-//	#define	DEBUG_ALPHA
-#ifdef		DEBUG_ALPHA
-	#define RT	printf("\r	return at line %d\n\n\n", __LINE__ );
-	#define GI	printf("\rgoto _inter	line %d\n", __LINE__ );
-	#define GE	printf("\ngoto _epiloc	line %d\n", __LINE__ );
-	#define GC	printf("\rgoto _co_epiloc	line %d\n", __LINE__ );
-	#define GS	printf("\rgoto _search	line %d\n", __LINE__ );
-	#define GL	printf("\rgoto _loca 	line %d\n", __LINE__ );
-	#define GA	printf("\rgoto _ante	line %d\n", __LINE__ );
-	#define AL	printf("\rgoto _anteloc	line %d\n", __LINE__ );
-	#define GIa	printf("\rgoto _intra	line %d\n", __LINE__ );
-	#define GV	printf("\rgoto _intra_v	line %d\n", __LINE__ );
-	#define GX	printf("\rgoto _next_x	line %d\n", __LINE__ );
-	#define GSv	printf("\ngoto _sv_commit	line %d\n", __LINE__ );
-#else
-	#define RT
-	#define GI
-	#define GE
-	#define GC
-	#define GS
-	#define GL
-	#define GA
-	#define AL
-	#define GIa
-	#define GV
-	#define GX
-	#define GSv
-#endif
+

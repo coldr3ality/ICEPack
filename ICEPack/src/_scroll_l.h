@@ -3,16 +3,7 @@
 #include "access.h"	
 #include "access_extern.h"
 
-#define RT	printf("\r	return at line %d\n\n\n", __LINE__ );
-#define GI	printf("\ngoto _inter	line %d\n", __LINE__ );
-#define GE	printf("\ngoto _epi		line %d\n", __LINE__ );
-#define GS	printf("\ngoto _search	line %d\n", __LINE__ );
-#define GL	printf("\ngoto _loca 	line %d\n", __LINE__ );
-#define GA	printf("\ngoto _ante	line %d\n", __LINE__ );
-#define AL	printf("\ngoto _anteloc	line %d\n", __LINE__ );
-#define GIa	printf("\ngoto _intra	line %d\n", __LINE__ );
-
-#ifdef DEBUG_ACCESS_L2X			//	audit logical operations
+#ifdef DEBUG_ACCESS_L0			//	audit logical operations
 	#define OpS1		cS=sprintf(aString, "\r_>_-_<_	x[%lld]: %lld ( 0x%llX )	_>_-_<_	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
 	#define OpS2		cS=sprintf(aString, "\r_>-_<_	x[%lld]: %lld ( 0x%llX )	_>-_<_	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );
 	#define OpS3		cS=sprintf(aString, "\r_>_<_	x[%lld]: %lld ( 0x%llX )	_>_<_	\n\t", a, x, x );	 AvDBUG_PUSH( aString, cS );

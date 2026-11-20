@@ -38,22 +38,66 @@
 #define uMvN	RW[ u ] = mod;	\
 				RW[ v ] = null;
 
-#define INIT_MxRACK( $0LL )	/*	RW[ 0 ] =null;	u= v= w= izM =0;	*/	ixM=0xFF; /*<— how we know there's nothing to commit	*/	\
-	/*	ui08	i = 0;	do{	*( (ui64*) RW + i )=0;	} while( ++i != $0LL );	*/
+
+//	#define	DEBUG_ALPHA
+#ifdef		DEBUG_ALPHA
+	#define RT		dBUG_2A("\n	return 			%s	line %d\n",		__FILE__, __LINE__ );
+	#define BR		dBUG_2A("\n	break 			%s	line %d\n",		__FILE__, __LINE__ );
+	#define GI		dBUG_2A("\ngoto _inter 		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GE		dBUG_2A("\ngoto _epiloc		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GcE		dBUG_2A("\ngoto _co_epiloc		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GS		dBUG_2A("\ngoto _search		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GL		dBUG_2A("\ngoto _loca  		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GA		dBUG_2A("\ngoto _ante 		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define AL		dBUG_2A("\ngoto _anteloc		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GIa		dBUG_2A("\ngoto _intra  		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GV		dBUG_2A("\ngoto _intra_v		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GX		dBUG_2A("\ngoto _next_x		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GN		dBUG_2A("\ngoto _next_a		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GSv		dBUG_2A("\ngoto _sv_commit	%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define GSt		dBUG_2A("\ngoto _start		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define G0		dBUG_2A("\ngoto _exit_0		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define G1		dBUG_2A("\ngoto _exit_1		%s	line %d\n",	 	__FILE__, __LINE__ );
+	#define G2		dBUG_2A("\ngoto _exit_2		%s	line %d\n",		__FILE__, __LINE__ );
+	#define G$($SYM)	dBUG_3A("\ngoto \"%s\"		%s	line %d\n", #$SYM,__FILE__, __LINE__ );
+#else
+	#define RT
+	#define BR
+	#define GI
+	#define GE
+	#define GcE
+	#define GS
+	#define GL
+	#define GA
+	#define AL
+	#define GIa
+	#define GV
+	#define GX
+	#define GN
+	#define GSv
+	#define GSt
+	#define G0
+	#define G1
+	#define G2
+	#define G$($SYM)
+#endif
+
+#define INIT_MxRACK( $0LL )		RW[ 0 ] =null;	u= v= w= izM =0;		ixM=0xFF; /*<— how we know there's nothing to commit	*/	\
+		ui08	i = 0;	do{	*( (ui64*) RW + i )=0;	} while( ++i != $0LL );	
 
 #define INIT_AvCOMMIT	rSeqCut[0]= rSeqIns[0]= rel_iC= step_iC= dsc=	0;	\
 						rSeq_iR[0]= iR=							-1;
 
-#ifdef DEBUG_ACCESS_L2X			//	audit nominal activity verbosely
+#ifdef DEBUG_ACCESS_L1X			//	audit nominal activity verbosely
 	#define dBUGinit_mx			_init_mx();
 	#define dBUG_ReICEΩz( $v )													cS=sprintf(aString, "\nReICEΩz( %d ) line %d\n", $v, __LINE__);						AvDBUG_PUSH( aString, cS );
 							/*	if( (ui08*) cubeΩ != (ui08*) SvPVbyte_nolen( svΩ ) ){	cS=sprintf(aString, "\nReICEΩz( %d ): cubeΩ [was] out of sync with svΩ!\n", $v );			AvDBUG_PUSH( aString, cS );\
 																			cubeΩ= (ui08*) SvPVbyte_nolen( svΩ );	\
 																			}	*/
-	#define dBUG_TRACK				cS=sprintf( aString, "\n>>	[TRACK]	ix\xA7: %d\n	oCS: %d\n	oc/oc\xA6: %d/%d\n	xc/xc\xA6: %d/%d\n	O[ oc\xA7]: %d	%s line %d\n\n",	\
-																	ixº,			oCS,		oc, ocª,				xc, xcª,				O[ocª],			__FILE__, __LINE__ );	 AvDBUG_PUSH( aString, cS);
-	#define dBUG_RACK				cS=sprintf( aString, "\n>>	[RACK]	ix\xA7: %d\n	oCS: %d\n	oc/oc\xA6: %d/%d\n	xc/xc\xA6: %d/%d\n	O[ oc\xA7]: %d	%s line %d\n\n",	\
-																	ixº,			oCS,		oc, ocª,				xc, xcª,				O[ocª],			__FILE__, __LINE__ );	 AvDBUG_PUSH( aString, cS);
+	#define dBUG_TRACK				cS=sprintf( aString, "\n>>	[TRACK]	iC: %lld	ix\xA7: %d\n	oCS: %d\n	oc/oc\xA6: %d/%d\n	xc/xc\xA6: %d/%d\n	O[ oc\xA6]: %d	%s line %d\n\n",	\
+																	iC,		ixº,			oCS,		oc, ocª,				xc, xcª,				O[ocª],			__FILE__, __LINE__ );	 AvDBUG_PUSH( aString, cS);
+	#define dBUG_RACK				cS=sprintf( aString, "\n>>	[RACK]	iC: %lld	ix\xA7: %d\n	oCS: %d\n	oc/oc\xA6: %d/%d\n	xc/xc\xA6: %d/%d\n	O[ oc\xA6]: %d	%s line %d\n\n",	\
+																	iC,		ixº,			oCS,		oc, ocª,				xc, xcª,				O[ocª],			__FILE__, __LINE__ );	 AvDBUG_PUSH( aString, cS);
 #else
 	#define dBUGinit_mx
 	#define dBUG_ReICEΩz( $v )
@@ -62,24 +106,62 @@
 #endif
 
 /*	MAIN VECTOR MAP OVERFLOW PROTECTION	*/
-/*	Only needed when rebalancing is enabled.		*/
-
-#ifdef		DEBUG_SvCOMMIT_L0X
-	#define	dBUG_OVERRUN_PROTECT		\
-			if( xcª >254) 					{ cS = sprintf( aString, "\n!	(xc\xA6: %d) >= 255:	overrun protection threshold[s] are too low!	%s line %d \n\n",	xcª,				__FILE__, __LINE__); AvDBUG_PUSH( aString, cS );	}
-	#define	dBUG_OVERRUN_SOFT($LIM)	{ cS = sprintf( aString, "\n	(xc\xA6: %d) >= %d:	vmap soft-flushed	at argument %lld/%lld...	%s line %d\n",		xcª, $LIM, a, za,	__FILE__, __LINE__); AvDBUG_PUSH( aString, cS );	}
-	#define	dBUG_OVERRUN_HARD($LIM)	{ cS = sprintf( aString, "\n	(xc\xA6: %d) >= %d:	vmap hard-flushed	at argument %lld/%lld...	%s line %d\n",		xcª, $LIM,  a, za,	__FILE__, __LINE__); AvDBUG_PUSH( aString, cS );	}
+#ifdef		DEBUG_SvCOMMIT_ARCHX_
+	#define	dBUG_OVERRUN	if( xcª >254 )	{ dBUG_3A("\n!	(xc\xA6: %d) >= 255:	overrun protection threshold[s] are too low!	%s line %d \n\n", xcª, __FILE__, __LINE__); }
 #else
-	#define	dBUG_OVERRUN_PROTECT
+	#define	dBUG_OVERRUN
+#endif
+#ifdef		DEBUG_SvCOMMIT_L0X_
+	#define	dBUG_OVERRUN_SOFT($LIM)	{ dBUG_4A("\n	(xc\xA6: %d) >= %d:	vmap soft-flushed...	%s line %d\n", xcª, $LIM, __FILE__, __LINE__);	dBUG_OVERRUN; }
+	#define	dBUG_OVERRUN_HARD($LIM)	{ dBUG_4A("\n	(xc\xA6: %d) >= %d:	vmap hard-flushed...	%s line %d\n", xcª, $LIM, __FILE__, __LINE__);	dBUG_OVERRUN; }
+#else
 	#define	dBUG_OVERRUN_SOFT
 	#define	dBUG_OVERRUN_HARD
 #endif
-#define	xcª_SOFT_OVERRUN_PROTECT		if( xcª >=	240	)	{	SvCOMMIT;	lo =iC; hi =nC; iC= ( lo+hi )>>1;				\
-		dBUG_OVERRUN_PROTECT;				goto _search;	}
-#define	xcª_HARD_OVERRUN_PROTECT		if( xcª >=	224	)	{	SvCOMMIT;	if( dsc || rSeqIns[0] || rSeqCut[0] ) _av_commit();	\
-		dBUG_OVERRUN_PROTECT;							if( za != a ){	x = ARG( ++a );		goto	_start;		\
-														}else{							return;				\
-														}	}
+
+#define	xcª_SOFT_OVERRUN_PROTECT	\
+	\
+	if( xcª >=	240	)	{	SvCOMMIT;		lo	=	iC;	hi =nC;	iC= ( lo+hi )>>1;	dBUG_OVERRUN_SOFT(240);	\
+					GS	goto _search;	\
+					}
+#define	xcª_HARD_OVERRUN_PROTECT		if( xcª >=	224	)	{	SvCOMMIT;									dBUG_OVERRUN_HARD(224);	\
+															if( dsc || rSeqIns[0] || rSeqCut[0] ) 		_av_commit();	\
+															if( za != a ){	x = ARG( ++a );	INIT_MxRACK(64);	goto _start;	\
+															}else{								RT	return;	\
+														}		}
+#define	xcª_HARD_OVERRUN_PROTECT_EA	if( xcª >=	224	)	{	SvCOMMIT;												dBUG_OVERRUN_HARD(224);	\
+															if( dsc || rSeqIns[0] || rSeqCut[0] )	{_av_commit();	Aº = AvARRAY( avICE );	\
+																						INIT_MxRACK( xcª );	\
+																						}	*ctx=0;		RT	return;	\
+														}
+
+#define	xcª_HARD_OVERRUN_PROTECT_EXPERIMENTAL	\
+	\
+	if( xcª >=	224	)	{	SvCOMMIT;											dBUG_OVERRUN_HARD(224);	\
+						if( dsc || rSeqIns[0] || rSeqCut[0] )		_av_commit();				\
+						if( za != a )	{	x = ARG( ++a );	INIT_AvCOMMIT;		\
+												Aº	= AvARRAY(	avICE );		\
+										lo	=	zC;							\
+										zzC=(	zC	= AvFILLp(	avICE ) )-1;	\
+										hi = nC = 	zC+1;	ixM=0xFF;			\
+										iC= ( lo+hi )>>1;	\
+										GS	goto _search;	\
+						}else			{									RT	return;		\
+					}					}
+#define EPI_NX_OVERRUN_PROTECT( $u, $v )	\
+	\
+	if(	xcª >=224 )	{						O[ $v	]=oCS+CS-16;			ReICEuOx( $u, $v );				dBUG_OVERRUN_HARD(224);	\
+						MkOutZ(0);			Oª[ $v+1	]=Oª[ $v ]+L[ $v ];										\
+						if( bal_iC && iCI!=iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;					\
+						if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();										\
+						if( za!=a )	{		x =ARG( ++a );								GSt	goto	_start;	\
+						} return;	}																		\
+
+#define	xcª_HARD_OVERRUN_PROTECT_EA	if( xcª >=	224	)	{	SvCOMMIT;												dBUG_OVERRUN_HARD(224);	\
+															if( dsc || rSeqIns[0] || rSeqCut[0] )	{_av_commit();	Aº = AvARRAY( avICE );	\
+																						INIT_MxRACK( xcª );	\
+																						}	*ctx=0;		RT	return;	\
+														}
 
 
 
@@ -106,15 +188,22 @@
 																				AvDBUG_PUSH( aString, cS );
 	#define	dBUG_LOCUS_CLOSE(	$NAME )	cS=sprintf( aString, "\n\t	</%-16s>\n", $NAME);	AvDBUG_PUSH( aString, cS );
 
+	#define		dBUG_ReLOC(		$NAME )	dBUG_LOCUS(		$NAME )
+	#define		dBUG_ReLOC_CLOSE(	$NAME )	dBUG_LOCUS_CLOSE(	$NAME )
 #else
-	#define	dBUG_LOCUS(		$NAME )
-	#define	dBUG_LOCUS_CLOSE(	$NAME )
+	#define		dBUG_LOCUS(		$NAME )
+	#define		dBUG_LOCUS_CLOSE(	$NAME )
+	#define		dBUG_ReLOC(		$NAME )
+	#define		dBUG_ReLOC_CLOSE(	$NAME )
 #endif
 
-#define		dBUG_CoLOC(		$NAME )	dBUG_LOCUS(		$NAME )
-#define		dBUG_CoLOC_CLOSE(	$NAME )	dBUG_LOCUS_CLOSE(	$NAME )
-#define		dBUG_ReLOC(		$NAME )	dBUG_LOCUS(		$NAME )
-#define		dBUG_ReLOC_CLOSE(	$NAME )	dBUG_LOCUS_CLOSE(	$NAME )
+#ifdef		DEBUG_ACCESS_L2X
+	#define		dBUG_CoLOC(		$NAME )	dBUG_LOCUS(		$NAME )
+	#define		dBUG_CoLOC_CLOSE(	$NAME )	dBUG_LOCUS_CLOSE(	$NAME )
+#else
+	#define		dBUG_CoLOC(		$NAME )
+	#define		dBUG_CoLOC_CLOSE(	$NAME )
+#endif
 
 /*	xcª&=0xFFF8;
 	do{	*( (ui64*) (RW	+xcª ) )=0;
@@ -248,14 +337,15 @@
 	
 	
 	*/
+/*		RACK_iC			re-initialize vector map tracking coordinates to align with the next cube— possibly the first in a run	*/
+#define	RACK_iC		/*¿	bal_iC=0;	?*/	oc=	0;		xc	=  zc;					oCS =	16;	\
+		I[ v ] =I[ u ] =0;				ixº=	ocª=	xcª+	1;	xcª	+= zc +1;			iCI =	iC;				dBUG_RACK
 
-#define	RACK_iC			bal_iC=0;															\
-		I[ v ] =I[ u ] =0;					oc=	0;		xc	=  zc;					oCS =	16;	\
-						iCI = iC;	ixº=	ocª=	xcª+	1;	xcª	+= zc +1;								dBUG_RACK
+/*		TRACK_iC		advance vector map tracking coordinates to align with the next cube— creating or extending a run	*/
+#define	TRACK_iC		bal_iC=1; 	oc=	xc +	1;	xc	+= zc +1;					oCS += CSΩ -	16;			\
+									ocª=	xcª+	1;	xcª	+= zc +1;								dBUG_TRACK
 
-#define	TRACK_iC		bal_iC=1; 	oc=	xc +	1;	xc	+= zc	+1;				oCS += CSΩ -	16;			\
-									ocª=	xcª+	1;	xcª	+= zc	+1;							dBUG_TRACK
-
+/*		RUN_iC			RACK or TRACK, keeping unmodified cubes trimmed off the start of the cube run.				*/
 #define	RUN_iC	\
 		if(		ixM!=0xFF )	{							TRACK_iC;	O[ v ] =oCS;	dBUG_RT0	}	\
 		else if(	RW[ u ] >ok )	{	MkIn;	ReICEuO( u, v );	TRACK_iC;	O[ v ] =oCS;	dBUG_RT1	}	\
@@ -271,19 +361,6 @@
 		pq	=			cube +16;														\
 		zc	=	zcOf(	cube	);														dBUG_ReLOC_CLOSE( "ReABLOC_nocube")
 
-#define	ReINTERLOC¹																		dBUG_ReLOC( "ReINTERLOC1")	\
-		zcΩ = zc;	cubeΩ =	cube;	svΩ=sv;			CSΩ=SvCUR(	svΩ	= *(		iC +Aº ) );	/* O[v]=CSΩ;*/	\
-		ic=-1;			cube = cube¹;				CS = SvCUR(	sv	= *(++	iC +Aº ) );		\
-		pq	=			cube +16;														\
-		zc	=	zcOf(	cube	);														dBUG_ReLOC_CLOSE( "ReINTERLOC1")	\
-
-#define	ReINTERLOC																		dBUG_ReLOC( "ReINTERLOC")	\
-		zcΩ = zc;	cubeΩ =	cube;					CSΩ=SvCUR(	svΩ	= *(		iC +Aº ) );		/* O[v]=CSΩ;*/	\
-		ic=-1;			cube = SvPVbyte(						sv	= *(++	iC +Aº ),	CS	);				\
-		pq	=			cube +16;														\
-		zc	=	zcOf(	cube	);														dBUG_ReLOC_CLOSE( "ReINTERLOC")	\
-
-
 #define	PRIMOLOC		/*	Vectors [u, v] intralocate cube 0							*/	\
 	/*	MxINIT;	*/	cubeΩ =	nube;						CS = SvCUR(	sv=*Aº );		oCS	=	16;					\
 		zcΩ = -1;				CSΩ=16;		svΩ=NULL; 							iC=	iCI	=	0;					dBUG_LOCUS("PRIMOLOC");
@@ -294,11 +371,25 @@
 		MxINIT;				DeICEz_uKE_( 255 ); 									oCS	=	16;					dBUG_LOCUS("ANTELOC");
 		/*					^dependent on CS being up to date with SvCUR( cube )		*/
 
+
+#define	ReINTERLOC¹																		dBUG_ReLOC( "ReINTERLOC1")	\
+		ic	=-1;	cubeΩ =	cube;		svΩ	=	sv;			CSΩ =	CS;						\
+		zcΩ	=	zc;		cube =	cube¹;		sv	= *(++	iC +Aº );	CS = SvCUR( sv );			\
+				zc =zcOf(	cube );															\
+		pq	=			cube +16;														dBUG_ReLOC_CLOSE( "ReINTERLOC1")	\
+
+#define	ReINTERLOC																		dBUG_ReLOC( "ReINTERLOC")	\
+		ic	=-1;	cubeΩ =	cube;		svΩ	=	sv;			CSΩ =	CS;						\
+		zcΩ	=	zc;		cube =	SvPVbyte(	sv	= *(++	iC +Aº ),	CS	);					\
+				zc =zcOf(	cube );															\
+		pq	=			cube +16;														dBUG_ReLOC_CLOSE( "ReINTERLOC")	\
+
+
 /*		INTERLOC( $0, $1)		Vectors [u, v] interlocate the cusp of cubes iC-1 and iC			*/
 #define	INTERLOC( $0, $1)	/*	Vectors [u, v] interlocate the cusp of cubes iC-1 and iC			*/	\
-	xcª= xc= zc = zcOf( cube );								CS = SvCUR(	sv );			oCS	=	16;					\
-	bal_iC=0;	ocª= oc= ixº= 0;	\
-	u=$0; v=$1; K[$0] = cube[ 0];	DeICE0u(   	$0,	$1	);	E[ $0 ] =	*Edge( cubeΩ )	+A[$0] +B[$0];						\
+	v=$1; K[ u = $0 ] =	cube[ 0 ];	DeICE0u(   	$0,	$1	);	E[ $0 ] =	*Edge( cubeΩ )	+A[$0] +B[$0];						\
+	xcª= xc= zc =zcOf(	cube );										CS = SvCUR(	sv );	oCS	=	16;					\
+	ocª= oc= ixº= 0;			bal_iC=0;	\
 	I[$0] =ic =0;				RW[ $0  ]= mod;										iCI	=	iC;					dBUG_LOCUS("INTERLOC");	\
 
 /*		INTERLOC_NX			Vectors [0, 1] interlocate the cusp of cubes iC-1 and iC			*/
@@ -334,45 +425,45 @@
 #define	INTRaLOC1Up	/*	Vectors [u, v] intralocate opscope of x as cycla (ic-1, ic) in cube iC+1						*/	\
 	if(	zC 	!= iC ){	cubeΩ =	cube;		svΩ			=				sv;			oCS	=	16;					\
 		zcΩ = zcOf(	cubeΩ );	CSΩ=SvCUR(	svΩ );  cube	=	SvPVbyte(	sv =*( Aº +(	iCI=	++	iC ) ), CS	);			\
-	}else{			cubeΩ = (ui08*) SvPVbyte_nolen( *( Aº+iC-1) ); CS=SvCUR(	sv =*( Aº +(	iCI=		zC ) )	);	goto	_epiloc;		\
+	}else{			cubeΩ = (ui08*) SvPVbyte_nolen( *( Aº+iC-1) ); CS=SvCUR(	sv =*( Aº +(	iCI=		zC ) )	); GE	goto	_epiloc;		\
 		}																									dBUG_LOCUS("INTRaLOC1Up");
 	
 /*		INTRaLOC1Up_EX		Vectors [u, v] intralocate opscope of x as cycla (ic-1, ic) in cube iC+1  (exclusion op ver.)		*/
 #define	INTRaLOC1Up_EX	/*	Vectors [u, v] intralocate opscope of x as cycla (ic-1, ic) in cube iC+1  (exclusion op ver.)		*/	\
 	if(	zC != iC ){	cubeΩ =	cube;		svΩ			=				sv;			oCS	=	16;					\
 		zcΩ = zcOf(	cubeΩ );	CSΩ=SvCUR(	svΩ );  cube	=	SvPVbyte(	sv =*( Aº +(	iCI=	++	iC ) ), CS	);	\
-	}else{	miss+=1+za-a;								CS = SvCUR(	sv );			iCI=		zC;			goto	_exit_2;		\
+	}else{	miss+=1+za-a;								CS = SvCUR(	sv );			iCI=		zC;		G2	goto	_exit_2;		\
 		}																									dBUG_LOCUS("INTRaLOC1Up_EX");
 
 /*		CoINTRaLOC_IMPL(		$x, φ )		Vectors [u, v] intralocate opscope of next x as cycla (ic-1, ic) in current cube (iC)		*/
 #define	CoINTRaLOC_IMPL(		$x, φ )	/*	Vectors [u, v] intralocate opscope of next x as cycla (ic-1, ic) in current cube (iC)		*/		\
 	if(							$x φ E[ u ] ){																	dBUG_CoLOC( "CoINTRaLOC")		\
 		if( ixM == 0xFF){		/*	MkIn possible	*/																\
-			if(		RW[ v ] >ok ){	MkIn;		ReICEuO(	u, v );										u=v++;	dBUG_ƒSUB( 1	);	\
+			if(		RW[ v ] >ok ){	MkIn;		ReICEuO(	u, v );										u=v++;	dBUG_ƒSUB( 1 );	\
 				if(				$x φ E[ u ] ){	ReICEuOx(	u, v ); 					deIce_vKEI();			u=v++;	\
-					while(		$x φ E[ u ] ){	Oª[ v ] =Oª[ u ] +L[ u ];					DeICE_vKEI( u, v );		u=v++; }	dBUG_ƒSUB( 1	);	\
+					while(		$x φ E[ u ] ){	Oª[ v ] =Oª[ u ] +L[ u ];					DeICE_vKEI( u, v );		u=v++; }	\
 						}\
-			}else if(	RW[ u ] >ok ){	MkIn;		ReICEuO(	u, v );	if( RW[ v ] == null )	deIce_vKEI();			u=v++;	dBUG_ƒSUB( 2	);	\
-					while(		$x φ E[ u ] ){	Oª[v]=Oª[u] +L[u];						DeICE_vKEI( u, v );		u=v++; }	dBUG_ƒSUB( 2	);	\
-							/*	MkIn cancel	*/\
-			}else	{					/*	Oª[ v ] =Oª[ u ] +L[ u ];*/	if( RW[ v ] == null )	deIce_vKEI();			u=v++;	dBUG_ƒSUB( 3	);	\
-					while(		$x φ E[ u ] ){/* Oª[ v ] =Oª[ u ] +L[ u ];*/					DeICE_vKEI( u, v );		u=v++; }	dBUG_ƒSUB( 3	);	\
+			}else if(	RW[ u ] >ok ){	MkIn;		ReICEuO(	u, v );	if( RW[ v ] == null )	deIce_vKEI();			u=v++;	dBUG_ƒSUB( 2 );	\
+					while(		$x φ E[ u ] ){	Oª[v]=Oª[u] +L[u];						DeICE_vKEI( u, v );		u=v++; }	\
+							/*	MkIn cancelled */\
+			}else	{					/*	Oª[ v ] =Oª[ u ] +L[ u ];*/	if( RW[ v ] == null )	deIce_vKEI();			u=v++;	dBUG_ƒSUB( 3 );	\
+					while(		$x φ E[ u ] ){/* Oª[ v ] =Oª[ u ] +L[ u ];*/					DeICE_vKEI( u, v );		u=v++; }	\
 					}																						\
 		}else if(		RW[ v ] >ok ){				ReICEuOx(	u, v );										u=v++;	dBUG_ƒSUB( 11 );	\
 			if(					$x φ E[ u ] ){	ReICEuOx(	u, v );					deIce_vKEI();			u=v++;	\
-					while(		$x φ E[ u ] ){	Oª[ v ] =Oª[ u ] +L[ u ];					DeICE_vKEI( u, v );		u=v++; }	dBUG_ƒSUB( 11 );	\
+					while(		$x φ E[ u ] ){	Oª[ v ] =Oª[ u ] +L[ u ];					DeICE_vKEI( u, v );		u=v++; }	\
 					}\
 		}else if(		RW[ u ] >ok ){				ReICEuOx(	u, v );	if( RW[ v ] == null )	deIce_vKEI();			u=v++;	dBUG_ƒSUB( 12 );	\
-					while(		$x φ E[ u ] ){	Oª[ v ] =Oª[ u ] +L[ u ];					DeICE_vKEI( u, v );		u=v++; }	dBUG_ƒSUB( 12 );	\
+					while(		$x φ E[ u ] ){	Oª[ v ] =Oª[ u ] +L[ u ];					DeICE_vKEI( u, v );		u=v++; }	\
 		\
 		}else		{						Oª[ v ] =Oª[ u ] +L[ u ];	if( RW[ v ] == null )	deIce_vKEI();			u=v++;	dBUG_ƒSUB( 13 );	\
-					while(		$x φ E[ u ] ){	Oª[ v ] =Oª[ u ] +L[ u ];					DeICE_vKEI( u, v );		u=v++; }	dBUG_ƒSUB( 13 );	\
+					while(		$x φ E[ u ] ){	Oª[ v ] =Oª[ u ] +L[ u ];					DeICE_vKEI( u, v );		u=v++; }	\
 		}			}																						dBUG_CoLOC_CLOSE( "CoINTRaLOC")
 
-#define											_gt		>
-#define	CoINTRaLOC(    	$x )	CoINTRaLOC_IMPL( $x,	_gt		)
-#define											_gteq	>=
-#define	CoINTRaLOC_gteq(	$x )	CoINTRaLOC_IMPL( $x,	_gteq	)
+#define											φ_gt  	>
+#define	CoINTRaLOC(    	$x )	CoINTRaLOC_IMPL( $x,	φ_gt  	)
+#define											φ_gteq	>=
+#define	CoINTRaLOC_gteq(	$x )	CoINTRaLOC_IMPL( $x,	φ_gteq	)
 
 
 /*		CoANTELOC(  )		 	Vectors [u, v] interlocate opscope of next x, bridging cubes ( iC, iC+1 ).				*/
@@ -487,7 +578,7 @@
 		if( ixM != 0xFF ){ do	{					ReICEuOx(	u, v );	u=v++;										\
 						} while(	u< xcª	);																	dBUG_ƒSUB(13);	\
 	/*	MkIn:	before mods if any exist	*/	\
-		}else{ while( mod >RW[ u ] )	{								u=v++;	if( u == xcª ){	dBUG_ƒSUB(7);	goto	$END; }			\
+		}else{ while( mod >RW[ u ] )	{								u=v++;	if( u == xcª ){	dBUG_ƒSUB(7); G$($END); goto	$END; }			\
 								}	MkIn;	ReICEuO(	u, v );	u=v++;										\
 			while(				u< xcª	){	ReICEuOx(	u, v );	u=v++;	}									dBUG_ƒSUB(8);	\
 			}					\
@@ -508,8 +599,6 @@
 
 
 
-
-
 #define EPIGEN( $u, $v,			$OvR_PRO )																		dBUG_LOCUS("EPIGEN");	\
 	if( ixM==0xFF )				w = $v;							RW[ $u ]=epi;								\
 	do	{ /*		E[]				I []		A []		O []		B []		RW []		*/							\
@@ -524,21 +613,8 @@
 /*	cS=sprintf( aString, "\nEPIGEN: O[ v: %d]: %d )=(oCS: %d)+(CS:%d)-16;\n\n", $v, O[$v], oCS, CS );	AvDBUG_PUSH(aString, cS);	*/	\
 	if( bal_iC && iCI!=iC ) _sv_commit_nx();  else _sv_commit_1x();		ixM=0xFF;										dBUG_LOCUS_CLOSE("EPIGEN");
 
-#define NOTHING_2A( $1, $2 )
-#define EPI_NX_OVERRUN_PROTECT( $u, $v )	\
-		   if(	xcª >=224 )	{						O[ $v	]=oCS+CS-16;			ReICEuOx( $u, $v );			dBUG_OVERRUN_PROTECT;	\
-						MkOutZ(0);				Oª[ $v+1	]=Oª[ $v ]+L[ $v ];									\
-						if( bal_iC && iCI!=iC ) _sv_commit_nx();  else _sv_commit_1x();								\
-						if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();										\
-						if( za!=a )	{		x =ARG( ++a );						ixM=0xFF;	goto	_start;	\
-						} return;	}																		\
 
-#define EPI_EA_OVERRUN_PROTECT( $u, $v )	\
-		   if(	xcª >=224 )	{						O[ $v	]=oCS+CS-16;			ReICEuOx( $u, $v );			dBUG_OVERRUN_PROTECT;	\
-						MkOutZ(0);				Oª[ $v+1	]=Oª[ $v ]+L[ $v ];									\
-						if( bal_iC && iCI!=iC ) _sv_commit_nx();  else _sv_commit_1x();								\
-						if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();			ixM=0xFF;	*ctx=0;			RT	return;	\
-						}
+#define NOTHING_2A( $1, $2 )
 
 #define EPIGEN_1X( $u, $v )	EPIGEN( $u, $v, NOTHING_2A					)
 #define EPIGEN_NX( $u, $v )	EPIGEN( $u, $v, EPI_NX_OVERRUN_PROTECT		)

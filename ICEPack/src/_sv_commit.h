@@ -78,11 +78,6 @@ extern	unsigned short 	subcase;
 	#define ƒSUBΩ_D
 	#define ƒSUBΩ_E
 #endif
-#ifdef DEBUG_SvCOMMIT_ARCH
-	#define	dBUG_SvGROW_MOOT_COPY( cubeº, cube¹, o$ )	if( &cubeº != &cube¹ ) if( cubeº[ o$ ] != cube¹[ o$ ] ) printf("\nSvGROW moot copy prevention validated.\n"); 
-#else
-	#define	dBUG_SvGROW_MOOT_COPY( cubeº, cube¹, o$ )
-#endif
 
 #ifdef DEBUG_SvCOMMIT_L2
 	/*		SvCOMMIT OP		glyph			bytes		dst		dst: 1st	dst: last		src		src: 1st	src: last			shift		*/
