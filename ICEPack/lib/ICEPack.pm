@@ -297,8 +297,8 @@ sub test_set_precursors{
 
 	#	print( "\n\$ICE->set( [ ", join(', ', @$args ), " ] );	\n");
 		ICEPack::snapshot(		$ICE);
-	#	ICEPack::set(			$ICE, $args );
-		ICEPack::set_all(		$ICE, $args );
+		ICEPack::set(			$ICE, $args );
+	#	ICEPack::set_all(		$ICE, $args );
 	#	ICEPack::set_norebal(	$ICE, $args );
 	#	$found = $ICE->has( $args	);
 
@@ -315,22 +315,21 @@ sub test_set_precursors{
 			print("\n...\n");
 			print(	"pre:",						@{ ICEPack::toTextX(	$ICE_B4	)	},
 					"post:",						@{ ICEPack::toTextX(	$ICE	)	},	"\n\n",
-					"#precursor: \n\n[ #", scalar @precursors >>1, "\n",
-												@{ ICEPack::toHex(	$ICE_B4	)	},
+		#			"#precursor: \n\n[ #", scalar @precursors >>1, "\n",
+		#										@{ ICEPack::toHex(	$ICE_B4	)	},
 					"], [	",			join(",", map { sprintf("%X", $_) }	@{	$args	}	), "],	#hex\n\n"	);
 
-			$ICE->excludes( \@post_args );
-			print(	"#missing keys:\n",
-					"		[	",	join(",",							@post_args	), "],  #dec\n",
-					"		[	",	join(",", map { sprintf("%X", $_) }		@post_args	), "],  #hex\n\n");
+		#	$ICE->excludes( \@post_args );
+		#	print(	"#missing keys:\n",
+		#			"		[	",	join(",",							@post_args	), "],  #dec\n",
+		#			"		[	",	join(",", map { sprintf("%X", $_) }		@post_args	), "],  #hex\n\n");
 														printf("\n\n\n\t\t\t\t######	fail #%-3d ######\n\n\n", $r>>1);
 			exit;
 		}else{											printf("\t\t\t\t######	pass #%-3d ######", $r>>1);
 
 	#		$ICE_B4=ICEPack::getSnapshot();					print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
-	#		print(	"pre:",						@{ ICEPack::toTextX(	$ICE_B4	)	},
-	#				"post:",						@{ ICEPack::toTextX(	$ICE	)	},	"\n\n" );
 	#		printf("\naudit:\n\n");	printAvDBUG();	print("\n\n\n\n\n\n");
+	#		print(	"post:",						@{ ICEPack::toTextX(	$ICE	)	},	"\n\n" );
 	
 	#		print(	"\n\n",
 	#				"#precursor: \n\n[ #", scalar @precursors >>1, "\n",
@@ -474,11 +473,11 @@ sub test_prompt{
 #	my $ICE=av2ICE( $A1 );
 	my $ICE=av2ICE(	[	#hand-crafted to target NX3
 #	0					1					2					3					4					5					6					7					
-	0		..7,			10		..15,			20		..27,			30		..36,			40		..47,			50		..58,			60		..67,			72		..75,	
-	77		..99,			100		..111,		200		..222,		300		..333,		400		..414,		500		..555,		600		..666,		700		..777,
-	900		..999,		1000	..1111,		1200	..1222,		1300	..1333,		1400	..1444,		1500	..1555,		1600	..1666,		1700	..1777,
-	1900	..1999,		2000	..2111,		2200	..2222,		2300	..2333,		2400	..2444,		2500	..2555,		2600	..2666,		2700	..2777,
-	2900	..2999,		3000	..3111,		3200	..3222,		3300	..3333,		3400	..3444,		3500	..3555,		3600	..3666,		3700	..3777,
+	0		..7,			9, 12..13,				20		..27,			30		..36,			40		..47,								60		..67,			72		..75,			undef,
+	77		..99,			100		..111,		200		..222,		300		..333,		400		..414,							600		..666,		700		..777,		undef,
+	900		..999,							1200	..1222,		1300	..1333,		1400	..1444,		1500	..1555,		1600	..1666,							undef,
+	1900	..1999,		2000	..2111,												2400	..2444,		2500	..2555,							2700	..2777,		undef,
+	2900	..2999,		3000	..3111,		3200	..3222,		3300	..3333,												3600	..3666,		3700	..3777,		undef,
 	3900	..3999,		4000	..4111,		4200	..4222,		4300	..4333,		4400	..4444,		4500	..4555,		4600	..4666,		4700	..4777,
 #	99		..100,		110		..111,		120		..122,		130		..133,		140		..144,		150		..155,		160		..166,		170		..177,
 #	100		..107,		110		..116,		120		..127,		130		..138,		140		..147,		150		..155,		160		..167,		170		..176,
@@ -512,7 +511,7 @@ sub test_prompt{
 					}
 
 		}elsif(	ord($_)==62){	#	">"
-				print("\nxalloc0x7asc(", join(', ', @A1 ), ")==",$ICE->xalloc0x7asc(	\@A1	)	);
+				print("\nxalloc0x7asc(", join(', ', @A1 ), ")==",$ICE->xalloc0x7(	\@A1	)	);
 				
 		}elsif(	ord($_)==64){	#	"@"
 									if( $#A1 >-1 )	{					avArg_init( $A1[0] );
@@ -607,7 +606,8 @@ sub test_set($$$$$){		#\	Test ICEPack::set() by saturating the namespace range w
 			or	not	$ICE->addsUp()				# addsUp():		checks each cube's stored epsilon value against the sum of its cycla
 		#		exitCode()
 				){				++$fail;							print("\n\ntest $T failed	 ", scalar localtime(), "\n");
-				printf("\naudit:\n\n");				printAvDBUG();	print("\n\n\n\n\n\n");
+				progress();	print("\n");
+		#		printf("\naudit:\n\n");				printAvDBUG();	print("\n\n\n\n\n\n");
 				$ICE_B4=ICEPack::getSnapshot();	print("\n snapshot AV in Perl has $#$ICE_B4+1 elements\n");
 
 				print("\n\npre op:\n[\n");			print(	@{ ICEPack::toHex(	$ICE_B4	)	},	"\n],	[", join(",", map { sprintf("0x%X", $_) }	@args_B4	), "],\n\n");
@@ -3648,6 +3648,92 @@ sub relay_race{	my $NS =	@_>0?	int( $_[0] ):	0x1FFF;	my $NSx1000=$NS/10000;	if( 
 		0x101CD,
 		0x101D6, #  	0x101DE,	0x101F2,
 		0x101FF
+		],
+	[	# 128	hits _set() and _set_ea(), but not _set_norebal().
+		#0				1					2				3				4				5				6				7
+	0xFFF00F,			0xFFF063,			0xFFF079,		0xFFF0CE,		0xFFF0FD,		0xFFF10B,		0xFFF1B4..0xFFF1B5,0xFFF1D3,			undef,
+	0xFFF1DD,			0xFFF1E8,			0xFFF204,		0xFFF261,		0xFFF27F,		0xFFF2A1,		0xFFF2C9,		0xFFF2D8,			undef,
+	0xFFF303,			0xFFF326,			0xFFF33C,		0xFFF349,		0xFFF364,		0xFFF377,		0xFFF3A2,		0xFFF3CB..0xFFF3CC,	undef,
+	0xFFF3D5,			0xFFF3F6,			0xFFF3F9,		0xFFF413,		0xFFF445,		0xFFF44E,		0xFFF452,		0xFFF45A,			undef,
+	0xFFF45F..0xFFF460,	0xFFF4B6..0xFFF4B7,	0xFFF4BA,		0xFFF4C4,		0xFFF4D3,		0xFFF4DD,		0xFFF521,		0xFFF53A,			undef,
+	0xFFF589,			0xFFF5B4,			0xFFF6C0,		0xFFF6EB,		0xFFF762,		0xFFF764,		0xFFF791,		0xFFF796,			undef,
+	0xFFF7C0,			0xFFF7CF,			0xFFF7E1,		0xFFF7FD..0xFFF7FE,0xFFF802,		0xFFF86B,		0xFFF8B3,		0xFFF8CD,			undef,
+	0xFFF8D0,			0xFFF8E0,			0xFFF90B,		0xFFF91A,		0xFFF939,		0xFFF944..0xFFF945,0xFFF993,		0xFFF9F1,			undef,
+	0xFFFA31,			0xFFFA6A,			0xFFFA9D,		0xFFFAA1,		0xFFFABF..0xFFFAC0,0xFFFAD9,		0xFFFB44,		0xFFFB49,			undef,
+	0xFFFB63,			0xFFFB7A,			0xFFFB8A,		0xFFFB9E,		0xFFFBA0,		0xFFFBBE,		0xFFFBC0,		0xFFFBC2,			undef,
+	0xFFFBE7,			0xFFFBF8,			0xFFFC0B,		0xFFFC38,		0xFFFC52,		0xFFFC54,		0xFFFC70,		0xFFFCA1,			undef,
+	0xFFFCD0,			0xFFFCDE,			0xFFFCF8,		0xFFFD0E,		0xFFFD19,		0xFFFD44,		0xFFFD55,		0xFFFD5B..0xFFFD5C,	undef,
+	0xFFFD98,			0xFFFD9C..0xFFFD9D,	0xFFFDA4,		0xFFFDB7,		0xFFFDF1,		0xFFFE23,		0xFFFE45,		0xFFFE51,			undef,
+	0xFFFE6E,			0xFFFE78,			0xFFFE83,		0xFFFEA7,		0xFFFED5,		0xFFFF1C,		0xFFFF24,		0xFFFF3E,			undef,
+	0xFFFF5E,			0xFFFFDD,			0x1000004,		0x100001E,		0x100002E,		0x100009E,		0x10000F3,		0x1000107,			undef,
+	0x100011A,			0x1000145,			0x100016C,		0x1000172,		0x1000181,		0x100019D,		0x10001E4,		0x100023A,			undef,
+	0x1000241,			0x100024D,			0x100026E,		0x1000289,		0x1000291,		0x100029B,		0x10002AB,		0x10002C7,			undef,
+	0x10002D8,			0x1000364,			0x100036B,		0x100039E,		0x10003CF,		0x10003F2,		0x1000414,		0x1000422,			undef,
+	0x100042E,			0x1000434,			0x100043A,		0x1000459,		0x1000463,		0x1000471,		0x1000506,		0x1000520,			undef,
+	0x1000531,			0x1000554,			0x1000573,		0x1000590,		0x1000599,		0x10005AA,		0x10005DA,		0x1000617,			undef,
+	0x1000651,			0x100065C,			0x10006EF,		0x100070C,		0x100071B,		0x100072A,		0x1000738,		0x100073C,			undef,
+	0x10007EF..0x10007F0,	0x10007FE,			0x1000805,		0x100080A,		0x1000817,		0x100081B,		0x1000822,		0x1000837,			undef,
+	0x1000867..0x1000868,	0x100088E,			0x10008A4..0x10008A5, 0x10008B7, 	0x10008D5..0x10008D6,0x100090D,	0x100092E,		0x100097D,			undef,
+	0x100098C,			0x1000995,			0x10009A5,		0x10009C8,		0x10009CA,		0x10009DB,		0x10009DF,		0x10009F0,			undef,
+	0x1000A19,			0x1000A1D,			0x1000A2B,		0x1000A38,		0x1000A70,		0x1000A79,		0x1000A82,		0x1000AA6,			undef,
+	0x1000ABA,			0x1000ABC,			0x1000AE3,		0x1000AF5,		0x1000B4A,		0x1000B75,		0x1000B77,		0x1000B8D,			undef,
+	0x1000BB4,			0x1000BEB,			0x1000C34,		0x1000C41,		0x1000C44,		0x1000C5B,		0x1000C6C,		0x1000C8A,			undef,
+	0x1000CB1..0x1000CB2,	0x1000CBF,		0x1000CD4,		0x1000CD7,		0x1000CE1,		0x1000D1B,		0x1000D3A,		0x1000D48,			undef,
+	0x1000D53,			0x1000D75,			0x1000D95,		0x1000D98,		0x1000DA0,		0x1000DC1,		0x1000DE5,		0x1000DEE,			undef,
+	0x1000E0C,			0x1000E11..0x1000E12,	0x1000E64,		0x1000EC7,		0x1000F21,		0x1000F88,		0x1000FD1..0x1000FD2,0x1000FDB,
+
+	],	[#	omg.  I'm shaking.  ƒsub 1x4 was never made ixº aware. That took two days to figure out.  Ohmygod.
+#	The way it presented, RACK_iC fired directly after a hard flush, and of course I assumed it was something to do with that.
+#	Yes and no.  There wouldn't have been an ixº value were it not for the RACK.
+#	In the process of debugging xcª_HARD_OVERRUN_PROTECT, I duplicated the function initialization with one small dif:
+#	(lo) retains the old value of zC, pre _av_commit(), which minimizes the next initial search window somewhat.
+#	Is it a major optimization?  I'd rather do without hard flush altogether, but I guess when you gotta go you gotta go.
+
+#		0xFFF016,
+#				0xFFF020,
+						0xFFF02A,0xFFF03C,
+		0xFFF03E,0xFFF042,0xFFF04B,0xFFF04D,
+		0xFFF04E,0xFFF060,0xFFF0A1,0xFFF0BA,
+		0xFFF0CA,0xFFF0D9,0xFFF0FC,0xFFF16B,
+		0xFFF17D,0xFFF193,0xFFF1B4,0xFFF1DB,
+		0xFFF1E0,0xFFF1FF,0xFFF21E,0xFFF25A,
+		0xFFF25C,0xFFF288,0xFFF2BC,0xFFF309,
+		0xFFF340,0xFFF367,0xFFF385,0xFFF3AA,
+		0xFFF3B0,0xFFF3E2,0xFFF433,0xFFF438,
+		0xFFF439,0xFFF465,0xFFF46E,0xFFF4B2,
+		0xFFF4DF,0xFFF4EF,0xFFF57D,0xFFF5BB,
+		0xFFF60E,0xFFF61C,0xFFF689,0xFFF697,
+		0xFFF69F,0xFFF6FD,0xFFF750,0xFFF765,
+		0xFFF80B,0xFFF80D,0xFFF830,0xFFF845,
+		0xFFF865,0xFFF86C,0xFFF883,0xFFF8BA,
+		0xFFF8E5,0xFFF903,0xFFF995,0xFFF99C,
+		0xFFF9A8,0xFFF9BF,0xFFF9C2,0xFFFA11,
+		0xFFFA3C,0xFFFA49,0xFFFA72,0xFFFA88,
+		0xFFFAC8,0xFFFAF5,0xFFFB12,0xFFFB37,
+		0xFFFB41,0xFFFB45,0xFFFB56,0xFFFB66,
+		0xFFFB80,0xFFFB9F,0xFFFBC8,0xFFFBF7,
+		0xFFFC11,0xFFFC1A,0xFFFC24,0xFFFC3A,
+		0xFFFC3F,0xFFFC5A,0xFFFC60,0xFFFC62,0xFFFC8F,0xFFFCD0,0xFFFCF5,0xFFFD0B,
+		0xFFFD13,0xFFFD46,0xFFFD5C,0xFFFD70,0xFFFDB0,0xFFFDC3,0xFFFDEA,0xFFFE02,
+		0xFFFE1F,0xFFFE2A,0xFFFE47,0xFFFE54,0xFFFE55,0xFFFE5C,0xFFFE76,0xFFFE84,
+		0xFFFE9E,0xFFFEB1,0xFFFEB5,0xFFFECE,0xFFFEEB,0xFFFEF6,0xFFFEF9,0xFFFEFA,
+		0xFFFF0E,0xFFFF17,0xFFFF4F,0xFFFF70,0xFFFFB9,0xFFFFDB,0xFFFFDE,0xFFFFE9,
+		0x100004B,0x1000057,0x1000058,0x1000059,0x1000065,0x1000081,0x1000089,0x10000A6,
+		0x10000AB,0x10000BD,0x10000D0,0x1000134,0x1000155,0x1000157,0x100015B,0x1000161,
+		0x10001AB,0x10001C2,0x10001CF,0x10001E6,0x1000243,0x100025B,0x100029E,0x10002BB,
+		0x10002C3,0x10002CC,0x10002D9,0x1000350,0x1000361,0x100037F,0x10003D3,0x10003D5,
+		0x10003D6,0x10003D8,0x10003F2,0x1000411,0x1000442,0x1000451,0x1000458,0x100045D,
+		0x1000468,0x100048A,0x1000494,0x10004D1,0x10004D5,0x10004D6,0x1000505,0x1000514,
+		0x100051A,0x1000548,0x100054C,0x100054F,0x10005F0,0x100061F,0x100062C,0x1000635,
+		0x1000639,0x100064E,0x100064F,0x1000662,0x10006B8,0x10006E9,0x1000703,0x100079F,
+		0x10007E3,0x1000800,0x1000846,0x1000890,0x100089D,0x10008AC,0x10008B8,0x100090E,
+		0x1000932,0x1000950,0x1000974,0x10009A6,0x10009B2,0x10009B6,0x1000A25,0x1000A44,
+		0x1000B13,0x1000B35,0x1000B3F,0x1000B50,0x1000B5C,0x1000B66,0x1000B9F,0x1000BB5,
+		0x1000C30,0x1000C50,0x1000C75,0x1000CD3,0x1000CDC,0x1000CDF,0x1000CE5,0x1000D11,
+		0x1000D27,0x1000D51,0x1000D56,0x1000D8C,0x1000D91,0x1000D93,0x1000D97,0x1000DA6,
+		0x1000DAD,0x1000DB2,0x1000DBE,0x1000DE7,0x1000DFF,	0x1000E11,0x1000E12,	0x1000E6F,0x1000EA0,
+		0x1000EA4,0x1000EC8,0x1000EEF,0x1000EF2,0x1000EF8,0x1000EFE,0x1000F02,0x1000F1B,
+		0x1000F37,0x1000F3E,0x1000F43,0x1000F44,0x1000F94,0x1000FB6,0x1000FE3,0x1000FFA
 		],
 
 		);
