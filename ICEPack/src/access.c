@@ -36,10 +36,6 @@ extern	void	_av_commit(),
 			_print_mx( unsigned char mx_max, short ix¹, short izΩ );
 
 
-#if defined( DEBUG_SvCOMMIT_L0 ) || defined( DEBUG_SvCOMMIT_L1 ) || defined( DEBUG_SvCOMMIT_L1X )
-size_t			avdbuginx_dmarkcase;
-unsigned short 	subcase;
-#endif
 //	camelCase				JavaScript, Java
 //	snake_case				Python, Ruby, C/C++ standard libraries
 //	SCREAMING_SNAKE_CASE	Constants in C, Java, JavaScript
@@ -302,62 +298,7 @@ int		Xmin = -1,
 		Xmax = -1;
 
 /*	Failed experiment: a linked-list based argument sorting construct (a linked list cannot be searched)
-	As I thought through how this would have to work, as a layered hierarchy / regression matrix, I realized
-	I am recreating ICEPack.  *Edge is our 1:1 regular vector space for searching, and *( (ui64*) cube ) is our bucket.
-	Our cube construct is not optimized or even designed for temporary sorting, and neither is our encoding.
-	However, if I made the encoding layer modular, I could create a set of variant accessors which use uncompressed cubes—
-	dynamically allocated vector maps, just like the main one, but only (8) elements wide.
-	When we call ReICEuOx, it would just copy data from the main vmap to the dynamic one.
-	Is that saving us any much time?  Only the cost of encoding the keybyte, and the L2 cache load of those "switch" statements.
-	*/
-/*
-void _avArg_init( ui64 x ){									printf("\n %s( %lld )\n", __FUNCTION__, x );
-		Xmin			=
-		Xmax			= 0x7FFF; 	//absolute value:	the medial index is the first to be assigned
-	X[	0x7FFF	].fwd_vc	= 0x8000; 	//relative value:	undefined indeces following	medial index 0x7FFF in NS 0xFFFF
-	X[	0x7FFF	].rev_vc	= 0x7FFE; 	//relative value:	undefined indeces preceding	medial index 0x7FFF in NS 0xFFFF
-	X[	0x7FFF	].next	=
-	X[	0x7FFF	].gt    	=
-	X[	0x7FFF	].lt		= 0;
-	X[	0x7FFF	].x    	= x;
-	}
-void _avArg_ins( ui64 x ){	unsigned short	i=0x7FFF, iº, i¹, d;	printf("\n %s( %lld )\n", __FUNCTION__, x );
-	while(1){						// drill down while there is an existing binary path
-		if(		X[ i ].x<	x	){	if(		X[ i	].gt	)		{	printf("\r	(x: %lld )	> ( X[ i:%d ].x: %lld )...	\n", x, i, X[i].x );	i = X[ i ].gt;
-								}else{
-									if(	X[ i	].fwd_vc )	{	d =	X[ i	].fwd_vc	>>1;
-														iº=i +( 	X[ i	].fwd_vc	- d	);
-																X[ iº	].fwd_vc	= d;
-														;		X[ i	].fwd_vc	=		X[ iº	].rev_vc	= d-1;
-															printf("\r*	(x: %lld )	> ( X[ i: %d ].x: %lld );	i\xA7==%d	\n", x, i, X[i].x, iº );
-									}else /* rebal *//* 		{	printf("\r*	(x: %lld )	> ( X[ i: %d ].x: %lld );	i\xA7==%d	*rebal* \n", x, i, X[i].x, iº );
-														}
-									X[ iº	].x	= x;
-									X[ iº	].lt	= X[ iº ].gt	= 0;
-									X[ i	].gt	= iº;
-									if( iº >Xmax ) 	Xmax	= iº;	return;
-									}
-		}else if(	X[ i ].x !=	x	){	if(		X[ i	].lt	)		{	printf("\r	(x: %lld )	< ( X[ i:%d ].x: %lld )...	\n", x, i, X[i].x );	i = X[ i ].lt;
-								}else{
-									if(	X[ i	].rev_vc )  	{	d =	X[ i	].rev_vc	>>1; 	
-														iº=i-	d-1;	X[ iº	].rev_vc	=		X[ i	].rev_vc	- d -1;
-														;		X[ i	].rev_vc	=		X[ iº	].fwd_vc	= d;
-															printf("\r*	(x: %lld )	< ( X[ i: %d ].x: %lld );	i\xA7==%d	\n", x, i, X[i].x, iº );
-									}else /* rebal *//*		{	printf("\r*	(x: %lld )	< ( X[ i: %d ].x: %lld );	i\xA7==%d	*rebal*\n", x, i, X[i].x, iº );
-														}
-									X[ iº	].x	= x;
-									X[ iº	].lt	= X[ iº ].gt	= 0;
-									X[ i	].lt	= iº;
-									if( iº< Xmin ) 	Xmin	= iº;	return;
-									}
-		}else												return;
-		}
-	}
-void _avArg_print(){		unsigned short	i=Xmin;	printf("\n [");
-	if( i!=Xmax)	do	{	printf("%d, ", X[ i ].x );
-						i += X[ i ].fwd_vc +1;
-					}while( i );						printf("]\n");
-	}	*/
+	[deleted 2026-11-19, see prior backups]	*/
 	
 /*	Shared context with AvPOST(...), AvCUT1B4(...) & AvCUT_B4(...) defined in AvSEQ.h,  and _av_commit() defined in _av_commit.c:	*/
 
@@ -451,10 +392,8 @@ void deIce_vEI(){	DeICE_vEI(	u, v );	}
 void deIce_vKE(){	DeICE_vKE(	u, v );	}
 //void deIce_vKI(){	DeICE_vKI(	u, v );	}
 void deIce_vKEI(){	DeICE_vKEI(	u, v );	}
-//void deIce_vKEI2(){	DeICE_vKEI2(	u, v );	}
 void reIce_uO(	ui16 u, ui16 v)	{	ReICEuO(	u, v );	}
 void reIce_uOx(	ui16 u, ui16 v)	{	ReICEuOx(	u, v );	}
-
 
 
 #ifdef EXPERIMENTAL_ENABLE
@@ -547,5 +486,4 @@ EPILOC and CoEPILOC initialize / continue buffering to the end of the last cube 
 
 The newest addition is PRIMOLOC, which is a special case for marking-in a cube run starting at the 0th cube.
 
-
-*/
+*/	

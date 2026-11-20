@@ -15,7 +15,7 @@ void	_unset(){
 	ui64						x	= ARG0, x1 = x+1;		za =	AvFILLp(	avArg);	if( za ==-1){	/*	no args	*/	return;	}
 	_start:			zzC=(	zC	= AvFILLp(	avICE ) )-1;					if( zC ==-1){	miss+=1+( za-a );	return;	}
 	ui64				nC = 	zC+1,					lo=0, hi=nC;		
-	INIT_MxRACK(64);		/*	^ value to reset upper boundary (hi) to	*/
+	ixM=0xFF;			/*	^ value to reset upper boundary (hi) to	*/
 	INIT_AvCOMMIT;						cube	=	SvPVbyte_nolen(	*Aº );	// so, x is probably not in cube 0, but we handle it now to eliminate checking for it constantly
 if( 	/*	x1 not in cube 0	*/	x1>=*Edge(	cube	) ){							iC= hi>>1;
   do	{_search:								cube	=	SvPVbyte_nolen(	sv =*(	iC +Aº ) );
@@ -51,7 +51,7 @@ if( 	/*	x1 not in cube 0	*/	x1>=*Edge(	cube	) ){							iC= hi>>1;
 					if( 1	!=	d )	{OpC;		E[ v ] = E[ u ];		A[ v ]=1;		B[ v ]=d-1;		vNEW;	O[v+1]=O[v];	L[v]=L[u];
 					  ++	xcª;					E[ u ] = x; 		/*	i +=	*/	B[ u ]-=d;			uMOD;	O[ v ]=O[ u ];	I[ v ] = I[ u ];	L[ v ]=0;
 						if( xcª >=	224	)	{											SvCOMMIT;
-						/* HARD FLUSH */	if( dsc || rSeqIns[0] || rSeqCut[0] )					_av_commit();				dBUG_OVERRUN_PROTECT;
+						/* HARD FLUSH */	if( dsc || rSeqIns[0] || rSeqCut[0] )					_av_commit();				dBUG_OVERRUN;
 										if( za != a ){	x1=( x = ARG( ++a ) )+1;							goto	_start; }
 										else   													return;
 										}

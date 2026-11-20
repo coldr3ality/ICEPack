@@ -92,7 +92,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 			rel_q,/*	relº_q,		rel¹_q,		relⁿ_q,		rel²_q,	*/	relΩ_q,		/*	q-data length difference		compares	pre & post op q-data totals	in	matrix { A[], B[], E[], L[] }	*/
 			rel_c, /*	relº_c,	*/	rel¹_c,		relⁿ_c,		rel²_c,		relΩ_c;		/*	cycla count difference		compares	pre & post op cyclum counts	in	matrix { A[], B[], E[], L[] }	*/
 
-#if defined( DEBUG_SvCOMMIT_L0 ) || defined( DEBUG_SvCOMMIT_L1 )
+#if defined( DEBUG_SvCOMMIT_L0 ) || defined( DEBUG_SvCOMMIT_L1 ) || defined( DEBUG_SvCOMMIT_L1X )
 	subcase=0;
 	av_push( avDBUG, &PL_sv_undef );	avdbuginx_dmarkcase=AvFILLp( avDBUG );	//reserve a point in the debug output for dBUGNX3 messages
 #endif
@@ -164,7 +164,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 		/*	[iC+0]:	IN-SITU HIGHPASS REFLOW			(ƒsub NX1)									*/
 		
 		if(			relΩ_q >0 ){	/*	expand	*/					SvCUR_set(	svΩ, 	O[ ixM ]  	);	/* prevent copying obsolete data	*/
-														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);			dBUG_SvGROW_MOOT_COPY( cube, cubeΩ, O[ ixM ] );
+														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);			
 				if(	hp_q	)	{	ReFLOW_DX(	cube,	cubeΩ,	relΩ_q, hp_q,	CSΩ,	CS,				__LINE__ );	}
 		}else if(		relΩ_q< 0 ){	/*	compact	*/			cubeΩ =	cube;				hpΩ_o =16 +O[ ixH ] -oCS;
 				if(	hp_q	)	{	ReFLOW_AC(	cube,	cubeΩ,	relΩ_q, hp_q,	Oª[ ixH],	hpΩ_o,			__LINE__ );	}
@@ -236,7 +236,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 								} while(	u<	ixΩ );	}												dBUG_NX2L;
 		/*	[iCI ]: 	RESIZE LOW CUBE 					(ƒsub NX2L )								*/	
 			if(		CSI	<  Oª[ ixΩ ]	)	{					SvCUR_set(	svI,	 	O[ ixM ]  	);	/* prevent copying obsolete data	*/
-					/*	 expand cubeº	*/			cubeº =		SvGROW(	svI,	 			Oª[ ixΩ]+1 );	dBUG_SvGROW_MOOT_COPY( cube, cubeº, O[ ixM ] );
+					/*	 expand cubeº	*/			cubeº =		SvGROW(	svI,	 			Oª[ ixΩ]+1 );	
 			}else								cubeº =		SvPVbyte_nolen( svI );	cubeº[	Oª[ ixΩ] ]=0;	dBUGsvCUR( svI, Oª[ixΩ] );
 					/* set Edge of cubeº*/	*Edge(	cubeº )=E[ izº];	SvCUR_set(	svI,	/*	CSº = */	Oª[ ixΩ] );
 
@@ -292,7 +292,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 		/*	[iCZ ]:	IN-SITU HIGHPASS REFLOW			(ƒsub NX2H)									*/
 			if(			relΩ_q >0) {	/*	expand	*/				SvCUR_set(	svΩ, 	O[ ixM ]  	);	/*	prevent copying obsolete data	*/
 		//	if(			relΩ_q >0) {	/*	expand	*/				SvCUR_set(	svΩ, 	16  	);		/*	try this instead!	*/
-														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);			dBUG_SvGROW_MOOT_COPY( cube, cubeΩ, O[ ixM ] );
+														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);			
 									ReFLOW_DX(	cube,	cubeΩ,	relΩ_q, hpΩ_q,		CSΩ,	CS,		__LINE__ );
 			}else if(		relΩ_q< 0) {	/*	compact	*/		cubeΩ =	cube;
 									ReFLOW_AC(	cube,	cubeΩ,	relΩ_q, hpΩ_q,	16+Oª[ ixH]-O[ixΩ],	16+O[ ixH]-oCS,	__LINE__ );
@@ -343,7 +343,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 									
 		/*	[iCZ ]:	IN-SITU HIGH CUBE HIGHPASS REFLOW	(ƒsub NX2M)								*/
 			if(			relΩ_q >0 ){	/*	expand	*/				SvCUR_set(	svΩ, 	O[ ixM ]  	);	/* prevent copying obsolete data	*/
-														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);			dBUG_SvGROW_MOOT_COPY( cube, cubeΩ, O[ ixM ] );
+														cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);			
 									ReFLOW_DX(	cube,	cubeΩ,	relΩ_q, hpΩ_q, CSΩ,				CS,				__LINE__ );
 			}else if(		relΩ_q< 0 ){	/*	compact	*/		cubeΩ =	cube;
 									ReFLOW_AC(	cube,	cubeΩ,	relΩ_q, hpΩ_q, 16+Oª[ ixH]-Oª[ixΩ],	16+O[ ixH]-oCS,	__LINE__ );
@@ -655,7 +655,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 			}else	  		{		MOD_CUBE_Ω_AS_MODSxHPASS();									ƒSUBΩ_D;
 			}				}																		*Edge( cube² ) = E[ iz² ];
 
-		/*	[iC+X]:	ƒsub NXN-xxAxx:	NEW CUBEⁿ AS MODS 											*/
+		/*	[iC+X]:	ƒsub NXN-xxAxx:	NEW CUBEⁿ AS MODS 											*/	dBUG_NX4;
 		if( nCª){		
 		  do	{		_ixⁿ = ixⁿ+7;			CSⁿ = 16 +Oª[ _ixⁿ ] - Oª[ ixⁿ ];
 			if( CSⁿ<16 || CSⁿ >144 ){	printf( "\n(CS\xFC: %lld) = 16 +( O\xA6[ _ix\xFC: %d ]: %d ) - ( O\xA6[ ix\xFC: %d]: %d );\n",
@@ -674,7 +674,7 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 			} while( --nCª );
 			}
 
-		cube²[		CS²	] = 0;		AvPOST( iCI, sv² );													dBUG_NX4;
+		cube²[		CS²	] = 0;		AvPOST( iCI, sv² );													
 																}/*
 
 
@@ -690,4 +690,4 @@ void _sv_commit_nx( ){	//	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() 
 
 	}
 
-/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***	***	*/
+/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***	***	***	***	**/

@@ -223,14 +223,15 @@ dst:	.......|+‡...............|++‡...|+++++++‡............|++‡....|‡..
 	dsc=asc=juke=0;
 
 	if( AvFILLp( avICE ) != post_zC ) AvFILLp( avICE ) = post_zC;
-	for(; zsc>=0; --zsc ){
+
+/*	for(; zsc>=0; --zsc ){
 		rSeq_iR[	zsc ]=-1;
 		rSeqIns[	zsc ]=0;
 		rSeqCut[	zsc ]=0;
 		rSeqSrc[ 	zsc ]=0;
 		rSeqDst[	zsc ]=0;
 		rSeq_SV[	zsc ]=NULL;
-		}
+		}	*/
 //	if( xcª -ixº <1 ){ printf( "\r	_av_commit() exit	%s %s line %d\n", __FUNCTION__, __FILE__, __LINE__ ); }
 	}
 

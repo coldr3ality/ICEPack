@@ -52,7 +52,7 @@ void	_ctx_commit(	char *ctx ){	ui64 x;//for debugging
 		case 2:	*ctx=0;										O[ v	]=oCS+CS-16;			ReICEuOx( u, v );
 				MkOutZ(0);									Oª[ v+1	]=Oª[ v ]+L[ v ];
 				if( bal_iC && iCI< iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;
-				if( dsc || rSeqIns[0] || rSeqCut[0] )		_av_commit();										RT	return;
+				if( dsc || rSeqIns[0] || rSeqCut[0] )			_av_commit();										RT	return;
 		case 3:	*ctx=0;
 	_sv_commit:	SvCOMMIT;
 				if( dsc || rSeqIns[0] || rSeqCut[0] )			_av_commit();
@@ -60,12 +60,13 @@ void	_ctx_commit(	char *ctx ){	ui64 x;//for debugging
 
 #define	CHK_CTX( $n )	if( *ctx != $n ){	printf("\n!	*ctx was expected to be %d here	%s line %d\n", $n, __FILE__, __LINE__ ); *ctx=$n;	}
 
+
 void	_set_ea(		ui64 x, char *ctx ){
     switch( *ctx ){
 	case 0:	
 	_start:			zzC=(	zC =	AvFILLp(	avICE ) )-1;		if( zC ==-1) {	a=E_=0;	AvICExt( x, pq, pk, buf, E_, avArg, a, za );
 																									RT	return;	}
-			INIT_MxRACK(64);		lo =0;	hi =	nC=zC+1;					Aº = AvARRAY( avICE );									*ctx=3;
+			ixM=0xFF;			lo =0;	hi =	nC=zC+1;					Aº = AvARRAY( avICE );									*ctx=3;
 			INIT_AvCOMMIT;				cube	=	SvPVbyte_nolen(	*	Aº );	// so, x is probably not in cube 0, but we handle it now to eliminate a special case within INTRaLOC, which is a search entrance.
 			if(				x >	*Edge(	cube	) ){							iC= hi>>1;			GS	goto	_search;
 			}else if(			x !=	*Edge(	cube	) ){									PRIMOLOC;	GL	goto	_loca;
@@ -74,8 +75,6 @@ void	_set_ea(		ui64 x, char *ctx ){
 								}
 	case 1:	if(				x !=	*Edge(	cubeΩ	) ){							++iC; *ctx=3; ReICEΩz;	GX	goto	_next_x;	}
 			if(	iC != zC )	{	/*	Op#		E []				A []			B []				RW []	O/I []		L []	*/
-
-
 	_inter:																				
 /*	=+|_	*/	if(		A[0] >1)	{Op0;	 ++	*Edge(	cubeΩ); --A[ 0 ];	   ++	B[ 255 ];
 				}else{		/*	returning to intralocal context post-op:	*/			++iC; *ctx=3;	RW[ 0 ]=mod;
@@ -91,13 +90,19 @@ void	_set_ea(		ui64 x, char *ctx ){
 					}																			RT		return;
 			}else				{Op3;	cubeΩ	=	SvPVbyte_nolen(	   *(	Aº+	iC++ ) );						_epiloc:
 /*	=+|$	*/										MxINIT;							INTERLOC_NX;
-								while( ic< zc ){			DeICE_vEI(	u, v	);	u=v++; }		MkIn;		Oª[ u ] =O [ u ];													\
+								while( ic< zc ){			DeICE_vEI(	u, v	);	u=v++; }		MkIn;		Oª[ u ] =O [ u ];
 																								Oª[ v ] =O [ u ] +L[ u ];
-			/* fallthrough 	*/		}											*ctx=2;		RW[ u ]=epi;
+			/* fallthrough 	*/		}											*ctx=2;		uMOD;
 	case 2:	/* continuing epiloc.	Op#		E []				A []			B []				RW []	O/I []		L []	*/
-#define EPIGEN_EA()	if(		x > E[ u ] ){		E[ v ] = x+1;		A[ v ]=x-E[ u ];	B[ v ]=1;		vNEW;	I[ v ]=xc;				\
-					++	xcª;						/*	EPI_EA_OVERRUN_PROTECT( u, v );*/	ReICEuOx( u, v ); u=v++;		\
-					}else if(	x ==E[ u ] ){	++	E[ u ];					  ++	B[ u];		}
+#define EPIGEN_EA()	if(		x > E[ u ] ){		E[ v ] = x+1;		A[ v ]=x-E[ u ];	B[ v ]=1;			vNEW;	I[ v ]=xc;	\
+					++	xcª;							ReICEuOx(	u, v ); 	u=v++;			\
+					    if(	xcª >=224	){				ReICEuOx(	u, v ); 							O[	v	]=oCS+CS-16;		dBUG_OVERRUN_HARD(224);	\
+						MkOutZ(0);																Oª[	v+1	]=Oª[ v ]+L[ v ];	\
+						if( bal_iC && iCI!=iC ) _sv_commit_nx();  else _sv_commit_1x();	ixM=0xFF;									\
+						if( dsc || rSeqIns[0] || rSeqCut[0] ) 	_av_commit();						*ctx=0;			RT	return;		\
+						}			\
+					}else if(	x ==E[ u ] ){	++	E[ u ];					  ++	B[ u ];		}
+
 																					EPIGEN_EA();	RT		return;
 	case 3:	/* continuing intraloc.		*/
 	_next_x:	if(				x >=	*Edge(	cube ) ){		/*	cube¹ is a lookahead for cube	*/	
@@ -118,8 +123,8 @@ void	_set_ea(		ui64 x, char *ctx ){
 						} }
 	/* search		*/	} while( 1 );					}
 				}else if(		iC != zC ){	cube¹	=	SvPVbyte_nolen(	*(	Aº+	iC+1 ) );
-	/* co-epiloc	*/	if(		x >=	*Edge(	cube¹ ) )	{	CoANTELOC();		ReINTERLOC¹;  	RUN_iC;		GC	goto	_co_epiloc;	}
-				}else _co_epiloc:	{					CoEPILOC();				*ctx=2;		RW[ u ]=epi;
+	/* co-epiloc	*/	if(		x >=	*Edge(	cube¹ ) )	{	CoANTELOC();		ReINTERLOC¹;  	RUN_iC;		GcE	goto	_co_epiloc;	}
+				}else _co_epiloc:	{					CoEPILOC();				*ctx=2;		uMOD;
 																					EPIGEN_EA();	RT			return;
 								}
 				xcª_SOFT_OVERRUN_PROTECT;			CoANTELOC();		ReINTERLOC¹;
@@ -136,9 +141,8 @@ void	_set_ea(		ui64 x, char *ctx ){
 				long long int	d =	E[ u ] -B[ u ] -x;
 /*	_+_		*/	if(		1<	d )	{Op6;		E[v]=E[u];			A[ v ] = d -1;	B[ v ] = B[ u ];		vMOD;	O[ v+1 ]=O[ v ];	
 					 ++	xcª;					E[u]=x+1;			A[ u ] -= d;	B[ u ] = 1;		uNEW;	O[ v ]=O[ u ];	I[ v ] = I[ u ];	L[ v ]=0;
-					if(	xcª >= 224 )	{	SvCOMMIT;	dBUG_OVERRUN_PROTECT;	*ctx=0;
-									if( dsc || rSeqIns[0] || rSeqCut[0] )				_av_commit();			RT			return;
-									}
+					//	xcª_HARD_OVERRUN_PROTECT_EA;
+			/*					Op#		E []				A []			B []				RW []	O/I []		L []	*/
 /*	_+=		*/	}else if(	1==d )	{Op7;					    --	A[ u ];	   ++	B[ u ];			uMOD;/* ^mono-scalar version doesn't require "O[v]=O[u]" */		/*		in fact it might be better just to add a conditional to test: " if( RW[ ixH ] >ok ) O[ ixH ]=O[ izM ]; ", retroactively updating this when necessary */
 /*	===		*/	}else			{Op8;												
 					 ++	hit;		}
@@ -147,7 +151,7 @@ void	_set_ea(		ui64 x, char *ctx ){
 /*	=+=		*/	}else			{Op5; 		E[ u ] =E[ v ];					B[ u ]+= A[v]+B[v];	uMOD;	O[ v ] =O[ v+1 ];	//	O[ v ]+=L[ v ];		/*	I[u]=I[v]; fails precursor #43	*/
 					if(	A[ v ]!=1	) ++	hit;													vNUL;	L[ v ] =L[ v+1 ];	//	I[ u ] =I[ v ];
 					--	xcª;	/*	Op#		E []				A []			B []				RW []	O/I []		L []	*/
-				}	}/*	^ Abnormal encoding: null padding at non-origin. Self-healing.	*/			CHK_CTX(3); RT	return;
+				}	}/*	^ Abnormal encoding: null padding at non-origin. Self-healing.	*/								return;
 		}
 	printf("\n!	%s: switch broken %s line %d\n", __FUNCTION__, __FILE__, __LINE__ );	*ctx=0;
 	RT	}
@@ -160,4 +164,4 @@ void	_set_all(){															dBUGavCLR	dBUGinit_mx
 							_set_ea(	x,	&ctx );
 						}	_ctx_commit(	&ctx );
 	}
-//	eddedddrdddddddddddddddweddddddd
+//	eddedddrdddddddddddddddwedddddddddddsdddddd

@@ -13,7 +13,7 @@
 void _xalloc_ea_norebal(	ui64 _0, ui64 x00, ui64 x0F, char *ctx ){	ui64 x;
 	switch( *ctx ){
 		case 0:	_start:		zzC=(	zC =	AvFILLp(	avICE ) )-1;	hi =	nC=zC+1;	Aº = AvARRAY( avICE );
-			INIT_MxRACK(64);	hit =lo =0;						/*	^ value to reset upper boundary (hi) to	*/
+			ixM=0xFF;		hit =lo =0;						/*	^ value to reset upper boundary (hi) to	*/
 			INIT_AvCOMMIT;
 			if( zC==-1){ 		x =	x00|_0;		E[ 0 ]	=	(	A[ 0 ]=x	)+(	B[ 0 ]=1	);		RW[ 0 ]=new;	RT	*ctx=2;	return;	}
 
@@ -107,7 +107,6 @@ void _xalloc_ea_norebal(	ui64 _0, ui64 x00, ui64 x0F, char *ctx ){	ui64 x;
 														else				B[u]+=B[v]-1;					RT	*ctx=3;	return;
 				}	}
 			
-
 		if(		Zu >x0F )	{	x =	x00+_0;																		dBUGvec_x( x00, 3);
 		long long int		d = Zu -	x00;	/*	inclusion operation to initialize vector field x00..x0F with value _0					*/
 /*		vector x does not exist			Op#	E []				A []			B []				RW []	O/I []		L []	*/
@@ -116,13 +115,10 @@ void _xalloc_ea_norebal(	ui64 _0, ui64 x00, ui64 x0F, char *ctx ){	ui64 x;
 /*	_+=		*/	}else if(	d==1 ){		OpV7;				    --	A[ u ];	   ++	B[ u ];			uMOD;					
 /*	===		*/	}else{ ++	hit;			OpV8;
 /*			*/		}																				RT	*ctx=3;	return;
-		}else if(	Zu==x0F){																dBUGvMax;	RT	*ctx=3;	return;	}
+		}else if(	Zu==x0F)	{																dBUGvMax;	RT	*ctx=3;	return;
+						}
 
-/*		vector x DOES exist.	.	.	*/
-/*		vector x DOES exist..	..	..	*/
-/*		vector x DOES exist...	...	...	*/
-/*		vector x DOES exist....	....	....	*/
-/*		vector x DOES exist.....	.....	.....	*/
+/*		vector x DOES exist.	*/
 		ui64							_1=_0+1;	/*	[one-based] increment is [zero-based] initial value [plus one]	*/
 		if( x00<=	Zu )	{		x = Zu +	_1;		/*	99.99%:	Zu is the current value of vector field x00..x0F		*/		dBUGvec_x( Zu,	3);
 		}else		{		x = x00+	_1;		/*	0.01%:	x00 intersects Zu..E[ u ]-1; current value is 0			*/		dBUGvec_x( x00,	3);
@@ -133,28 +129,27 @@ void _xalloc_ea_norebal(	ui64 _0, ui64 x00, ui64 x0F, char *ctx ){	ui64 x;
 								}else if(	iC!=zC )	{	ReINTERLOC;		TRACK_iC;		DeICE0_vKEI(u,v);
 								}else			{									GE			goto	_epiloc;
 							}					}
-			if(				x < E[ v ]		){		/*	normal prefix-sum structure: exactly one cyclum captured by vector field x00..x0F		*/
+			if(				x < E[ v ]		){		/*	normal structure: only one ic in vector field x00..x0F		*/
 			}else if(			x < *Edge(	cube ) ){							printf("\nextraneous cycla, but no extraneous cubes\n");
 												/*	prime the "_ablate" loop: 	*/		E[ v ]=E[ u ];
 	_ablate:		do	{	/*discard extraneous ic */		deICE_E(	cube[ ++ic ], A[v], B[v], L[v],	E[ v ] );
 					} while(	x >= E[ v ] );				K[ v ] =	cube[ ic ];								I[	v	]= ic;
 																								O[	v	]=O[ v+1]-L[ v ];
-																								O[	v+1	]=pq-cube;
+							/*	is this use of (pq) literally p,q.?	*/									O[	v+1	]=pq-cube;
 			}else  if(		iC< zzC	){		cube	=	SvPVbyte_nolen(	sv =*(++	iC +Aº ) );		printf("\n_abloc: iC< zzC\n");
 			    if(				x > *Edge(	cube ) ){	/*	x is more than two cubes up		*/		printf("\n_abloc: x is 3+ cubes up\n");
 	_v_search:	ui64					_lo =iC+1, _hi=nC;	iC= ( _lo+_hi )>>1;
 				do	{					cube	=	SvPVbyte_nolen(	sv =*(	iC +Aº ) );
-					if(		x <	*Edge(	cube ) )	{	iC=( ( _hi = iC )+_lo )>>1;	  if(	iC !=_hi )	continue;
+					if(		x <	*Edge(	cube ) )	{	iC=( ( _hi = iC )+_lo )>>1;	if(	iC !=_hi )	continue;
 						E[ v ] =	*Edge( (	cube¹	=	SvPVbyte_nolen(	*( Aº+	iC-1 )) ));	ReABLOC_nocube;
 					}else{
-						if(	x !=	*Edge(	cube ) )	{	iC=( ( _lo = iC )+_hi )>>1;	  if(	iC !=_lo )	continue;
-												}
+						if(	x !=	*Edge(	cube ) )	{	iC=( ( _lo = iC )+_hi )>>1;	  if(	iC !=_lo )	continue;						}
 						E[ v ] =	*Edge(	cube  );										ReABLOC;
 						}
 					if(	iC !=	zC){														TRACK_iC;	goto	_ablate;	}
 					else{																	GE	goto	_epiloc;	}
-
 					} while( 1 );																			dBUGvec_ABS
+
 			    }else	{	E[ v ] =	*Edge( (	cubeΩ	=	SvPVbyte_nolen(	*( Aº+	iC-1 ) ) ) );
 					}
 			}else	{	E[ v ] =	*Edge(	cube );
@@ -223,4 +218,4 @@ void	_xalloc0x7(){															dBUGavCLR	dBUGinit_mx
 
 /*	you are alive.	*/
 /*	I am alive.	*/
-/*	I am alive	*/
+/*	I am alive	*/	

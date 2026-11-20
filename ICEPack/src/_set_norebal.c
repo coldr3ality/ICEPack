@@ -15,7 +15,7 @@ void	_set_norebal(){
 	ui64						x	= ARG0;				za =	AvFILLp(	avArg);	if( za ==-1){	/*	no args */	return;	}
 	_start:			zzC=(	zC	= AvFILLp(	avICE ) )-1;					if( zC ==-1){	a=E_=0;	AvICExt( x, pq, pk, buf, E_, avArg, a, za );	return;	}
 	ui64				nC = 	zC+1,					lo=0, hi=nC;		//	if( za >=247 ){	printf("!	%s: too many arguments for non-rebalancing variant (%lld > 246 )\n", __FUNCTION__, za);	return;	}
-	INIT_MxRACK(64);		/*	^ value to reset upper boundary (hi) to	*/									
+	ixM=0xFF;			/*	^ value to reset upper boundary (hi) to	*/									
 	INIT_AvCOMMIT;						cube	=	SvPVbyte_nolen(	*Aº );	// so, x is probably not in cube 0, but we handle it now to eliminate a special case within INTRaLOC, which is a search entrance.
  if( 	/*	x not in cube 0	*/	x > *Edge(	cube	) ){							iC= hi>>1;
    do	{_search:				sv=*( Aº+	iC );	cube	=	SvPVbyte_nolen(	sv );				

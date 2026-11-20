@@ -118,7 +118,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 			rel_q,/*	relº_q,	*/	rel¹_q,	/*	relⁿ_q,		rel²_q,		relΩ_q,	*/	/*	q-data length difference		compares	pre & post op q-data totals	in	matrix { A[], B[], E[], L[] }	*/
 			rel_c, /*	relº_c,	*/	rel¹_c,		relⁿ_c,		rel²_c,		relΩ_c;		/*	cycla count difference		compares	pre & post op cyclum counts	in	matrix { A[], B[], E[], L[] }	*/
 
-#ifdef DEBUG_SvCOMMIT_L1	// ƒsub audit (brief)
+#if defined( DEBUG_SvCOMMIT_L0 ) || defined( DEBUG_SvCOMMIT_L1 ) || defined( DEBUG_SvCOMMIT_L1X )
 	subcase=0;
 	av_push( avDBUG, &PL_sv_undef );	avdbuginx_dmarkcase=AvFILLp( avDBUG );	//reserve a point in the debug output for dBUG1X3 messages
 #endif
@@ -170,7 +170,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 /*######	UPDATE ORIGINAL CUBE [iC]	######		(ƒsub 1X1)									*/
 		/*	[iC ]:		OFFSET HIGH PASSTHROUGH VIA  IN-SITU PERISTALSIS	(SHIFT THE DAMN DATA)		*/
 		if(				rel_q >0 )	{	/*	expand	*/				SvCUR_set(	svΩ, 	O[ ixM ]  	);	/* prevent copying obsolete data	*/
-			CSΩ = CS +	rel_q;							cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);				dBUG_SvGROW_MOOT_COPY( cube, cubeΩ, O[ ixM ] );
+			CSΩ = CS +	rel_q;							cubeΩ =	SvGROW(	svΩ, 	CSΩ+1);				
 									ReFLOW_DX(	cube,	cubeΩ,	rel_q, hp_q,	CSΩ,	CS,		__LINE__ );	dBUGsvCUR( svΩ, CSΩ );
 									cubeΩ[ CSΩ ]=0;				SvCUR_set(	svΩ, 	CSΩ );
 		}else if(			rel_q< 0 )	{	/*	compact	*/		
@@ -268,7 +268,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 		/*	[iC+0]:	IN-SITU Q-DATA SHIFT				(ƒsub 1X2L )									*/
 			if(		rel_q >0 )	{	/*	expand	*/	SvCUR_set(	sv0, 	O[ ixM ]  	);	/* prevent SvGROW from copying obsolete data	*/
-										cubeº =	SvGROW(	sv0, 	Oª[ ixΩ]+1);						dBUG_SvGROW_MOOT_COPY( cube, cubeº, O[ ixM ] );
+										cubeº =	SvGROW(	sv0, 	Oª[ ixΩ]+1);						
 							ReFLOW_DX(	cube,	cubeº,	rel_q, hpº_q,	Oª[ ixΩ],	O[ ixΩ],					__LINE__ );
 			}else if(	rel_q< 0 )	{	/*	compact	*/	cubeº =	cube;
 							ReFLOW_AC(	cube,	cubeº,	rel_q, hpº_q,	Oª[ ixH],	O[ ixH],					__LINE__ );
@@ -446,30 +446,27 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 */
 	else if(   	/*****	ƒsub 1X4/N	******/	tcª< 512	)		{ /* One cube splits into four plus.		*/			dBUGrackCALL(	4 );
-		int						nCª=(	tcª /7 )-3;													dBUGnCª
+		int						nCª=(	tcª /7 )-3;														dBUGnCª
 					endo_c	=	nCª *7;																	
 					exo_c	=	tcª %7;
-//		if( iCx )	{
-			switch(	exo_c ){								/*	zcⁿ=6;	*/
-	/* 6, 6; 5, 5 */	case 0:	zcº=5; zc¹=5; zc²=4; zcΩ=4;	ix¹=6;	iz¹=11;			ixⁿ=12;	izⁿ=18;		ix²=12+endo_c;	ixΩ=17+endo_c;	break;
-	/* 6, 6; 6, 5 */	case 1:	zcº=5; zc¹=5; zc²=5; zcΩ=4;	ix¹=6;	iz¹=11;			ixⁿ=12;	izⁿ=18;		ix²=12+endo_c;	ixΩ=18+endo_c;	break;
-	/* 6, 6; 6, 6 */	case 2:	zcº=5; zc¹=5; zc²=5; zcΩ=5;	ix¹=6;	iz¹=11;			ixⁿ=12;	izⁿ=18;		ix²=12+endo_c;	ixΩ=18+endo_c;	break;
-	/* 7, 6; 6, 6 */	case 3:	zcº=6; zc¹=5; zc²=5; zcΩ=5;	ix¹=7;	iz¹=12;			ixⁿ=13;	izⁿ=19;		ix²=13+endo_c;	ixΩ=19+endo_c;	break;
-	/* 7, 7; 6, 6 */	case 4:	zcº=6; zc¹=6; zc²=5; zcΩ=5;	ix¹=7;	iz¹=13;			ixⁿ=14;	izⁿ=20;		ix²=14+endo_c;	ixΩ=20+endo_c;	break;
-	/* 7, 7; 7, 6 */	case 5:	zcº=6; zc¹=6; zc²=6; zcΩ=5;	ix¹=7;	iz¹=13;			ixⁿ=14;	izⁿ=20;		ix²=14+endo_c;	ixΩ=21+endo_c;	break;
-	/* 7, 7; 7, 7 */	case 6:	zcº=6; zc¹=6; zc²=6; zcΩ=6;	ix¹=7;	iz¹=13;			ixⁿ=14;	izⁿ=20;		ix²=14+endo_c;	ixΩ=21+endo_c;	break;
-				}	izº=zcº;																				iz² =	ixΩ-1;	dBUGmx( xcª+4, ix¹, iz² );
-//		}else{
-//			switch(	exo_c ){								//	zcⁿ=-1;
-//	/* 6, 6; 5, 5 */	case 0:	zcº=5; zc¹=5; zc²=4; zcΩ=4;	ix¹=6;	iz¹= izⁿ= 11;		ixⁿ=					ix²=12;			ixΩ=17;				break;
-//	/* 6, 6; 6, 5 */	case 1:	zcº=5; zc¹=5; zc²=5; zcΩ=4;	ix¹=6;	iz¹= izⁿ= 11;		ixⁿ=					ix²=12;			ixΩ=18;				break;
-//	/* 6, 6; 6, 6 */	case 2:	zcº=5; zc¹=5; zc²=5; zcΩ=5;	ix¹=6;	iz¹= izⁿ= 11;		ixⁿ=					ix²=12;			ixΩ=18;				break;
-//	/* 7, 6; 6, 6 */	case 3:	zcº=6; zc¹=5; zc²=5; zcΩ=5;	ix¹=7;	iz¹= izⁿ= 12;		ixⁿ=					ix²=13;			ixΩ=19;				break;
-//	/* 7, 7; 6, 6 */	case 4:	zcº=6; zc¹=6; zc²=5; zcΩ=5;	ix¹=7;	iz¹= izⁿ= 13;		ixⁿ=					ix²=14;			ixΩ=20;				break;
-//	/* 7, 7; 7, 6 */	case 5:	zcº=6; zc¹=6; zc²=6; zcΩ=5;	ix¹=7;	iz¹= izⁿ= 13;		ixⁿ=					ix²=14;			ixΩ=21;				break;
-//	/* 7, 7; 7, 7 */	case 6:	zcº=6; zc¹=6; zc²=6; zcΩ=6;	ix¹=7;	iz¹= izⁿ= 13;		ixⁿ=					ix²=14;			ixΩ=21;				break;
-//				}																						iz² =	ixΩ-1;
-//			}	
+		if( ixº ) switch(	exo_c ){								/*	zcⁿ=6;	*/
+	/* 6, 6; 5, 5 */	case 0:	zcº=5; zc¹=5; zc²=4; zcΩ=4;	ix¹=ixº+6;	iz¹=ixº+11;	ixⁿ=ixº+12;	izⁿ=ixº+18;	ix²=12+ixº+endo_c;	ixΩ=17+ixº+endo_c;	break;
+	/* 6, 6; 6, 5 */	case 1:	zcº=5; zc¹=5; zc²=5; zcΩ=4;	ix¹=ixº+6;	iz¹=ixº+11;	ixⁿ=ixº+12;	izⁿ=ixº+18;	ix²=12+ixº+endo_c;	ixΩ=18+ixº+endo_c;	break;
+	/* 6, 6; 6, 6 */	case 2:	zcº=5; zc¹=5; zc²=5; zcΩ=5;	ix¹=ixº+6;	iz¹=ixº+11;	ixⁿ=ixº+12;	izⁿ=ixº+18;	ix²=12+ixº+endo_c;	ixΩ=18+ixº+endo_c;	break;
+	/* 7, 6; 6, 6 */	case 3:	zcº=6; zc¹=5; zc²=5; zcΩ=5;	ix¹=ixº+7;	iz¹=ixº+12;	ixⁿ=ixº+13;	izⁿ=ixº+19;	ix²=13+ixº+endo_c;	ixΩ=19+ixº+endo_c;	break;
+	/* 7, 7; 6, 6 */	case 4:	zcº=6; zc¹=6; zc²=5; zcΩ=5;	ix¹=ixº+7;	iz¹=ixº+13;	ixⁿ=ixº+14;	izⁿ=ixº+20;	ix²=14+ixº+endo_c;	ixΩ=20+ixº+endo_c;	break;
+	/* 7, 7; 7, 6 */	case 5:	zcº=6; zc¹=6; zc²=6; zcΩ=5;	ix¹=ixº+7;	iz¹=ixº+13;	ixⁿ=ixº+14;	izⁿ=ixº+20;	ix²=14+ixº+endo_c;	ixΩ=21+ixº+endo_c;	break;
+	/* 7, 7; 7, 7 */	case 6:	zcº=6; zc¹=6; zc²=6; zcΩ=6;	ix¹=ixº+7;	iz¹=ixº+13;	ixⁿ=ixº+14;	izⁿ=ixº+20;	ix²=14+ixº+endo_c;	ixΩ=21+ixº+endo_c;	break;
+		}else switch(	exo_c ){								/*	zcⁿ=6;	*/
+	/* 6, 6; 5, 5 */	case 0:	zcº=5; zc¹=5; zc²=4; zcΩ=4;	ix¹=6;	iz¹=11;		ixⁿ=12;		izⁿ=18;		ix²=12+endo_c;	ixΩ=17+endo_c;	break;
+	/* 6, 6; 6, 5 */	case 1:	zcº=5; zc¹=5; zc²=5; zcΩ=4;	ix¹=6;	iz¹=11;		ixⁿ=12;		izⁿ=18;		ix²=12+endo_c;	ixΩ=18+endo_c;	break;
+	/* 6, 6; 6, 6 */	case 2:	zcº=5; zc¹=5; zc²=5; zcΩ=5;	ix¹=6;	iz¹=11;		ixⁿ=12;		izⁿ=18;		ix²=12+endo_c;	ixΩ=18+endo_c;	break;
+	/* 7, 6; 6, 6 */	case 3:	zcº=6; zc¹=5; zc²=5; zcΩ=5;	ix¹=7;	iz¹=12;		ixⁿ=13;		izⁿ=19;		ix²=13+endo_c;	ixΩ=19+endo_c;	break;
+	/* 7, 7; 6, 6 */	case 4:	zcº=6; zc¹=6; zc²=5; zcΩ=5;	ix¹=7;	iz¹=13;		ixⁿ=14;		izⁿ=20;		ix²=14+endo_c;	ixΩ=20+endo_c;	break;
+	/* 7, 7; 7, 6 */	case 5:	zcº=6; zc¹=6; zc²=6; zcΩ=5;	ix¹=7;	iz¹=13;		ixⁿ=14;		izⁿ=20;		ix²=14+endo_c;	ixΩ=21+endo_c;	break;
+	/* 7, 7; 7, 7 */	case 6:	zcº=6; zc¹=6; zc²=6; zcΩ=6;	ix¹=7;	iz¹=13;		ixⁿ=14;		izⁿ=20;		ix²=14+endo_c;	ixΩ=21+endo_c;	break;
+			}									izº=ix¹-1;							iz² =	ixΩ-1;	dBUGmx( xcª+4, ix¹, iz² );
+
 
 		cubeº	= cube;
 		sv0		= *(Aº +iC );
@@ -553,7 +550,7 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 
 		cube¹[ CS¹	] = 0;	AvPOST( iC, sv¹ );
 
-		/*	[iC+X]:	SUBCASE 1X4X:	NEW CUBE X AS MODS 										*/
+		/*	[iC+X]:	SUBCASE 1X4X:	NEW CUBE X AS MODS 										*/	dBUG_1X4;
 		if( nCª){		
 		  do	{		_ixⁿ = ixⁿ+7;
 										CSⁿ = 16 +Oª[ _ixⁿ ] - Oª[ ixⁿ ];									dBUGsvCUR( svⁿ, CSⁿ );
@@ -567,12 +564,12 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 							}	/*	^re-pack modified q-data vectors ixⁿ..izⁿ to cubeⁿ[ 16..16+postⁿ_q-1 ]  	*/
 			ixⁿ+=7;	izⁿ+=7;
 			cubeⁿ[	CSⁿ		] = 0;	AvPOST( iC, svⁿ );
-			} while( --nCª );
+			} while( --	nCª );
 			}
 
 		cube²[		CS²		] = 0;	AvPOST( iC, sv² );
 		cubeΩ[		CSΩ	] = 0;	AvPOST( iC, svΩ );														
-																									dBUG_1X4;
+																									
 		}
 	else	{	cS = 	sprintf(	aString,		lightning );
 			cS +=	sprintf(	aString +cS,	"\n	%s: ( tc\xA6: %d) overruns vector map!  Cannot commit changes!\n\n", __FUNCTION__, tcª );
@@ -582,4 +579,4 @@ void _sv_commit_1x( ){	//printf("\n_sv_commit_1x()\n");
 //	if( xcª -ixº <1 ||trace){ trace=1;	printf( "\r	%s() exit	%s line %d\n", __FUNCTION__, __FILE__, __LINE__ ); }
 	}
 
-/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***	***	***	**/
+/* **	***	***	MEXICAN FIESTA	***	***	***	***	*** 	***	***	***	***	***	***	***	***	***	***/
